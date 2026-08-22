@@ -137,7 +137,7 @@ export const FSC_ACT_ARTICLE_38_CLAUSES = [
   {
     clause: 3,
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제3호',
-    text: '보험회사',
+    text: '「보험업법」에 따른 보험회사',
     verified: true,
   },
   {
@@ -198,29 +198,46 @@ export const FSC_ACT_ARTICLE_38_UNVERIFIED_CLAUSES = FSC_ACT_ARTICLE_38_CLAUSES.
  * 호수 단위가 아니라 사용자가 자기 거래처를 알아볼 수 있는 업권 단위로 쪼갠다.
  * 확인된 항목에만 근거 호수(clause/basis)를 붙인다.
  */
+/**
+ * /diagnose 기관 선택용 — **업권 단위** 옵션.
+ * 호수 단위가 아니라 사용자가 자기 거래처를 알아볼 수 있는 업권 단위로 쪼갠다.
+ *
+ * clauseNo / basis 는 **확인된 항목에만** 붙인다.
+ * verified: false 인 항목은 UI에서 정상 표시하되 **근거 조문 배지만 숨긴다.**
+ */
 export const INSTITUTION_SECTORS = [
-  { id: 'bank', label: '은행', clause: 1, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제1호' },
-  { id: 'investment', label: '금융투자업자 (증권·자산운용 등)', clause: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호' },
-  { id: 'securityFinance', label: '증권금융회사', clause: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호' },
-  { id: 'merchantBank', label: '종합금융회사', clause: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호' },
-  { id: 'transferAgent', label: '명의개서대행회사', clause: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호' },
-  { id: 'insurance', label: '보험회사', clause: 3, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제3호' },
-  { id: 'creditFinance', label: '여신전문금융회사 (카드사·캐피탈·리스 등)', clause: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호' },
-  { id: 'concurrentCredit', label: '겸영여신업자', clause: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호' },
-  { id: 'nonghyupBank', label: '농협은행', clause: 7, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제7호' },
-  { id: 'suhyupBank', label: '수협은행', clause: 8, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제8호' },
+  { id: 'bank', label: '은행', clauseNo: 1, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제1호', verified: true },
+  { id: 'investment', label: '금융투자업자 (증권·자산운용 등)', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
+  { id: 'securityFinance', label: '증권금융회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
+  { id: 'merchantBank', label: '종합금융회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
+  { id: 'transferAgent', label: '명의개서대행회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
+  { id: 'insurance', label: '보험회사', clauseNo: 3, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제3호', verified: true },
+  { id: 'creditFinance', label: '여신전문금융회사 (카드사·캐피탈·리스 등)', clauseNo: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호', verified: true },
+  { id: 'concurrentCredit', label: '겸영여신업자', clauseNo: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호', verified: true },
+  { id: 'nonghyupBank', label: '농협은행', clauseNo: 7, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제7호', verified: true },
+  { id: 'suhyupBank', label: '수협은행', clauseNo: 8, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제8호', verified: true },
+  /**
+   * ⚠️ TODO-1-partial — 제4호·제5호 문구가 미확인이므로 근거 호수를 붙이지 않는다.
+   * 저축은행·상호금융이 금융감독원 검사대상기관이라는 점 자체는 다툼이 없으므로
+   * 선택지로는 노출하되, clauseNo/basis 는 null 로 두고 UI에서 조문 배지를 숨긴다.
+   * 4·5호 원문이 확인되면 그때 근거를 붙인다. 추측해서 채우지 말 것.
+   */
+  { id: 'savingsBank', label: '상호저축은행', clauseNo: null, basis: null, verified: false },
+  { id: 'mutualCredit', label: '신용협동조합·상호금융', clauseNo: null, basis: null, verified: false },
   {
     id: 'fssExamined',
     label: '그 밖에 금융감독원 검사 대상 기관',
-    clause: 9,
+    clauseNo: 9,
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제9호',
+    verified: true,
     catchAll: true,
   },
   {
     id: 'decreeDesignated',
     label: '그 밖에 금융업·금융 관련 업무를 하는 자로서 대통령령으로 정하는 자',
-    clause: 10,
+    clauseNo: 10,
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제10호',
+    verified: true,
     catchAll: true,
   },
 ]
@@ -234,8 +251,9 @@ export const INSTITUTION_SECTORS = [
 export const INSTITUTION_OTHER_OPTION = {
   id: 'other',
   label: '목록에 없음 / 직접 입력',
-  clause: null,
+  clauseNo: null,
   basis: null,
+  verified: false,
   statutory: false,
   uiNote:
     '「금융위원회의 설치 등에 관한 법률」 제38조 제4호·제5호가 아직 확인되지 않았습니다. ' +
@@ -648,38 +666,272 @@ export const FORM_REQUEST_ITEMS = [
 ]
 
 /**
+ * 기초정보 5분류 — 서식 2 [섹션 2] "구 분" 행 (5종 고정)
+ * 명세: docs/law/form-spec-2.md §[섹션 2]
+ *
+ * 이 5분류는 시행령 제31조의2 제8항 제2호가 언급하는
+ * "신용거래 판단정보, 신용도 판단정보, 신용거래능력 판단정보 등"과 대응한다.
+ * R2(주요 기준 설명)에서 받게 될 답변의 분류 체계와 같으므로 두 화면의 분류를 일치시킨다.
+ */
+export const BASE_INFO_CATEGORIES = [
+  { id: 'identity', label: '식별정보' },
+  { id: 'transaction', label: '거래내용 판단정보' },
+  { id: 'creditworthiness', label: '신용도 판단정보' },
+  { id: 'capacity', label: '신용거래능력 판단정보' },
+  { id: 'other', label: '기타 정보' },
+]
+
+/**
+ * ★★ 정정 요청 상대방 라우팅 규칙 — 이 서비스의 실질 가치.
+ * 근거: 서식 2 [섹션 1] 제도 안내문 (고정 문구)
+ *
+ * 정정 대상 정보의 **출처**에 따라 요청 상대방이 달라진다.
+ * 사용자는 이 판단을 스스로 할 수 없으므로 서비스가 분기를 물어봐야 한다.
+ *
+ * unknown 분기에서는 **서식 1(R2)이 서식 2의 선행 단계가 된다.**
+ * steps 배열이 "먼저 A, 답변 후 B" 순서를 데이터로 표현한다.
+ */
+export const CORRECTION_ROUTING = {
+  basis: '고시 서식 「기초정보 정정·삭제 및 자동화평가 재산출 요청서」 [섹션 1]',
+  /** 원문. 문구 수정 금지. */
+  ruleText:
+    '다만 해당 기초정보가 당사가 직접 수집한 정보가 아니라 신용정보집중기관 또는 ' +
+    '개인신용평가회사, 개인사업자신용평가회사 또는 기업신용조회회사로부터 수집한 ' +
+    '타 금융회사의 정보인 경우에는 해당 금융회사에 정정·삭제를 요청하여야 합니다.',
+  question: '정정하려는 정보는 어디에서 만들어진 것인가요?',
+  branches: [
+    {
+      id: 'own',
+      label: '이 회사와의 거래에서 발생한 정보',
+      /** 지금 상대하고 있는 그 금융회사 */
+      submitTo: 'thisInstitution',
+      submitToLabel: '이 회사에 제출',
+      requiresPrecedingStep: false,
+      steps: [
+        {
+          order: 1,
+          formId: 'correctionRequest',
+          rights: ['R3', 'R4', 'R5'],
+          description: '이 회사에 서식 2를 제출한다.',
+        },
+      ],
+    },
+    {
+      id: 'other',
+      label: '다른 금융회사와의 거래에서 발생한 정보',
+      /** 정보가 발생한 원 금융회사 */
+      submitTo: 'originatingInstitution',
+      submitToLabel: '정보가 발생한 그 금융회사에 제출',
+      requiresPrecedingStep: false,
+      note:
+        '지금 거절한 회사가 아니라, 그 정보가 만들어진 금융회사에 제출해야 한다. ' +
+        '상대를 잘못 고르면 요청이 반려된다.',
+      steps: [
+        {
+          order: 1,
+          formId: 'correctionRequest',
+          rights: ['R3', 'R4', 'R5'],
+          description: '정보가 발생한 금융회사에 서식 2를 제출한다.',
+        },
+      ],
+    },
+    {
+      id: 'unknown',
+      label: '출처를 모르겠다',
+      submitTo: null,
+      submitToLabel: '먼저 출처를 확인해야 한다',
+      /** ★ 서식 1이 서식 2의 선행 단계가 되는 경로 */
+      requiresPrecedingStep: true,
+      steps: [
+        {
+          order: 1,
+          formId: 'explanationRequest',
+          rights: ['R2'],
+          /** 서식 1의 ③ 기초정보의 개요 항목만 선택하면 된다 */
+          requestItemIds: ['baseInfo'],
+          description:
+            '먼저 서식 1로 기초정보의 개요 설명을 요구해 그 정보의 출처를 확인한다.',
+        },
+        {
+          order: 2,
+          formId: 'correctionRequest',
+          rights: ['R3', 'R4', 'R5'],
+          dependsOnStep: 1,
+          description:
+            '답변으로 출처가 확인되면 own / other 중 어느 쪽인지 다시 판단해 서식 2를 제출한다.',
+        },
+      ],
+    },
+  ],
+}
+
+export const CORRECTION_ROUTING_BY_ID = Object.fromEntries(
+  CORRECTION_ROUTING.branches.map((b) => [b.id, b]),
+)
+
+/**
  * 서식 2 — 「기초정보 정정·삭제 및 자동화평가 재산출 요청서」
  * 대응 권리: R3, R4, R5 (법 제36조의2 제2항)
+ * 명세: docs/law/form-spec-2.md
  *
- * 시행령 제31조의2 제6항이 법 제36조의2 **제1항 및 제2항**의 권리를 모두
- * 고시 서식 대상으로 규정하므로, 제2항 권리를 자체 양식으로 제출하면 요건 미충족이다.
- * → 자체 문서 대안은 채택하지 않는다. 서식 2 실물을 확보해서 넣는다.
+ * ★ **서식 2 한 장이 제2항 권리 3종을 모두 담는다.** 서식을 3개 만들지 않는다.
+ *   섹션 단위 on/off 로 어떤 권리를 행사할지 정한다.
+ *   서식 [섹션 3]에 "해당 사항이 없는 경우 본란 삭제"가 명시되어 있으므로
+ *   섹션을 켜고 끄는 UI는 서식의 취지에 부합한다.
  *
- * ⚠️ TODO-4 — 서식 2의 실물(필드 구조·문구)은 아직 미확보다. 실물 전달 예정.
- * 복수 저축은행(스타·유안타·동양 등)이 두 서식을 함께 비치하고 있음은 확인됐으나,
- * 근거 조문과 필드 구조는 확인되지 않았다.
- *
- * → fields 를 추측해서 채우지 않는다. 확보 전까지 available: false 로 둔다.
- * → 단, /strategy 의 전략 산출 자체는 막지 않는다.
- *   전략을 뽑은 뒤 "이 내용을 담을 서식 준비 중" 상태로 표시한다.
+ * 시행령 제31조의2 제6항이 법 제36조의2 제1항 및 제2항의 권리를 모두
+ * 고시 서식 대상으로 규정하므로, 자체 양식 대안은 여전히 성립하지 않는다.
  */
 export const FORM_CORRECTION_REQUEST = {
   id: 'correctionRequest',
-  title: '기초정보 정정·삭제 및 자동화평가 재산출 요청서',
+  title: '기초정보 정정ㆍ삭제 및 자동화평가 재산출 요청서',
   subtitle: null,
-  basis: null, // TODO-4: 근거 조문 미확인
+  basis: '신용정보법 시행령 제31조의2 제6항 (금융위원회가 정하여 고시하는 서식)',
   coveredRights: ['R3', 'R4', 'R5'],
-  available: false,
-  /** TODO-4: 실물 서식 확보 전까지 비워둔다. 필드 구조를 추측하지 말 것. */
-  fields: [],
-  /** 서식이 없어도 /strategy 의 전략 산출은 막지 않는다 */
-  blocksStrategy: false,
-  pendingNote: '이 내용을 담을 서식 준비 중입니다.',
-  /** 자체 양식 대체가 불가한 이유 (시행령 제31조의2 제6항) */
+  available: true,
+  /** 한 장으로 R3+R4+R5 를 모두 처리한다 */
+  singleSheet: true,
+
+  /**
+   * ⚠️ 출처 주의 — 이 명세는 HB저축은행 공개본 기준이다.
+   * 금융위 고시 별지 서식의 정본과 기관별 변형본 사이에 차이가 있을 수 있으나,
+   * 복수 기관이 동일한 명칭·구조로 비치하고 있어 실무 표준으로 취급한다.
+   */
+  source: 'HB저축은행 공개본 (고객용)',
+  sourceCaveat:
+    '금융위 고시 별지 서식의 정본과 기관별 변형본 사이에 차이가 있을 수 있다. ' +
+    '복수 기관이 동일한 명칭·구조로 비치하고 있어 실무 표준으로 취급한다.',
+
+  /** 서식 1과의 차이 — 개인정보 최소화 (docs/law/form-spec-2.md §서식 1과의 차이) */
+  collectsResidentNumber: false,
+  hasCreditInfoConsent: false,
+  /** 인적사항은 성명만 (서식 1과 달리 주민등록번호·연락처 칸이 없다) */
+  applicantFields: [{ id: 'applicantName', label: '신청자 성명', type: 'text', required: true }],
+
+  sections: [
+    {
+      id: 's1',
+      order: 1,
+      title: '제도 안내',
+      /** 고정 문구. 사용자 입력 없음. 문구 수정 금지. */
+      fixed: true,
+      verbatim: true,
+      toggleable: false,
+      right: null,
+      basis: null,
+      summary: [
+        '금융회사는 고객 요청에 따라 자동화평가 결과, 주요 기준, 기초정보의 개요를 설명한다.',
+        '기초정보가 정확하지 않은 경우 정정·삭제 및 수정된 정보를 활용한 재산출을 요청할 수 있다.',
+      ],
+      /** 이 섹션이 CORRECTION_ROUTING 의 근거 조항이다 */
+      routingRuleRef: 'CORRECTION_ROUTING',
+      /**
+       * 원문의 "저축은행" 표현은 **기관 중립적으로 치환**해서 렌더링한다.
+       * 치환은 기관명 한정이고 나머지 문구는 수정하지 않는다.
+       */
+      neutralizeInstitutionName: true,
+    },
+    {
+      id: 's2',
+      order: 2,
+      title: '기초정보 정정·삭제 요구',
+      right: 'R4',
+      basis: '법 제36조의2 제2항 제2호 가목',
+      toggleable: true,
+      /** 리드 문장. 밑줄이 사용자 입력(신청자 성명). 문구 수정 금지. */
+      leadText:
+        '______(신청자 성명)______ 은(는) 기초정보 정정·삭제 및 자동화평가 결과 재산출과 ' +
+        '관련하여 귀 사의 상기 설명을 읽고 이해하였으며, 회사가 보유하고 있는 본인의 ' +
+        '기초정보 중 정확하지 않거나 최신의 정보가 아닌 내용이 있어 아래와 같이 정정 및 ' +
+        '삭제를 요구합니다.',
+      table: {
+        columns: [
+          { id: 'category', label: '구 분' },
+          { id: 'current', label: '현행 정보' },
+          { id: 'correction', label: '정정 또는 삭제 내용' },
+        ],
+        /** "구 분" 행은 5종 고정. 해당 없는 분류는 비워둔다. */
+        rowsRef: 'BASE_INFO_CATEGORIES',
+        rowsOptional: true,
+      },
+    },
+    {
+      id: 's3',
+      order: 3,
+      title: '유리한 정보 제출',
+      right: 'R3',
+      basis: '법 제36조의2 제2항 제1호',
+      toggleable: true,
+      /** 헤더 고정 문구. 문구 수정 금지. */
+      headerText:
+        '자동화평가 결과의 산출에 유리하다고 판단되는 정보를 다음과 같이 제출합니다.',
+      headerNote: '(해당 사항이 없는 경우 본란 삭제)',
+      table: {
+        columns: [
+          { id: 'infoName', label: '정보명' },
+          { id: 'detail', label: '세부 내용' },
+        ],
+        /** 서식에 실린 예시 행. R3의 성격(비금융 정보로 신용 보강)을 규정한다. */
+        example: {
+          infoName: '건강보험 납부실적',
+          detail: "'xx년 x월 x일 ~ '◊◊년 ◊월 ◊일까지 연체없이 납부",
+        },
+      },
+      /** /strategy 의 LLM 출력이 이 섹션으로 흘러 들어간다 */
+      filledBy: 'strategy',
+    },
+    {
+      id: 's4',
+      order: 4,
+      title: '재산출 요구',
+      right: 'R5',
+      basis: '법 제36조의2 제2항 제2호 나목',
+      toggleable: true,
+      /** 고정 문구. 사용자 입력 없음. 체크 여부만 결정. */
+      fixedText:
+        '상기 오류정보를 정정 또는 삭제하고 수정된 정보를 활용하여 ' +
+        '본인에 대한 개인신용평가 결과를 재산출하여 줄 것을 요구합니다.',
+      userInput: false,
+      /**
+       * 섹션 4는 섹션 2에 의존한다.
+       * 정정할 내용이 없으면 재산출 요구도 성립하지 않는다.
+       */
+      dependsOn: {
+        sectionId: 's2',
+        condition: 'nonEmpty',
+        message: '정정·삭제할 기초정보를 먼저 입력해야 재산출을 요구할 수 있습니다.',
+      },
+    },
+  ],
+
+  /** 붙임 — 파일 첨부가 아니라 "무엇을 함께 내야 하는지" 안내로 처리한다 */
+  attachment: {
+    label: '붙임 : 증빙자료',
+    guidanceOnly: true,
+    rationale:
+      '법 제36조의2 제2항 제2호의 전제가 "정확하지 아니하거나 최신의 정보가 아니라고 ' +
+      '판단되는 경우"이므로, 그 판단의 근거 자료를 붙이는 것이 실효성을 높인다.',
+  },
+
+  /** 서명란 — 날짜는 자동 채움 가능, 서명은 반드시 공란 */
+  signature: { dateAutoFill: true, signatureBlank: true },
+
+  /** 자체 양식 대체가 불가한 이유 (시행령 제31조의2 제6항) — 서식 확보 후에도 유효 */
   noSubstituteReason:
     '시행령 제31조의2 제6항은 법 제36조의2 제1항 및 제2항의 권리를 모두 ' +
     '금융위원회가 정하여 고시하는 서식에 따라 행사하도록 규정하므로, ' +
     '자체 양식으로는 요건을 충족하지 못한다.',
 }
 
+/** 권리 id → 해당 권리를 담는 서식 */
+export const FORM_BY_RIGHT = {
+  R1: FORM_EXPLANATION_REQUEST.id,
+  R2: FORM_EXPLANATION_REQUEST.id,
+  R3: FORM_CORRECTION_REQUEST.id,
+  R4: FORM_CORRECTION_REQUEST.id,
+  R5: FORM_CORRECTION_REQUEST.id,
+}
+
 export const FORMS = [FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST]
+
+export const FORMS_BY_ID = Object.fromEntries(FORMS.map((f) => [f.id, f]))
