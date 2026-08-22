@@ -130,7 +130,9 @@ LLM이 법조문을 지어내는 순간 이 서비스는 신뢰를 잃는다.
 - AI 호출: Vercel Serverless Function `/api/analyze`로 프록시.
   **ANTHROPIC_API_KEY는 서버 환경변수로만 접근한다. 클라이언트 번들에 절대 포함하지 않는다.**
   (`VITE_` 접두사 환경변수는 번들에 노출되므로 API 키에 사용 금지)
-- 모델: claude-sonnet-4-6
+- 모델: claude-sonnet-5
+  (AI 역할이 "사용자 서술 → 법적 문장 변환"에 한정되므로 Sonnet으로 충분하고,
+   심사기간 2026-09-07~09-11 동안 URL이 살아있어야 하므로 API 비용을 낮게 유지한다.)
 - 배포: Vercel
 - 상태관리: React state만. 외부 상태 라이브러리 없음.
 

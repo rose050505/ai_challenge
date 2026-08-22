@@ -65,14 +65,185 @@ export const DEFINITION_EVALUATOR = {
     '신용정보제공·이용자',
 }
 
-/**
- * ⚠️ TODO-1 — 금융위원회법 제38조 각 호의 기관 목록.
+/* ------------------------------------------------------------
+ * 1-2. 권리 행사의 상대방 — 2계층 구조
  *
- * docs/law/law-reference.md 에 목록 원문이 없다(미확인).
- * 원문 확인 전까지 기관 선택지를 임의로 나열하지 않는다.
- * → 확인 후 이 배열을 채운다. 그 전까지 /diagnose 2단계는 자유 입력으로 처리한다.
+ * 법 제36조의2 제1항의 "개인신용평가회사등"은 두 종류다.
+ *   (A) 개인신용평가회사(CB사)
+ *       → 법 조문에 직접 명시. 금융위원회법 제38조 목록과 무관하게 언제나 상대방이 된다.
+ *   (B) 대통령령으로 정하는 신용정보제공·이용자 (금융회사)
+ *       → 시행령 제31조의2제1항 → 「금융위원회의 설치 등에 관한 법률」 제38조 각 호
+ *
+ * ★ 대출 거절 시 사용자는 (A)와 (B) **양쪽에 각각** 권리를 행사할 수 있다.
+ *   이것이 진단 로직의 핵심 분기다. 두 계층을 절대 하나로 합치지 않는다.
+ * ------------------------------------------------------------ */
+
+export const COUNTERPARTY_TYPES = [
+  {
+    id: 'CB',
+    label: '개인신용평가회사 (CB사)',
+    // 근거: 법 제36조의2 제1항 — 조문에 직접 명시된 상대방
+    basis: '법 제36조의2 제1항',
+    basisChain: '법 제36조의2 제1항 (조문에 직접 명시)',
+    description:
+      '개인신용평가를 수행하는 회사. 법 조문이 직접 명시하고 있으므로 ' +
+      '「금융위원회의 설치 등에 관한 법률」 제38조 각 호 목록과 무관하게 상대방이 된다.',
+    /** 기관 목록 조회가 필요 없다 (조문상 상대방이 확정) */
+    requiresInstitutionLookup: false,
+  },
+  {
+    id: 'FI',
+    label: '금융회사 (대통령령으로 정하는 신용정보제공·이용자)',
+    // 근거: 법 제36조의2 제1항 → 시행령 제31조의2 제1항 → 금융위원회법 제38조 각 호
+    basis: '법 제36조의2 제1항, 시행령 제31조의2 제1항',
+    basisChain:
+      '법 제36조의2 제1항 → 시행령 제31조의2 제1항 → ' +
+      '「금융위원회의 설치 등에 관한 법률」 제38조 각 호',
+    description:
+      '대출·카드 등 금융거래를 심사한 금융회사. 해당 기관이 금융위원회법 제38조 각 호에 ' +
+      '해당해야 상대방이 된다.',
+    /** FSC_ACT_ARTICLE_38_CLAUSES / INSTITUTION_SECTORS 로 해당 여부를 확인해야 한다 */
+    requiresInstitutionLookup: true,
+  },
+]
+
+export const COUNTERPARTY_TYPES_BY_ID = Object.fromEntries(
+  COUNTERPARTY_TYPES.map((c) => [c.id, c]),
+)
+
+/**
+ * 「금융위원회의 설치 등에 관한 법률」 제38조 각 호 — 법 원문 계층.
+ * 시행령 제31조의2제1항이 이 목록을 그대로 인용한다.
+ *
+ * ⚠️ TODO-1-partial — **제4호·제5호는 확인되지 않았다.**
+ * text: null 인 슬롯은 추측해서 채우지 않는다. 원문 확인 후에만 채운다.
+ * 미확인분은 INSTITUTION_OTHER_OPTION("목록에 없음 / 직접 입력")이 흡수한다.
  */
-export const COVERED_INSTITUTIONS = []
+export const FSC_ACT_ARTICLE_38_CLAUSES = [
+  {
+    clause: 1,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제1호',
+    text: '「은행법」에 따른 인가를 받아 설립된 은행',
+    verified: true,
+  },
+  {
+    clause: 2,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호',
+    text:
+      '「자본시장과 금융투자업에 관한 법률」에 따른 금융투자업자, 증권금융회사, ' +
+      '종합금융회사 및 명의개서대행회사',
+    verified: true,
+  },
+  {
+    clause: 3,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제3호',
+    text: '보험회사',
+    verified: true,
+  },
+  {
+    // ⚠️ TODO-1-partial: 제4호 원문 미확인. 추측 금지.
+    clause: 4,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제4호',
+    text: null,
+    verified: false,
+  },
+  {
+    // ⚠️ TODO-1-partial: 제5호 원문 미확인. 추측 금지.
+    clause: 5,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제5호',
+    text: null,
+    verified: false,
+  },
+  {
+    clause: 6,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호',
+    text: '「여신전문금융업법」에 따른 여신전문금융회사 및 겸영여신업자',
+    verified: true,
+  },
+  {
+    clause: 7,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제7호',
+    text: '「농업협동조합법」에 따른 농협은행',
+    verified: true,
+  },
+  {
+    clause: 8,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제8호',
+    text: '「수산업협동조합법」에 따른 수협은행',
+    verified: true,
+  },
+  {
+    clause: 9,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제9호',
+    text: '다른 법령에서 금융감독원이 검사를 하도록 규정한 기관',
+    verified: true,
+    catchAll: true,
+  },
+  {
+    clause: 10,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제10호',
+    text: '그 밖에 금융업 및 금융 관련 업무를 하는 자로서 대통령령으로 정하는 자',
+    verified: true,
+    catchAll: true,
+  },
+]
+
+/** 제4·5호가 미확인 상태인지 여부. UI가 "직접 입력" 안내를 띄울지 판단하는 데 쓴다. */
+export const FSC_ACT_ARTICLE_38_UNVERIFIED_CLAUSES = FSC_ACT_ARTICLE_38_CLAUSES.filter(
+  (c) => !c.verified,
+).map((c) => c.clause)
+
+/**
+ * /diagnose 2단계 기관 선택용 — **업권 단위** 옵션.
+ * 호수 단위가 아니라 사용자가 자기 거래처를 알아볼 수 있는 업권 단위로 쪼갠다.
+ * 확인된 항목에만 근거 호수(clause/basis)를 붙인다.
+ */
+export const INSTITUTION_SECTORS = [
+  { id: 'bank', label: '은행', clause: 1, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제1호' },
+  { id: 'investment', label: '금융투자업자 (증권·자산운용 등)', clause: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호' },
+  { id: 'securityFinance', label: '증권금융회사', clause: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호' },
+  { id: 'merchantBank', label: '종합금융회사', clause: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호' },
+  { id: 'transferAgent', label: '명의개서대행회사', clause: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호' },
+  { id: 'insurance', label: '보험회사', clause: 3, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제3호' },
+  { id: 'creditFinance', label: '여신전문금융회사 (카드사·캐피탈·리스 등)', clause: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호' },
+  { id: 'concurrentCredit', label: '겸영여신업자', clause: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호' },
+  { id: 'nonghyupBank', label: '농협은행', clause: 7, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제7호' },
+  { id: 'suhyupBank', label: '수협은행', clause: 8, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제8호' },
+  {
+    id: 'fssExamined',
+    label: '그 밖에 금융감독원 검사 대상 기관',
+    clause: 9,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제9호',
+    catchAll: true,
+  },
+  {
+    id: 'decreeDesignated',
+    label: '그 밖에 금융업·금융 관련 업무를 하는 자로서 대통령령으로 정하는 자',
+    clause: 10,
+    basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제10호',
+    catchAll: true,
+  },
+]
+
+/**
+ * 드롭다운 마지막에 **반드시** 둔다.
+ * 미확인 제4·5호에 해당하는 기관을 포함해, 목록에서 찾지 못한 기관을 흡수한다.
+ * (어떤 업권이 4·5호인지 추정하지 않는다.)
+ * 법령 항목이 아니므로 근거 호수를 붙이지 않는다.
+ */
+export const INSTITUTION_OTHER_OPTION = {
+  id: 'other',
+  label: '목록에 없음 / 직접 입력',
+  clause: null,
+  basis: null,
+  statutory: false,
+  uiNote:
+    '「금융위원회의 설치 등에 관한 법률」 제38조 제4호·제5호가 아직 확인되지 않았습니다. ' +
+    '목록에서 찾지 못한 기관은 여기에 직접 입력하세요.',
+}
+
+/** 드롭다운에 그대로 넣을 수 있는 최종 옵션 목록 */
+export const INSTITUTION_OPTIONS = [...INSTITUTION_SECTORS, INSTITUTION_OTHER_OPTION]
 
 /* ============================================================
  * 2. 권리 5종 (R1 ~ R5)
@@ -82,6 +253,8 @@ export const COVERED_INSTITUTIONS = []
 export const RIGHTS = [
   {
     id: 'R1',
+    /** 상대방 2계층: (A) CB사 / (B) 금융회사 — 양쪽에 각각 행사 가능 */
+    counterparties: ['CB', 'FI'],
     // 근거: 법 제36조의2 제1항 제1호
     label: '자동화평가 실시 여부 설명 요구',
     basis: '법 제36조의2 제1항 제1호',
@@ -106,6 +279,8 @@ export const RIGHTS = [
         basis: '법 제36조의2 제1항 제1호 나목',
         text: '대통령령으로 정하는 금융거래의 설정 및 유지 여부, 내용의 결정',
         note: '대통령령으로 정하는 신용정보제공·이용자에 한정된다.',
+        /** 이 대상 행위만 상대방이 (B) 금융회사로 한정된다 */
+        counterpartyRestriction: ['FI'],
       },
       {
         // 법 제36조의2 제1항 제1호 다목 + 시행령 제31조의2 제4항
@@ -121,6 +296,8 @@ export const RIGHTS = [
   },
   {
     id: 'R2',
+    /** 상대방 2계층: (A) CB사 / (B) 금융회사 — 양쪽에 각각 행사 가능 */
+    counterparties: ['CB', 'FI'],
     // 근거: 법 제36조의2 제1항 제2호
     label: '자동화평가 내용 설명 요구',
     basis: '법 제36조의2 제1항 제2호',
@@ -149,6 +326,8 @@ export const RIGHTS = [
   },
   {
     id: 'R3',
+    /** 상대방 2계층: (A) CB사 / (B) 금융회사 — 양쪽에 각각 행사 가능 */
+    counterparties: ['CB', 'FI'],
     // 근거: 법 제36조의2 제2항 제1호
     label: '유리한 정보의 제출',
     basis: '법 제36조의2 제2항 제1호',
@@ -161,6 +340,8 @@ export const RIGHTS = [
   },
   {
     id: 'R4',
+    /** 상대방 2계층: (A) CB사 / (B) 금융회사 — 양쪽에 각각 행사 가능 */
+    counterparties: ['CB', 'FI'],
     // 근거: 법 제36조의2 제2항 제2호 가목
     label: '기초정보의 정정·삭제 요구',
     basis: '법 제36조의2 제2항 제2호 가목',
@@ -172,6 +353,8 @@ export const RIGHTS = [
   },
   {
     id: 'R5',
+    /** 상대방 2계층: (A) CB사 / (B) 금융회사 — 양쪽에 각각 행사 가능 */
+    counterparties: ['CB', 'FI'],
     // 근거: 법 제36조의2 제2항 제2호 나목
     label: '자동화평가 결과의 재산출 요구',
     basis: '법 제36조의2 제2항 제2호 나목',
@@ -207,6 +390,8 @@ export const REFUSAL_GROUNDS = [
     id: 'D1',
     source: 'act', // 법
     basis: '법 제36조의2 제3항 제1호',
+    /** 근거 체인 — 화면에 위임 경로까지 표시한다 */
+    basisChain: '법 제36조의2 제3항 제1호',
     text:
       '이 법 또는 다른 법률에 특별한 규정이 있거나 법령상 의무를 준수하기 위하여 불가피한 경우',
     description:
@@ -216,6 +401,8 @@ export const REFUSAL_GROUNDS = [
     id: 'D2',
     source: 'act', // 법
     basis: '법 제36조의2 제3항 제2호',
+    /** 근거 체인 — 화면에 위임 경로까지 표시한다 */
+    basisChain: '법 제36조의2 제3항 제2호',
     text:
       '해당 신용정보주체의 요구에 따르게 되면 금융거래 등 상거래관계의 설정 및 유지 등이 곤란한 경우',
     description:
@@ -225,6 +412,8 @@ export const REFUSAL_GROUNDS = [
     id: 'D3',
     source: 'decree', // 시행령 (법 제3항 제3호의 구체화)
     basis: '시행령 제31조의2 제5항 제1호 (법 제36조의2 제3항 제3호의 구체화)',
+    /** 근거 체인 — 위임 경로를 그대로 화면에 드러낸다 */
+    basisChain: '법 제36조의2 제3항 제3호 → 시행령 제31조의2 제5항 제1호',
     text: '개인인 신용정보주체가 정정 또는 삭제 요청한 내용이 사실과 다른 경우',
     description:
       '정정·삭제를 요청한 내용 자체가 사실과 다르면 사업자가 요구를 거절할 수 있습니다.',
@@ -233,6 +422,8 @@ export const REFUSAL_GROUNDS = [
     id: 'D4',
     source: 'decree', // 시행령 (법 제3항 제3호의 구체화)
     basis: '시행령 제31조의2 제5항 제2호 (법 제36조의2 제3항 제3호의 구체화)',
+    /** 근거 체인 — 위임 경로를 그대로 화면에 드러낸다 */
+    basisChain: '법 제36조의2 제3항 제3호 → 시행령 제31조의2 제5항 제2호',
     text:
       '정당한 사유 없이 동일한 금융거래 등에 대해 3회 이상 반복적으로 ' +
       '법 제36조의2 제1항 및 제2항에 따른 권리를 행사하는 경우',
@@ -262,8 +453,12 @@ export const REFUSAL_NOTICE_DUTY = {
 
 /**
  * 시행령 제31조의2 제6항:
- *   개인인 신용정보주체는 서면, 전자우편, 인터넷 홈페이지 또는 어플리케이션 등을 통해
- *   금융위원회가 정하여 고시하는 서식에 따라 권리를 행사해야 한다.
+ *   개인인 신용정보주체는 법 제36조의2 제1항 및 제2항에 따른 권리를
+ *   서면, 전자우편, 인터넷 홈페이지 또는 어플리케이션 등을 통해
+ *   금융위원회가 정하여 고시하는 서식에 따라 행사해야 한다.
+ *
+ * ★ 제2항 권리(R3~R5)도 고시 서식 대상이다.
+ *   자체 양식으로 제출하면 요건을 충족하지 못한다. 자체 문서 대안을 만들지 않는다.
  */
 export const EXERCISE_CHANNELS = [
   { id: 'written', label: '서면', basis: '시행령 제31조의2 제6항' },
@@ -275,8 +470,13 @@ export const EXERCISE_CHANNELS = [
 /** 행사 시 서식 요건 — 시행령 제31조의2 제6항 */
 export const EXERCISE_FORM_REQUIREMENT = {
   basis: '시행령 제31조의2 제6항',
-  text: '금융위원회가 정하여 고시하는 서식에 따라 권리를 행사해야 한다.',
-  note: '임의 양식이 아니라 고시 서식이어야 한다.',
+  text:
+    '법 제36조의2 제1항 및 제2항에 따른 권리를 금융위원회가 정하여 고시하는 서식에 따라 ' +
+    '행사해야 한다.',
+  note:
+    '임의 양식이 아니라 고시 서식이어야 한다. 제1항 권리와 제2항 권리 모두 적용된다.',
+  /** 조문이 "제1항 및 제2항"을 함께 규정하므로 자체 양식 대안은 성립하지 않는다 */
+  appliesToParagraphs: [1, 2],
 }
 
 /** 사업자의 회신 의무 — 시행령 제31조의2 제7항 */
@@ -373,6 +573,45 @@ export const FORM_EXPLANATION_REQUEST = {
 }
 
 /**
+ * 서식 1 의 [섹션 1] "신용평가주체의 대응권 개요" 중 거절 사유 안내 부분.
+ * 고시 서식의 고정 안내문이다. **문구 수정 금지 — 원문 그대로 렌더링한다.**
+ * 명세: docs/law/form-spec.md §[섹션 1]
+ */
+export const FORM_SECTION1_REFUSAL_NOTICE = {
+  basis: '고시 서식 「자동화평가 결과에 대한 설명요구서」 [섹션 1]',
+  /** true = 렌더링 시 문구를 다듬지 않는다 */
+  verbatim: true,
+  items: [
+    '다른 법령 등에 특별한 규정이 있는 경우',
+    '요구에 따르면 금융거래 등 상거래관계의 설정 및 유지 등이 곤란한 경우',
+    '정정·삭제 요청 내용이 사실과 다른 경우',
+    '동일한 금융거래에 대해 3회 이상 반복적으로 권리를 행사하는 경우',
+  ],
+}
+
+/**
+ * ★ 고시 서식 안내문과 시행령 원문의 불일치.
+ *
+ * 서식 [섹션 1]의 네 번째 항목에는 시행령 제31조의2 제5항 제2호의 요건인
+ * "정당한 사유 없이"가 **빠져 있다**.
+ *
+ * 처리 방침 (의도적 설계):
+ *   - 서식 렌더링 영역: 원문 그대로 둔다. 문구를 고치지 않는다.
+ *   - 서식 **밖** 안내 영역: 아래 correction 문구로 보정한다.
+ *   - 이 불일치는 의도적으로 화면에 드러낸다. 숨기거나 삭제하지 않는다.
+ */
+export const FORM_SECTION1_DISCREPANCY = {
+  formItemIndex: 3, // FORM_SECTION1_REFUSAL_NOTICE.items[3]
+  relatedRefusalGroundId: 'D4',
+  basisChain: '법 제36조의2 제3항 제3호 → 시행령 제31조의2 제5항 제2호',
+  correction:
+    "고시 서식의 안내문에는 생략되어 있으나, 시행령 제31조의2 제5항 제2호는 " +
+    "'정당한 사유 없이' 3회 이상 반복한 경우로 한정하고 있습니다.",
+  /** 서식 내부 렌더링에는 절대 끼워 넣지 않는다 */
+  renderOutsideFormOnly: true,
+}
+
+/**
  * 서식 1 의 [섹션 2] 요청 내용 — 선택 항목 3종 (다중 선택 가능)
  * 명세: docs/law/form-spec.md §서식 구조 / [섹션 2]
  */
@@ -412,12 +651,17 @@ export const FORM_REQUEST_ITEMS = [
  * 서식 2 — 「기초정보 정정·삭제 및 자동화평가 재산출 요청서」
  * 대응 권리: R3, R4, R5 (법 제36조의2 제2항)
  *
- * ⚠️ TODO-4 — 서식 2의 실물(필드 구조·문구)은 아직 미확보다.
+ * 시행령 제31조의2 제6항이 법 제36조의2 **제1항 및 제2항**의 권리를 모두
+ * 고시 서식 대상으로 규정하므로, 제2항 권리를 자체 양식으로 제출하면 요건 미충족이다.
+ * → 자체 문서 대안은 채택하지 않는다. 서식 2 실물을 확보해서 넣는다.
+ *
+ * ⚠️ TODO-4 — 서식 2의 실물(필드 구조·문구)은 아직 미확보다. 실물 전달 예정.
  * 복수 저축은행(스타·유안타·동양 등)이 두 서식을 함께 비치하고 있음은 확인됐으나,
  * 근거 조문과 필드 구조는 확인되지 않았다.
  *
- * → fields 를 추측해서 채우지 않는다. 확보 전까지 available: false 로 두고
- *   R3~R5 선택 시 "해당 서식 준비 중" 상태로 처리한다.
+ * → fields 를 추측해서 채우지 않는다. 확보 전까지 available: false 로 둔다.
+ * → 단, /strategy 의 전략 산출 자체는 막지 않는다.
+ *   전략을 뽑은 뒤 "이 내용을 담을 서식 준비 중" 상태로 표시한다.
  */
 export const FORM_CORRECTION_REQUEST = {
   id: 'correctionRequest',
@@ -428,6 +672,14 @@ export const FORM_CORRECTION_REQUEST = {
   available: false,
   /** TODO-4: 실물 서식 확보 전까지 비워둔다. 필드 구조를 추측하지 말 것. */
   fields: [],
+  /** 서식이 없어도 /strategy 의 전략 산출은 막지 않는다 */
+  blocksStrategy: false,
+  pendingNote: '이 내용을 담을 서식 준비 중입니다.',
+  /** 자체 양식 대체가 불가한 이유 (시행령 제31조의2 제6항) */
+  noSubstituteReason:
+    '시행령 제31조의2 제6항은 법 제36조의2 제1항 및 제2항의 권리를 모두 ' +
+    '금융위원회가 정하여 고시하는 서식에 따라 행사하도록 규정하므로, ' +
+    '자체 양식으로는 요건을 충족하지 못한다.',
 }
 
 export const FORMS = [FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST]
