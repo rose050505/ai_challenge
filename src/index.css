@@ -23,8 +23,8 @@
 
   /* A4 1페이지 기준. 서식은 이 크기로 조판한다. */
   .print-sheet {
-    font-size: 9.2pt;
-    line-height: 1.35;
+    font-size: 8.8pt;
+    line-height: 1.32;
     color: #000;
     break-inside: avoid;
   }
@@ -43,7 +43,7 @@
 
   /* 빈 칸은 출력 후 손으로 채운다. 쓸 수 있는 높이를 확보한다. */
   .print-sheet tbody td {
-    height: 22pt;
+    height: 20pt;
   }
 
   /* 서식은 페이지 중간에서 잘리지 않게 한다 */

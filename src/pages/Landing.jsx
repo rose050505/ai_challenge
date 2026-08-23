@@ -43,6 +43,11 @@ export default function Landing() {
       <section className="rounded border bg-gray-50 p-4">
         <h2 className="mb-1 font-semibold">{DEFINITION_AUTOMATED_EVALUATION.term}란</h2>
         <p className="text-sm text-gray-700">{DEFINITION_AUTOMATED_EVALUATION.text}</p>
+        {/* 핵심 요건은 "종사자가 관여하지 아니하고". R1 이 첫 단계인 이유다. */}
+        <p className="mt-2 text-sm text-gray-700">
+          핵심은 <b>&ldquo;{DEFINITION_AUTOMATED_EVALUATION.keyRequirement}&rdquo;</b> 입니다.{' '}
+          {DEFINITION_AUTOMATED_EVALUATION.whyR1First}
+        </p>
         <p className="mt-2 text-xs text-gray-500">{DEFINITION_AUTOMATED_EVALUATION.basis}</p>
       </section>
 

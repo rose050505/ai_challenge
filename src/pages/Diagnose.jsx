@@ -8,26 +8,11 @@ import {
   FORM_BY_RIGHT,
   FORMS_BY_ID,
   LAW_META,
+  resolveTransactionBasis,
 } from '../data/law.js'
+import { EVENT_TYPES } from '../data/events.js'
 import { SAMPLE_SCENARIOS, SAMPLE_SCENARIOS_BY_ID } from '../data/samples.js'
 import { useDiagnosis } from '../lib/diagnosis-context.jsx'
-
-/**
- * 1단계 선택지. 법령 텍스트가 아니라 사용자가 겪은 일의 분류다.
- *
- * 현재는 **맥락 수집용**이다. 결과 분기에는 아직 쓰이지 않는다.
- * 이후 /strategy 의 LLM 입력이 되고, 서식 1 ①번 항목의 맥락이 된다.
- *
- * TODO-2 해소 시 조문 매핑:
- *   각 사건이 법 제2조제1호의3 가목 1)~4)의 어느 거래에 해당하는지 확정되면
- *   여기에 근거 조문을 붙이고 결과 분기에 반영한다. 그 전까지 추측하지 말 것.
- */
-const EVENT_TYPES = [
-  { id: 'loanRejected', label: '신용대출이 거절됐다' },
-  { id: 'limitReduced', label: '한도가 축소됐다' },
-  { id: 'cardRejected', label: '카드 발급이 거절됐다' },
-  { id: 'rateRaised', label: '금리가 인상됐다' },
-]
 
 function Step({ n, title, children, hint }) {
   return (
@@ -92,6 +77,10 @@ export default function Diagnose() {
   const sectorDone =
     !needsSector || (sector && (sector.id !== 'other' || customInstitution.trim()))
   const ready = Boolean(eventId && counterparty && sectorDone)
+
+  // 사건 유형 × 업권 조합으로 법 제2조 제1호의3 가목의 어느 호인지 판정한다.
+  // CB사에는 업권 개념이 없으므로 sectorId 를 넘기지 않는다.
+  const transaction = resolveTransactionBasis(eventId, needsSector ? institutionSectorId : null)
   const activeSample = SAMPLE_SCENARIOS_BY_ID[sampleId]
 
   return (
@@ -235,7 +224,7 @@ export default function Diagnose() {
       </Step>
 
       {ready ? (
-        <Result counterparty={counterparty} />
+        <Result counterparty={counterparty} transaction={transaction} />
       ) : (
         <p className="rounded border border-dashed p-4 text-sm text-gray-500">
           1~{needsSector ? 3 : 2}단계를 선택하면 행사 가능한 권리가 표시됩니다.
@@ -349,13 +338,28 @@ function RightCard({ right, counterparty }) {
   )
 }
 
-function Result({ counterparty }) {
+function Result({ counterparty, transaction }) {
   const p1 = RIGHTS.filter((r) => r.paragraph === 1 && r.counterparties.includes(counterparty.id))
   const p2 = RIGHTS.filter((r) => r.paragraph === 2 && r.counterparties.includes(counterparty.id))
 
   return (
     <section className="space-y-6 border-t pt-6">
       <h2 className="text-xl font-bold">행사할 수 있는 권리</h2>
+
+      {/* 사건 유형 × 업권 조합 판정. 애매하면 하위 호를 특정하지 않는다. */}
+      <div className="rounded border bg-gray-50 p-3 text-sm">
+        <p>
+          <span className="font-medium">해당 거래: </span>
+          {transaction.label}
+        </p>
+        <p className="mt-1 text-xs text-gray-500">근거: {transaction.basis}</p>
+        {transaction.item && (
+          <p className="mt-1 text-xs text-gray-600">{transaction.item.text}</p>
+        )}
+        {transaction.caveat && (
+          <p className="mt-2 text-xs text-amber-700">{transaction.caveat}</p>
+        )}
+      </div>
 
       <div>
         <h3 className="mb-2 font-semibold">제1항 — 설명 요구</h3>

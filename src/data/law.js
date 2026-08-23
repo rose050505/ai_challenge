@@ -45,8 +45,18 @@ export const DEFINITION_AUTOMATED_EVALUATION = {
   term: '자동화평가',
   basis: '법 제2조제14호',
   text:
-    '신용정보회사등의 종사자가 평가 업무에 관여하지 아니하고 컴퓨터 등 정보처리장치로만 ' +
-    '개인신용정보 및 그 밖의 정보를 처리하여 개인인 신용정보주체를 평가하는 행위',
+    '제15조제1항에 따른 신용정보회사등의 종사자가 평가 업무에 관여하지 아니하고 ' +
+    '컴퓨터 등 정보처리장치로만 개인신용정보 및 그 밖의 정보를 처리하여 ' +
+    '개인인 신용정보주체를 평가하는 행위',
+  /**
+   * ★ 핵심 요건은 "종사자가 평가 업무에 관여하지 아니하고"다.
+   *   심사역이 개입한 결정은 자동화평가가 아니므로 이 권리의 대상이 아닐 수 있다.
+   *   R1(실시 여부 확인)이 왜 첫 단계인지의 근거가 여기 있다.
+   */
+  keyRequirement: '종사자가 평가 업무에 관여하지 아니하고',
+  whyR1First:
+    '사람이 심사에 개입했다면 자동화평가가 아니어서 이 권리의 대상이 아닐 수 있습니다. ' +
+    '그래서 먼저 "자동화평가를 했는지"부터 묻습니다.',
 }
 
 /**
@@ -202,28 +212,32 @@ export const FSC_ACT_ARTICLE_38_UNVERIFIED_CLAUSES = FSC_ACT_ARTICLE_38_CLAUSES.
  *
  * clauseNo / basis 는 **확인된 항목에만** 붙인다.
  * verified: false 인 항목은 UI에서 정상 표시하되 **근거 조문 배지만 숨긴다.**
+ *
+ * shortLabel 은 **서식 원문의 기관명 자리에 넣을 짧은 업권명**이다.
+ * 라벨 전체("여신전문금융회사 (카드사·캐피탈·리스 등)")를 문장에 넣으면 어색하므로 분리한다.
+ * 매핑 근거: docs/law/form-spec-2.md §기관명 치환 규칙
  */
 export const INSTITUTION_SECTORS = [
-  { id: 'bank', label: '은행', clauseNo: 1, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제1호', verified: true },
-  { id: 'investment', label: '금융투자업자 (증권·자산운용 등)', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
-  { id: 'securityFinance', label: '증권금융회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
-  { id: 'merchantBank', label: '종합금융회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
-  { id: 'transferAgent', label: '명의개서대행회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
-  { id: 'insurance', label: '보험회사', clauseNo: 3, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제3호', verified: true },
+  { id: 'bank', shortLabel: '은행', label: '은행', clauseNo: 1, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제1호', verified: true },
+  { id: 'investment', shortLabel: '증권사', label: '금융투자업자 (증권·자산운용 등)', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
+  { id: 'securityFinance', shortLabel: '증권사', label: '증권금융회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
+  { id: 'merchantBank', shortLabel: '증권사', label: '종합금융회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
+  { id: 'transferAgent', shortLabel: '증권사', label: '명의개서대행회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
+  { id: 'insurance', shortLabel: '보험회사', label: '보험회사', clauseNo: 3, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제3호', verified: true },
   /**
    * 제4호·제5호 확정 (docs/law/law-reference-addendum.md).
    * ⚠️ 새마을금고는 제38조 각 호에 명시되어 있지 않다.
    *   9호 해당 여부는 별도 확인이 필요하므로 이 라벨에 임의로 포함시키지 말 것.
    *   5호는 신용협동조합(신협)과 그 중앙회로 정확히 표기한다.
    */
-  { id: 'savingsBank', label: '상호저축은행', clauseNo: 4, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제4호', verified: true },
-  { id: 'mutualCredit', label: '신용협동조합', clauseNo: 5, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제5호', verified: true },
-  { id: 'creditFinance', label: '여신전문금융회사 (카드사·캐피탈·리스 등)', clauseNo: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호', verified: true },
-  { id: 'concurrentCredit', label: '겸영여신업자', clauseNo: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호', verified: true },
-  { id: 'nonghyupBank', label: '농협은행', clauseNo: 7, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제7호', verified: true },
-  { id: 'suhyupBank', label: '수협은행', clauseNo: 8, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제8호', verified: true },
+  { id: 'savingsBank', shortLabel: '저축은행', label: '상호저축은행', clauseNo: 4, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제4호', verified: true },
+  { id: 'mutualCredit', shortLabel: '신협', label: '신용협동조합', clauseNo: 5, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제5호', verified: true },
+  { id: 'creditFinance', shortLabel: '카드사', label: '여신전문금융회사 (카드사·캐피탈·리스 등)', clauseNo: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호', verified: true },
+  { id: 'concurrentCredit', shortLabel: '카드사', label: '겸영여신업자', clauseNo: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호', verified: true },
+  { id: 'nonghyupBank', shortLabel: '은행', label: '농협은행', clauseNo: 7, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제7호', verified: true },
+  { id: 'suhyupBank', shortLabel: '은행', label: '수협은행', clauseNo: 8, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제8호', verified: true },
   {
-    id: 'fssExamined',
+    id: 'fssExamined', shortLabel: '금융회사',
     label: '그 밖에 금융감독원 검사 대상 기관',
     clauseNo: 9,
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제9호',
@@ -231,7 +245,7 @@ export const INSTITUTION_SECTORS = [
     catchAll: true,
   },
   {
-    id: 'decreeDesignated',
+    id: 'decreeDesignated', shortLabel: '금융회사',
     label: '그 밖에 금융업·금융 관련 업무를 하는 자로서 대통령령으로 정하는 자',
     clauseNo: 10,
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제10호',
@@ -249,6 +263,8 @@ export const INSTITUTION_SECTORS = [
 export const INSTITUTION_OTHER_OPTION = {
   id: 'other',
   label: '목록에 없음 / 직접 입력',
+  /** 서식 본문 치환값. 수신 기관 입력값을 여기에 쓰지 않는다. */
+  shortLabel: '금융회사',
   clauseNo: null,
   basis: null,
   verified: false,
@@ -384,14 +400,119 @@ export const RIGHTS = [
 export const RIGHTS_BY_ID = Object.fromEntries(RIGHTS.map((r) => [r.id, r]))
 
 /**
- * ⚠️ TODO-2 — 시행령 제31조의2 제2항이 참조하는
- * "법 제2조제1호의3 가목 1)~4)의 거래"의 구체적 정의.
- *
- * docs/law/law-reference.md 에 원문이 없다(미확인).
- * 이 값이 확정돼야 "대출 거절"이 법상 어느 거래에 해당하는지 정확히 매핑할 수 있다.
- * → 확인 전까지 거래유형 → 조문 매핑을 추측해서 만들지 않는다.
+ * 시행령 제31조의2 제2항이 참조하는 "법 제2조 제1호의3 가목 1)~4)의 거래".
+ * TODO-2 해소 (docs/law/law-reference-addendum.md).
  */
-export const COVERED_TRANSACTION_TYPES = []
+export const CREDIT_RISK_TRANSACTIONS = {
+  basis: '법 제2조 제1호의3 가목',
+  /** 각 목에 공통으로 걸리는 상위 문구. 하위 호를 특정할 수 없을 때 이것만 표시한다. */
+  chapeau:
+    '신용정보제공ㆍ이용자에게 신용위험이 따르는 거래로서 다음 각각의 거래의 ' +
+    '종류, 기간, 금액, 금리, 한도 등에 관한 정보',
+  chapeauShort: '신용위험이 따르는 거래',
+  items: [
+    {
+      code: 1,
+      basis: '법 제2조 제1호의3 가목 1)',
+      text: '「은행법」 제2조제7호에 따른 신용공여',
+      short: '신용공여',
+    },
+    {
+      code: 2,
+      basis: '법 제2조 제1호의3 가목 2)',
+      text:
+        '「여신전문금융업법」 제2조제3호ㆍ제10호 및 제13호에 따른 ' +
+        '신용카드, 시설대여 및 할부금융 거래',
+      short: '신용카드·시설대여·할부금융',
+    },
+    {
+      code: 3,
+      basis: '법 제2조 제1호의3 가목 3)',
+      text:
+        '「자본시장과 금융투자업에 관한 법률」 제34조제2항, 제72조, 제77조의3제4항 및 ' +
+        '제342조제1항에 따른 신용공여',
+      short: '신용공여',
+    },
+    {
+      code: 4,
+      basis: '법 제2조 제1호의3 가목 4)',
+      text: '1)부터 3)까지와 유사한 거래로서 대통령령으로 정하는 거래',
+      short: '유사 거래',
+    },
+  ],
+}
+
+export const CREDIT_RISK_TRANSACTIONS_BY_CODE = Object.fromEntries(
+  CREDIT_RISK_TRANSACTIONS.items.map((i) => [i.code, i]),
+)
+
+/**
+ * 사건 유형 × 업권 조합 → 법 제2조 제1호의3 가목의 어느 호인지 판정한다.
+ *
+ * ★ 단순 매핑이 아니다. 같은 "대출 거절"도 은행이면 1), 증권사면 3)이다.
+ *   조합이 애매하면 **하위 호를 특정하지 않고** 상위 문구(chapeau)만 표시한다.
+ *   근거: docs/law/law-reference-addendum.md §사건 유형 → 조문 매핑
+ *
+ * 사건 id 는 src/data/events.js 의 EVENT_TYPES 와 맞춘다.
+ */
+const BANK_LIKE = ['bank', 'nonghyupBank', 'suhyupBank']
+const SECURITIES_LIKE = ['investment', 'securityFinance', 'merchantBank', 'transferAgent']
+const CARD_LIKE = ['creditFinance', 'concurrentCredit']
+
+/**
+ * @returns {{resolved: boolean, item: object|null, basis: string, label: string, caveat: string|null}}
+ */
+export function resolveTransactionBasis(eventId, sectorId) {
+  const ambiguous = (caveat = null) => ({
+    resolved: false,
+    item: null,
+    basis: CREDIT_RISK_TRANSACTIONS.basis,
+    label: CREDIT_RISK_TRANSACTIONS.chapeauShort,
+    caveat,
+  })
+  const pick = (code, caveat = null) => ({
+    resolved: true,
+    item: CREDIT_RISK_TRANSACTIONS_BY_CODE[code],
+    basis: CREDIT_RISK_TRANSACTIONS_BY_CODE[code].basis,
+    label: CREDIT_RISK_TRANSACTIONS_BY_CODE[code].short,
+    caveat,
+  })
+
+  if (!eventId) return ambiguous()
+
+  // 카드 발급 거절은 발급 주체가 여신전문금융회사이거나 겸영여신업자이므로
+  // 업권과 무관하게 여신전문금융업법상 신용카드 거래에 해당한다.
+  if (eventId === 'cardRejected') return pick(2)
+
+  // 리스·할부는 시설대여·할부금융으로 2)에 해당한다.
+  if (eventId === 'leaseRejected') return pick(2)
+
+  if (eventId === 'loanRejected' || eventId === 'rateRaised') {
+    if (BANK_LIKE.includes(sectorId)) return pick(1)
+    if (SECURITIES_LIKE.includes(sectorId)) return pick(3)
+    if (CARD_LIKE.includes(sectorId)) return pick(2)
+    // 저축은행·신협·보험 등은 은행법·자본시장법 어느 쪽 신용공여인지 단정할 수 없다.
+    return ambiguous(
+      '이 업권의 대출이 법 제2조 제1호의3 가목 1)~4) 중 어디에 해당하는지는 ' +
+        '단정하지 않습니다. 상위 문구만 표시합니다.',
+    )
+  }
+
+  if (eventId === 'limitReduced') {
+    // 카드 한도인지 신용대출 한도인지에 따라 근거가 갈린다.
+    if (CARD_LIKE.includes(sectorId)) return pick(2)
+    if (SECURITIES_LIKE.includes(sectorId)) return pick(3)
+    if (BANK_LIKE.includes(sectorId)) {
+      return ambiguous(
+        '신용대출 한도이면 법 제2조 제1호의3 가목 1), 카드 한도이면 2)입니다. ' +
+          '은행이 카드업을 겸영하는 경우(겸영여신업자)가 있어 단정하지 않습니다.',
+      )
+    }
+    return ambiguous()
+  }
+
+  return ambiguous()
+}
 
 /* ============================================================
  * 3. 거절 사유 4종
@@ -733,13 +854,97 @@ export const FORM_REQUEST_ITEMS = [
  * "신용거래 판단정보, 신용도 판단정보, 신용거래능력 판단정보 등"과 대응한다.
  * R2(주요 기준 설명)에서 받게 될 답변의 분류 체계와 같으므로 두 화면의 분류를 일치시킨다.
  */
+/**
+ * ★ 이 5분류는 법 제2조 제1호 가~마목을 그대로 가져온 것이다.
+ *   법이 각 분류의 내용을 구체적으로 정의하므로 사용자에게 법정 예시를 제시할 수 있다.
+ *   출처: docs/law/law-reference-addendum.md §신용정보 5분류
+ *
+ *   examples 는 "신용도 판단정보에 뭘 적지"에서 막히는 것을 막기 위한 힌트다.
+ *   서식에 인쇄되는 내용이 아니라 화면 힌트로만 쓴다.
+ */
 export const BASE_INFO_CATEGORIES = [
-  { id: 'identity', label: '식별정보' },
-  { id: 'transaction', label: '거래내용 판단정보' },
-  { id: 'creditworthiness', label: '신용도 판단정보' },
-  { id: 'capacity', label: '신용거래능력 판단정보' },
-  { id: 'other', label: '기타 정보' },
+  {
+    id: 'identity',
+    label: '식별정보',
+    lawBasis: '법 제2조 제1호 가목',
+    definitionBasis: '법 제2조 제1호의2',
+    examples: ['성명·주소·전화번호', '개인식별번호', '생체변환정보'],
+  },
+  {
+    id: 'transaction',
+    label: '거래내용 판단정보',
+    lawBasis: '법 제2조 제1호 나목',
+    definitionBasis: '법 제2조 제1호의3',
+    examples: [
+      '신용공여·신용카드·시설대여·할부금융의 종류·기간·금액·금리·한도',
+      '금융거래',
+      '보험계약',
+      '금융투자상품',
+      '상거래',
+    ],
+  },
+  {
+    id: 'creditworthiness',
+    label: '신용도 판단정보',
+    lawBasis: '법 제2조 제1호 다목',
+    definitionBasis: '법 제2조 제1호의4',
+    examples: [
+      '채무 불이행·대위변제',
+      '명의도용',
+      '보험사기·전기통신금융사기',
+      '허위자료 제출',
+      '대출금 유용',
+    ],
+    /** R4 의 주 타겟. 명의도용 피해자가 자기 정보를 바로잡는 전형적 상황이 여기다. */
+    primaryTargetOf: 'R4',
+  },
+  {
+    id: 'capacity',
+    label: '신용거래능력 판단정보',
+    lawBasis: '법 제2조 제1호 라목',
+    definitionBasis: '법 제2조 제1호의5',
+    examples: ['개인의 직업', '재산', '채무', '소득의 총액', '납세실적'],
+    /** R3 의 주 타겟. 서식 2의 예시(건강보험 납부실적)가 이 범주다. */
+    primaryTargetOf: 'R3',
+  },
+  {
+    id: 'other',
+    label: '기타 정보',
+    lawBasis: '법 제2조 제1호 마목',
+    definitionBasis: '법 제2조 제1호의6',
+    examples: ['재판·행정처분', '조세·국가채권', '채무조정', '개인신용평점'],
+  },
 ]
+
+export const BASE_INFO_CATEGORIES_BY_ID = Object.fromEntries(
+  BASE_INFO_CATEGORIES.map((c) => [c.id, c]),
+)
+
+/**
+ * R3(유리한 정보 제출)의 법적 범주.
+ * 법이 정한 "신용거래능력 판단정보"(법 제2조 제1호의5) 안에서만 후보를 제시한다.
+ *
+ * ★ /strategy 의 LLM 프롬프트 가드로 쓴다.
+ *   범주 밖 제안(예: 성격, 학력)은 걸러낸다.
+ */
+export const R3_SCOPE = {
+  rightId: 'R3',
+  rightBasis: '법 제36조의2 제2항 제1호',
+  categoryId: 'capacity',
+  categoryLabel: '신용거래능력 판단정보',
+  definitionBasis: '법 제2조 제1호의5',
+  definition: '개인의 직업ㆍ재산ㆍ채무ㆍ소득의 총액 및 납세실적',
+  /** 서식 2 [섹션 3]에 실린 예시. 이 결을 따른다. */
+  formExample: {
+    infoName: '건강보험 납부실적',
+    detail: "'xx년 x월 x일 ~ '◊◊년 ◊월 ◊일까지 연체없이 납부",
+  },
+  /** 출력 형식: 정보명 / 세부 내용(기간·실적을 구체적 수치로) */
+  outputShape: ['정보명', '세부 내용 (기간·실적을 구체적 수치로)'],
+  outOfScopeNote:
+    '위 정의(직업·재산·채무·소득의 총액·납세실적) 밖의 항목은 제안하지 않는다. ' +
+    '예: 성격, 학력.',
+}
 
 /**
  * ★★ 정정 요청 상대방 라우팅 규칙 — 이 서비스의 실질 가치.
@@ -885,12 +1090,23 @@ export const FORM_CORRECTION_REQUEST = {
       right: null,
       basis: null,
       /**
-       * ⚠️ 섹션 1 원문 전문 미확보. docs/law/form-spec-2.md 에는 아직 "내용 요지"만 있다.
-       * 원문을 받으면 여기에 넣고 verbatimVerified 를 검토한다.
-       * 확보 전까지 /document 는 summary 로 렌더하며, 고시 서식 재현이 아님을 화면에 밝힌다.
+       * 섹션 1 원문 전문 (2026-08-23 확보). 문구 수정 금지.
+       * ⚠️ PDF 텍스트 추출본에서 복원한 것이다. 원본 대조 후 verbatimVerified 를 켠다.
+       * "저축은행" 2회는 substitution 규칙에 따라 업권 shortLabel 로 치환한다.
+       * "당사"는 서식 발행 주체를 가리키므로 치환하지 않는다.
        */
-      verbatimText: null,
-      /** 원본 대조 완료 여부. 대조 전까지 false 로 둔다. */
+      verbatimText:
+        '저축은행은 고객의 요청에 따라 자동화평가 결과, 자동화평가의 주요 기준 및 ' +
+        '자동화평가에 이용된 기초정보의 개요를 설명하고 있으며, 기초정보가 정확하지 않은 ' +
+        '경우 해당 정보에 대한 정정ㆍ삭제 및 수정된 정보를 활용하여 자동화평가 결과를 ' +
+        '재산출하여 줄 것을 저축은행에 요청할 수 있습니다. 다만, 해당 기초정보가 당사가 ' +
+        '직접 수집한 정보가 아니라 신용정보집중기관 또는 개인신용평가회사, ' +
+        '개인사업자신용평가회사 또는 기업신용조회회사로부터 수집한 타 금융회사의 정보인 ' +
+        '경우에는 해당 금융회사에 정정ㆍ삭제를 요청하여야 합니다.',
+      /**
+       * 원본 대조 완료 여부. 사용자가 원본과 대조한 뒤 true 로 바꾼다.
+       * false 인 동안 화면에 "원본 대조 전" 경고를 띄우고, true 가 되면 경고가 사라진다.
+       */
       verbatimVerified: false,
       summary: [
         '금융회사는 고객 요청에 따라 자동화평가 결과, 주요 기준, 기초정보의 개요를 설명한다.',
@@ -904,14 +1120,25 @@ export const FORM_CORRECTION_REQUEST = {
        */
       neutralizeInstitutionName: true,
       substitution: {
-        /** 치환 대상은 이 문자열뿐이다 */
+        /** 치환 대상은 이 문자열뿐이다. 섹션 1에 2회, 섹션 2 리드에 2회, 총 4곳. */
         targets: ['저축은행'],
-        /** 사용자가 고른 업권 라벨로 바꾼다 */
-        placeholder: '{기관}',
+        /**
+         * 업권 라벨 전체가 아니라 INSTITUTION_SECTORS[].shortLabel 을 넣는다.
+         * ⚠️ other 분기의 "수신 기관" 입력값은 쓰지 않는다.
+         *    서식 원문의 그 자리는 회사명이 아니라 업권명 자리다.
+         */
+        useShortLabel: true,
         /** 업권 선택이 없을 때의 기본값 */
         fallbackLabel: '금융회사',
-        /** ★ "당사"는 치환하지 않는다. 서식 작성 주체를 가리키는 표현이다. */
+        /** ★ "당사"는 치환하지 않는다. 서식 발행 주체를 가리키는 표현이다. */
         doNotSubstitute: ['당사'],
+        /**
+         * 치환된 기관명 **바로 뒤에 붙은 조사만** 받침에 맞게 고친다.
+         * 원문이 "저축은행은"(받침 있음)이라 "카드사은"처럼 깨지기 때문이다.
+         * 조사 외의 문구는 일절 건드리지 않는다.
+         * 끄려면 false 로 두면 된다 — 그 경우 원문 조사가 그대로 남는다.
+         */
+        adjustParticles: true,
       },
     },
     {
@@ -926,10 +1153,14 @@ export const FORM_CORRECTION_REQUEST = {
        * 화면에서 문자열을 잘라 쓰지 않도록 자리표시자 앞뒤를 미리 나눠 둔다.
        */
       leadPlaceholder: '______(신청자 성명)______',
+      /** "저축은행" 2회는 substitution 규칙에 따라 치환한다. */
       leadRest:
-        ' 은(는) 기초정보 정정·삭제 및 자동화평가 결과 재산출과 관련하여 귀 사의 상기 ' +
-        '설명을 읽고 이해하였으며, 회사가 보유하고 있는 본인의 기초정보 중 정확하지 않거나 ' +
-        '최신의 정보가 아닌 내용이 있어 아래와 같이 정정 및 삭제를 요구합니다.',
+        ' 은(는) 기초정보 정정ㆍ삭제 및 자동화평가 결과 재산출과 관련하여 귀 저축은행의 ' +
+        '상기 설명을 읽고 이해하였으며, 저축은행이 보유하고 있는 본인의 기초정보 중 ' +
+        '정확하지 않거나 최신의 정보가 아닌 내용이 있어 아래와 같이 정정 및 삭제를 ' +
+        '요구합니다.',
+      /** 이 섹션도 기관명 치환 대상이다 */
+      neutralizeInstitutionName: true,
       table: {
         columns: [
           { id: 'category', label: '구 분' },

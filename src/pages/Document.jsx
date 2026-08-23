@@ -65,10 +65,10 @@ function Field({ value, onChange, placeholder, className = '' }) {
 /** 인쇄되는 서식 본문 껍데기 */
 function Sheet({ title, subtitle, children }) {
   return (
-    <article className="print-sheet rounded border bg-white p-6">
-      <h2 className="text-center text-lg font-bold">{title}</h2>
+    <article className="print-sheet rounded border bg-white p-6 print:rounded-none print:border-0 print:p-0">
+      <h2 className="text-center text-lg font-bold print:text-base">{title}</h2>
       {subtitle && <p className="text-center text-sm">{subtitle}</p>}
-      <div className="mt-5 space-y-4">{children}</div>
+      <div className="mt-5 space-y-4 print:mt-2 print:space-y-2">{children}</div>
     </article>
   )
 }
@@ -76,7 +76,7 @@ function Sheet({ title, subtitle, children }) {
 /** 서명란 — 날짜 표기는 두되 서명은 반드시 공란 */
 function SignatureBlock() {
   return (
-    <div className="pt-6 text-right text-sm">
+    <div className="pt-6 text-right text-sm print:pt-2">
       <p>{FORM_SIGNATURE_TEXTS.dateMark}</p>
       <p className="mt-2 whitespace-nowrap">
         {FORM_SIGNATURE_TEXTS.applicantLabel}
@@ -198,7 +198,7 @@ function Form1({ selectedItems, toggleItem, personal, setPersonal, consent, setC
 
 /* ── 서식 2 : 기초정보 정정·삭제 및 자동화평가 재산출 요청서 (R3~R5) ── */
 
-function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFavorable, recipient, setRecipient, needsRecipient, institutionLabel, s2HasContent }) {
+function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFavorable, recipient, setRecipient, needsRecipient, institutionShortLabel, s2HasContent }) {
   const [s1, s2, s3, s4] = FORM_CORRECTION_REQUEST.sections
   const s4Blocked = Boolean(s4.dependsOn) && !s2HasContent
 
@@ -220,17 +220,10 @@ function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFav
       <section>
         <h3 className="font-semibold">1. {s1.title}</h3>
         {/* 원문 전문(verbatimText) 확보 시 그걸 쓰고, 기관명만 중립적으로 치환한다. */}
-        {s1.verbatimText ? (
-          <p className="mt-1 whitespace-pre-line text-sm">
-            {neutralizeInstitution(s1.verbatimText, s1.substitution, institutionLabel)}
-          </p>
-        ) : (
-          <ul className="mt-1 list-disc pl-5 text-sm">
-            {s1.summary.map((t) => (
-              <li key={t}>{neutralizeInstitution(t, s1.substitution, institutionLabel)}</li>
-            ))}
-          </ul>
-        )}
+        {/* 기관명("저축은행")만 업권 shortLabel 로 치환한다. "당사"는 건드리지 않는다. */}
+        <p className="mt-1 whitespace-pre-line text-sm">
+          {neutralizeInstitution(s1.verbatimText, s1.substitution, institutionShortLabel)}
+        </p>
       </section>
 
       {enabled.s2 && (
@@ -240,7 +233,7 @@ function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFav
           </h3>
           <p className="mt-1 text-sm">
             <Blank value={personal.name} />
-            {s2.leadRest}
+            {neutralizeInstitution(s2.leadRest, s1.substitution, institutionShortLabel)}
           </p>
           <table className="mt-2 w-full border-collapse text-sm">
             <thead>
@@ -256,7 +249,21 @@ function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFav
               {/* "구 분" 행은 5종 고정. 해당 없는 분류는 비워둔다. */}
               {BASE_INFO_CATEGORIES.map((cat) => (
                 <tr key={cat.id}>
-                  <th className="w-36 border p-1 text-left font-normal">{cat.label}</th>
+                  <th className="w-36 border p-1 text-left font-normal align-top">
+                    {cat.label}
+                    {/* 법정 예시 힌트. 화면 전용이라 인쇄에는 나가지 않는다. */}
+                    <details className="no-print mt-1 font-normal">
+                      <summary className="cursor-pointer text-xs text-gray-500">
+                        무엇을 적나요?
+                      </summary>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-gray-600">
+                        {cat.examples.map((ex) => (
+                          <li key={ex}>{ex}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-1 text-[10px] text-gray-400">{cat.definitionBasis}</p>
+                    </details>
+                  </th>
                   <td className="border p-1">
                     <Field
                       value={rows[cat.id]?.current ?? ''}
@@ -348,8 +355,12 @@ export default function Document() {
   const { diagnosis } = useDiagnosis()
   const branch = CORRECTION_ROUTING_BY_ID[diagnosis.routingBranchId]
   const sector = INSTITUTION_OPTIONS.find((o) => o.id === diagnosis.institutionSectorId)
-  const institutionLabel =
-    sector?.id === 'other' ? diagnosis.customInstitution || null : (sector?.label ?? null)
+  /**
+   * 서식 본문 치환값은 업권 shortLabel 이다.
+   * 직접 입력한 기관명(customInstitution)이나 수신 기관 입력값을 쓰지 않는다.
+   * 서식 원문의 그 자리는 회사명이 아니라 업권명 자리이기 때문이다.
+   */
+  const institutionShortLabel = sector?.shortLabel ?? null
 
   // 라우팅이 unknown 이면 서식 1이 선행 단계이므로 서식 1 탭에서 시작한다.
   // ?form=<서식 id> 로 특정 서식을 바로 열 수 있다.
@@ -465,8 +476,8 @@ export default function Document() {
             })}
           {!FORM_CORRECTION_REQUEST.sections[0].verbatimVerified && (
             <p className="border-t pt-2 text-xs text-amber-700">
-              섹션 1은 원문 전문을 아직 확보하지 못해 요지로 표시하고 있습니다. 고시 서식 그대로의
-              재현이 아닙니다.
+              섹션 1 원문은 확보했으나 아직 원본과 대조하지 않았습니다. 제출 전 실물 서식과
+              대조해 주세요.
             </p>
           )}
           <p className="text-xs text-gray-500">{FORM_CORRECTION_REQUEST.attachment.rationale}</p>
@@ -496,7 +507,7 @@ export default function Document() {
           recipient={recipient}
           setRecipient={setRecipient}
           needsRecipient={Boolean(branch?.requiresRecipientInput)}
-          institutionLabel={institutionLabel}
+          institutionShortLabel={institutionShortLabel}
           s2HasContent={s2HasContent}
         />
       )}
