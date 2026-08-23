@@ -9,11 +9,16 @@ export default function Landing() {
   return (
     <div className="space-y-10 py-6">
       <section className="space-y-4">
+        <p className="text-sm font-semibold tracking-wide text-gray-500">왜요</p>
         <h1 className="text-3xl font-bold leading-snug">
           대출이 거절됐을 때,
           <br />
           이유를 물어볼 법적 권리가 있습니다.
         </h1>
+        {/* 서비스명의 의미를 여기서 드러낸다 */}
+        <p className="text-lg text-gray-800">
+          AI가 내린 결정에 <b>&ldquo;왜요?&rdquo;</b>라고 물을 권리. 그게 이 서비스의 이름입니다.
+        </p>
         <p className="text-gray-700">
           사람이 아니라 컴퓨터가 자동으로 심사했다면, 그 결과와 기준을 설명하라고 요구할 수
           있습니다. 유리한 정보를 내고, 틀린 정보를 고치고, 다시 계산해 달라고 요구할 수도

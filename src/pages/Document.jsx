@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import {
   FORM_EXPLANATION_REQUEST,
   FORM_CORRECTION_REQUEST,
@@ -533,6 +533,9 @@ export default function Document() {
         >
           인쇄 / PDF로 저장
         </button>
+        <Link to="/next" className="rounded border px-5 py-3 hover:bg-gray-50">
+          출력했다면, 이후 절차 보기
+        </Link>
         <p className="text-xs text-gray-500">
           인쇄 대화상자에서 용지를 A4, 배율 100%로 두세요. 지금 보고 있는 서식만 인쇄됩니다.
         </p>

@@ -136,6 +136,12 @@ LLM이 법조문을 지어내는 순간 이 서비스는 신뢰를 잃는다.
 - 배포: Vercel
 - 상태관리: React state만. 외부 상태 라이브러리 없음.
 
+**로컬에서 LLM을 테스트하려면 프로젝트 루트 `.env` 에 `ANTHROPIC_API_KEY` 값을 넣어야 한다.**
+(`.env` 는 `.gitignore` 에 걸려 있다. 형식은 `.env.example` 참조.)
+`vite dev` 는 Vercel Function 을 실행하지 않으므로 `vite.config.js` 의 `devApiPlugin` 이
+개발 서버에서 `/api/*` 를 대신 서빙한다. 키가 비어 있으면 `/api/analyze` 는 503 을 반환하고
+화면은 폴백 목록으로 정상 동작한다.
+
 ---
 
 ## 화면 구성
