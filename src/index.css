@@ -1,5 +1,291 @@
 @import "tailwindcss";
 
+/* ══════════════════════════════════════════════════════════════
+ * 디자인 토큰
+ *
+ * ★ 여기서 정한 값은 전부 **화면 전용**이다.
+ *   인쇄 레이아웃(@media print, 파일 하단)은 동결이므로,
+ *   글꼴·크기·간격에 영향을 줄 수 있는 규칙은 모두 @media screen 안에 둔다.
+ *   색만 바꾸는 토큰은 인쇄 조판에 영향을 주지 않으므로 전역에 둔다.
+ *
+ * 색 구성: 주조색(ink) 1 + 강조색(seal) 1 + 회색 스케일.
+ *   ink  — 청람. 법률 문서의 잉크색. 관공서 파랑(#003478)보다 채도를 낮추고
+ *          스타트업 블루(#2563eb)보다 어둡게 잡아 "차분한 신뢰"를 노린다.
+ *   seal — 황토. 인장(印章)의 주황빛. 경고용 빨강을 쓰지 않는 이유는
+ *          이 서비스의 앰버 박스가 "위험"이 아니라 "보충 설명"이기 때문이다.
+ *   gray — Tailwind 기본 회색(차가운 중성)을 따뜻한 중성으로 통째로 교체한다.
+ *          기존 JSX의 gray-* 클래스가 자동으로 새 팔레트를 따르게 하기 위함이다.
+ * ══════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* 주조색 — 청람 */
+  --color-ink-50: #f3f6fa;
+  --color-ink-100: #e4ebf3;
+  --color-ink-200: #c8d6e6;
+  --color-ink-300: #a0b6d0;
+  --color-ink-400: #6e8bb0;
+  --color-ink-500: #4a6a92;
+  --color-ink-600: #365276;
+  --color-ink-700: #294061;
+  --color-ink-800: #1e304a;
+  --color-ink-900: #141f31;
+
+  /* 강조색 — 황토 */
+  --color-seal-50: #fdf6ec;
+  --color-seal-100: #f9ead3;
+  --color-seal-200: #f0d5a9;
+  --color-seal-300: #e0b674;
+  --color-seal-400: #c9903c;
+  --color-seal-500: #a97220;
+  --color-seal-600: #8a5a18;
+  --color-seal-700: #6f4714;
+  --color-seal-800: #543511;
+  --color-seal-900: #3a240c;
+
+  /* 회색 스케일 교체 — 따뜻한 중성. 종이 인상을 만든다. */
+  --color-gray-50: #faf9f7;
+  --color-gray-100: #f3f2ef;
+  --color-gray-200: #e6e4de;
+  --color-gray-300: #d2cfc7;
+  --color-gray-400: #9d998f;
+  --color-gray-500: #6b675f;
+  --color-gray-600: #55524b;
+  --color-gray-700: #403d38;
+  --color-gray-800: #2b2925;
+  --color-gray-900: #23211d;
+
+  /* 기존 앰버 경고 박스를 강조색(seal)으로 통일한다 */
+  --color-amber-50: #fdf6ec;
+  --color-amber-100: #f9ead3;
+  --color-amber-200: #f0d5a9;
+  --color-amber-300: #e0b674;
+  --color-amber-400: #c9903c;
+  --color-amber-500: #a97220;
+  --color-amber-600: #8a5a18;
+  --color-amber-700: #6f4714;
+  --color-amber-800: #543511;
+  --color-amber-900: #3a240c;
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * 기본 타이포그래피 — 화면 전용
+ *
+ * 본문 17px / 행간 1.75.
+ *   한글은 라틴 문자보다 x-height 가 크고 획이 조밀해 16px 에서 법률 용어가
+ *   뭉쳐 보인다. 조문 인용이 많은 화면이라 한 단계 키웠다.
+ * word-break: keep-all
+ *   한국어에서 단어 중간 줄바꿈을 막는다. "자동화평 / 가" 같은 끊김을 방지한다.
+ *   대신 긴 조문 문자열이 375px 을 넘칠 수 있으므로 overflow-wrap 을 함께 준다.
+ * ────────────────────────────────────────────────────────────── */
+@media screen {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family:
+      -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard',
+      'Noto Sans KR', 'Malgun Gothic', 'Segoe UI', system-ui, sans-serif;
+    font-size: var(--app-font-size, 1.0625rem);
+    line-height: 1.75;
+    color: var(--color-gray-800);
+    background: var(--color-gray-50);
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  /* 글자 크기 조절 — 인쇄에는 영향을 주지 않는다(이 블록이 screen 전용이므로) */
+  html[data-font-scale='lg'] body {
+    --app-font-size: 1.1875rem;
+  }
+  html[data-font-scale='xl'] body {
+    --app-font-size: 1.3125rem;
+  }
+
+  h1, h2, h3 {
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
+  /* 기본 테두리색. Tailwind v4 의 border 기본값은 currentColor 라 본문색이 새어나온다. */
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-gray-300);
+  }
+
+  /* ★ 포커스 링을 지우지 않는다. 키보드 사용자의 유일한 위치 표시다. */
+  :focus-visible {
+    outline: 2px solid var(--color-ink-600);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* 조문 배지 안의 숫자 정렬 */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * 컴포넌트 클래스 — 전부 화면 전용.
+ * 인쇄되는 서식 본문(.print-sheet)에는 이 클래스들을 쓰지 않는다.
+ * ────────────────────────────────────────────────────────────── */
+@layer components {
+  @media screen {
+    /* 버튼 — 주조색 하나로 통일. 최소 터치 타깃 44px 을 확보한다. */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-height: 2.75rem;
+      padding: 0.625rem 1.25rem;
+      border-radius: 0.375rem;
+      border: 1px solid transparent;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.4;
+      text-align: center;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
+    }
+
+    .btn-primary {
+      background: var(--color-ink-700);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--color-ink-800);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      border-color: var(--color-ink-300);
+      color: var(--color-ink-800);
+    }
+    .btn-secondary:hover {
+      background: var(--color-ink-50);
+      border-color: var(--color-ink-500);
+    }
+
+    .btn-quiet {
+      background: transparent;
+      border-color: var(--color-gray-300);
+      color: var(--color-gray-700);
+      font-weight: 500;
+    }
+    .btn-quiet:hover {
+      background: var(--color-gray-100);
+    }
+
+    .btn[aria-disabled='true'],
+    .btn:disabled {
+      background: var(--color-gray-200);
+      border-color: var(--color-gray-300);
+      color: var(--color-gray-500);
+      cursor: not-allowed;
+    }
+
+    /* ★ 근거 조문 배지 — 이 서비스에서 조문 표시는 장식이 아니라 신뢰의 근거다.
+       어디에 나오든 같은 모양을 갖게 한다: § 글리프 + 청람 칩 + 등폭 숫자. */
+    .basis {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.3em;
+      max-width: 100%;
+      padding: 0.1em 0.5em;
+      border: 1px solid var(--color-ink-200);
+      border-radius: 0.25rem;
+      background: var(--color-ink-50);
+      color: var(--color-ink-800);
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+      word-break: break-all;
+    }
+    .basis::before {
+      content: '§';
+      flex: none;
+      color: var(--color-ink-400);
+      font-weight: 700;
+    }
+    /* 위임 경로(근거 체인)는 화살표가 들어가 길어지므로 블록으로 흐른다 */
+    .basis-chain {
+      display: block;
+      border-style: dashed;
+    }
+
+    /* 카드 / 패널 */
+    .card {
+      border: 1px solid var(--color-gray-200);
+      border-radius: 0.5rem;
+      background: #fff;
+      padding: 1rem;
+    }
+    .panel {
+      border: 1px solid var(--color-ink-100);
+      border-radius: 0.5rem;
+      background: var(--color-ink-50);
+      padding: 1rem;
+    }
+    .panel-accent {
+      border: 1px solid var(--color-seal-200);
+      border-radius: 0.5rem;
+      background: var(--color-seal-50);
+      padding: 1rem;
+    }
+
+    /* 용어 풀이 트리거 — 색만으로 구분하지 않는다. 점선 밑줄 + ? 표식. */
+    .term-trigger {
+      border: 0;
+      background: none;
+      padding: 0;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      text-decoration: underline dotted var(--color-ink-400);
+      text-underline-offset: 0.22em;
+      text-decoration-thickness: 1px;
+      cursor: help;
+    }
+    .term-trigger::after {
+      content: '?';
+      display: inline-block;
+      margin-left: 0.15em;
+      vertical-align: super;
+      font-size: 0.7em;
+      font-weight: 700;
+      color: var(--color-ink-600);
+    }
+    .term-trigger[aria-expanded='true'] {
+      background: var(--color-ink-100);
+    }
+
+    /* 화면에서만 푸터를 바닥에 붙인다. 인쇄에는 flex 를 쓰지 않는다. */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .app-main {
+      flex: 1 1 auto;
+    }
+
+    /* 모바일에서 서식(A4 고정 폭)이 화면을 밀어내지 않게 가로 스크롤로 감싼다.
+       screen 전용이므로 인쇄에는 어떤 영향도 없다. */
+    .sheet-scroll {
+      overflow-x: auto;
+    }
+  }
+
+  @media screen and (max-width: 47.9375rem) {
+    .sheet-scroll > * {
+      min-width: 33rem;
+    }
+  }
+}
+
+
 /* ──────────────────────────────────────────────────────────────
  * 인쇄 규칙 (CLAUDE.md: PDF 출력은 window.print() + @media print)
  * 화면용 컴포넌트와 인쇄용 레이아웃을 두 벌로 관리하지 않는다.

@@ -745,7 +745,7 @@ export const RESPONSE_LIMITATION = {
   basis: '시행령 제31조의2 제8항 제3호 단서',
   proviso: EXPLANATION_METHODS.find((m) => m.id === 'baseInfo').proviso,
   explanation:
-    '금융회사가 종합신용정보집중기관·개인신용평가회사 등으로부터 **직접 입수한** 신용정보는 ' +
+    '금융회사가 종합신용정보집중기관·개인신용평가회사 등으로부터 직접 입수한 신용정보는 ' +
     '설명받을 수 있습니다. 그러나 금융회사가 그 정보를 자체적으로 가공하거나 추론해 만든 ' +
     '정보는 제외할 수 있습니다.',
   consequence:
@@ -1045,6 +1045,58 @@ export const BASE_INFO_CATEGORIES_BY_ID = Object.fromEntries(
  * 순서가 의미를 가진다. 위에서부터 먼저 맞는 규칙을 적용한다.
  *   "채무 불이행"은 신용도(1호의4), "채무"는 신용거래능력(1호의5)이므로 신용도를 먼저 본다.
  */
+/**
+ * ★ 5분류가 겹치는 항목.
+ *
+ * 같은 "대출 잔액"이 두 분류에 모두 걸린다.
+ *   - 법 제2조 제1호의3 가목 1) : 신용공여의 종류ㆍ기간ㆍ금액ㆍ금리ㆍ한도 → 거래내용 판단정보
+ *   - 법 제2조 제1호의5 가목    : 개인의 직업ㆍ재산ㆍ채무ㆍ소득의 총액 및 납세실적 → 신용거래능력 판단정보
+ *
+ * 중복 규정이 아니라 관점의 차이다. 전자는 **거래 이력**, 후자는 **상환 능력**을 본다.
+ * 따라서 어느 쪽이 맞다고 코드가 정할 수 없다. 보정 규칙(BASE_INFO_KEYWORD_RULES)에
+ * 넣지 않고, 화면에서 두 근거를 모두 보여준 뒤 사용자가 고르게 한다.
+ * 분류는 정정 요구의 근거가 되므로 최종 판단은 사용자 몫이다.
+ *
+ * ※ 표시 전용이다. 판정 로직(api/interpret.js 의 가드)은 이 상수를 쓰지 않는다.
+ */
+export const AMBIGUOUS_CATEGORY_ITEMS = {
+  /** 어느 쪽으로도 볼 수 있는 항목을 알아보는 말 (항목 이름만 본다) */
+  keywords: [
+    '대출 잔액',
+    '대출잔액',
+    '대출 건수',
+    '대출건수',
+    '카드 이용액',
+    '카드이용액',
+    '할부 잔액',
+    '리스 잔액',
+    '채무 잔액',
+    '한도',
+  ],
+  candidates: [
+    {
+      categoryId: 'transaction',
+      basis: '법 제2조 제1호의3 가목 1)',
+      perspective: '거래 이력으로 보는 관점',
+    },
+    {
+      categoryId: 'capacity',
+      basis: '법 제2조 제1호의5 가목',
+      perspective: '상환 능력으로 보는 관점',
+    },
+  ],
+  notice:
+    '이 항목은 거래내용 판단정보(법 제2조 제1호의3 가목 1))와 ' +
+    '신용거래능력 판단정보(법 제2조 제1호의5 가목)에 모두 해당할 수 있습니다. ' +
+    '정정을 요구하실 내용에 맞는 쪽을 선택하세요.',
+}
+
+/** 항목 이름이 겹치는 항목인지 (표시 전용) */
+export function isAmbiguousCategoryItem(name) {
+  const n = String(name ?? '')
+  return AMBIGUOUS_CATEGORY_ITEMS.keywords.some((k) => n.includes(k))
+}
+
 export const BASE_INFO_KEYWORD_RULES = [
   {
     categoryId: 'creditworthiness',

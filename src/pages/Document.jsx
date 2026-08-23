@@ -16,6 +16,9 @@ import {
 } from '../data/law.js'
 import { useDiagnosis } from '../lib/diagnosis-context.jsx'
 import { neutralizeInstitution } from '../lib/neutralize.js'
+import { PageHeader, Basis, Notice } from '../components/ui.jsx'
+import { Term } from '../components/Term.jsx'
+import EmailDraft from '../components/EmailDraft.jsx'
 
 /* ── 공용 조각 ───────────────────────────────────────────────── */
 
@@ -47,6 +50,8 @@ function Checkbox({ checked, onChange, disabled, children }) {
  * <input> 은 넘치는 글자를 인쇄에서 잘라먹으므로, 인쇄 시에는 같은 값을
  * 줄바꿈되는 span 으로 바꿔 출력한다. 화면용/인쇄용 DOM 을 두 벌로 두지 않기 위해
  * 같은 값을 공유하고 표시만 전환한다.
+ *
+ * 포커스 링을 지우지 않는다. index.css 의 :focus-visible 이 표시한다.
  */
 function Field({ value, onChange, placeholder, className = '' }) {
   return (
@@ -55,7 +60,7 @@ function Field({ value, onChange, placeholder, className = '' }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`${className} outline-none placeholder:text-gray-300 print:hidden`}
+        className={`${className} placeholder:text-gray-500 print:hidden`}
       />
       <span className="hidden whitespace-pre-wrap break-words print:inline">{value}</span>
     </>
@@ -361,6 +366,8 @@ export default function Document() {
    * 서식 원문의 그 자리는 회사명이 아니라 업권명 자리이기 때문이다.
    */
   const institutionShortLabel = sector?.shortLabel ?? null
+  /** 이메일 초안의 수신처 자리에 쓸 이름. 없으면 비워 두고 사용자가 채운다. */
+  const customInstitutionLabel = (diagnosis.customInstitution ?? '').trim()
 
   // 라우팅이 unknown 이면 서식 1이 선행 단계이므로 서식 1 탭에서 시작한다.
   // ?form=<서식 id> 로 특정 서식을 바로 열 수 있다.
@@ -435,56 +442,82 @@ export default function Document() {
 
   return (
     <div className="space-y-5 py-6">
-      <header className="no-print space-y-1">
-        <h1 className="text-2xl font-bold">서식 생성</h1>
-        <p className="text-sm text-gray-600">
-          화면에서 채운 내용이 그대로 인쇄됩니다. 서버로 전송하지 않으며 새로고침하면 사라집니다.
-        </p>
-      </header>
+      <PageHeader
+        kicker="서식 생성"
+        title="고시 서식을 채워 인쇄하세요"
+        description="화면에서 채운 내용이 그대로 인쇄됩니다. 서버로 전송하지 않으며 새로고침하면 사라집니다."
+      />
+
+      {/* 모바일 안내 — 서식은 A4 고정이므로 작은 화면에서는 축소돼 보이는 것이 정상이다 */}
+      <div className="no-print md:hidden">
+        <Notice title="인쇄는 PC를 권장합니다">
+          <p>
+            서식은 A4 크기에 맞춰 조판돼 있어 이 화면에서는 작게 보입니다. 내용은 여기서 채우고,
+            인쇄는 PC에서 하시거나 아래 [이메일로 제출하기]를 쓰세요. 표는 좌우로 밀어 볼 수
+            있습니다.
+          </p>
+        </Notice>
+      </div>
 
       {branch?.requiresPrecedingStep && (
-        <div className="no-print rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-          <p className="font-medium">순서가 있습니다.</p>
-          <ol className="mt-1 space-y-1">
-            {branch.steps.map((st) => (
-              <li key={st.order}>
-                {st.order}. {st.description}
-              </li>
-            ))}
-          </ol>
+        <div className="no-print">
+          <Notice title="순서가 있습니다" mark="1">
+            <ol className="space-y-1">
+              {branch.steps.map((st) => (
+                <li key={st.order}>
+                  {st.order}. {st.description}
+                </li>
+              ))}
+            </ol>
+          </Notice>
         </div>
       )}
 
-      <div className="no-print flex flex-wrap gap-2">
+      <div className="no-print flex flex-col gap-2 sm:flex-row sm:flex-wrap" role="group" aria-label="서식 선택">
         {[FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST].map((f, i) => (
           <button
             key={f.id}
             type="button"
             onClick={() => setTab(f.id)}
-            className={`rounded border px-4 py-2 text-left text-sm ${
-              tab === f.id ? 'border-gray-900 bg-gray-900 text-white' : 'hover:bg-gray-50'
+            aria-pressed={tab === f.id}
+            className={`flex-1 rounded-md border px-4 py-3 text-left ${
+              tab === f.id
+                ? 'border-ink-700 bg-ink-700 text-white'
+                : 'border-gray-300 bg-white hover:border-ink-400'
             }`}
           >
-            서식 {i + 1} · {f.title}
-            <span className="ml-2 text-xs opacity-80">{f.coveredRights.join(', ')}</span>
+            <span className="block font-bold">
+              {tab === f.id && <span aria-hidden="true">✓ </span>}
+              서식 {i + 1} · {f.title}
+            </span>
+            <span className={`mt-1 block text-sm ${tab === f.id ? 'text-ink-100' : 'text-gray-600'}`}>
+              {f.coveredRights.join(', ')}
+            </span>
           </button>
         ))}
       </div>
 
+      <p className="no-print text-gray-600">
+        두 서식 모두 <Term id="noticedForm">고시 서식</Term>입니다. 직접 만든 편지로는 요건을
+        채우지 못합니다.
+      </p>
+
       {/* 서식 밖 안내. 인쇄되는 서식 본문에는 넣지 않는다 (renderOutsideFormOnly). */}
       {isForm1 && (
-        <div className="no-print rounded border bg-gray-50 p-3 text-sm">
-          <p className="font-medium">고시 서식 안내문에 대한 보충</p>
-          <p className="mt-1">{FORM_SECTION1_DISCREPANCY.correction}</p>
-          <p className="mt-1 text-xs text-gray-500">
-            근거 체인: {FORM_SECTION1_DISCREPANCY.basisChain}
+        <div className="no-print panel">
+          <p className="font-bold text-gray-900">고시 서식 안내문에 대한 보충</p>
+          <p className="mt-2 text-gray-700">{FORM_SECTION1_DISCREPANCY.correction}</p>
+          <p className="mt-3">
+            <Basis chain prefix="근거 체인">
+              {FORM_SECTION1_DISCREPANCY.basisChain}
+            </Basis>
           </p>
         </div>
       )}
 
       {!isForm1 && (
-        <div className="no-print space-y-2 rounded border bg-gray-50 p-3 text-sm">
-          <p className="font-medium">넣을 섹션을 고르세요</p>
+        <div className="no-print panel space-y-3">
+          <p className="font-bold text-gray-900">넣을 섹션을 고르세요</p>
           {FORM_CORRECTION_REQUEST.sections
             .filter((sec) => sec.toggleable)
             .map((sec) => {
@@ -497,35 +530,43 @@ export default function Document() {
                     onChange={(v) => setEnabled((p) => ({ ...p, [sec.id]: v }))}
                   >
                     {sec.title} — {RIGHTS_BY_ID[sec.right].label}{' '}
-                    <span className="text-xs text-gray-500">({sec.basis})</span>
+                    <Basis>{sec.basis}</Basis>
                   </Checkbox>
-                  {blocked && <p className="pl-6 text-xs text-amber-700">{sec.dependsOn.message}</p>}
+                  {blocked && (
+                    <p className="pl-6 text-sm text-amber-900">
+                      <span aria-hidden="true">※ </span>
+                      {sec.dependsOn.message}
+                    </p>
+                  )}
                 </div>
               )
             })}
           {(diagnosis.correctionRows ?? []).length > 0 && (
-            <p className="text-xs text-gray-600">
+            <p className="text-sm text-gray-700">
               회신 해석에서 표시하신 {diagnosis.correctionRows.length}건이 섹션 2의 &ldquo;현행
               정보&rdquo; 칸에 채워졌습니다. &ldquo;정정 또는 삭제 내용&rdquo;은 직접 적어
               주세요.
             </p>
           )}
           {(diagnosis.selectedCandidates ?? []).length > 0 && (
-            <p className="text-xs text-gray-600">
+            <p className="text-sm text-gray-700">
               대응 전략에서 고른 {diagnosis.selectedCandidates.length}개 항목이 섹션 3에
               채워졌습니다. 세부 수치는 직접 확인해 수정하세요.
             </p>
           )}
           {!FORM_CORRECTION_REQUEST.sections[0].verbatimVerified && (
-            <p className="border-t pt-2 text-xs text-amber-700">
+            <p className="border-t border-gray-200 pt-2 text-sm text-amber-900">
+              <span aria-hidden="true">※ </span>
               섹션 1 원문은 확보했으나 아직 원본과 대조하지 않았습니다. 제출 전 실물 서식과
               대조해 주세요.
             </p>
           )}
-          <p className="text-xs text-gray-500">{FORM_CORRECTION_REQUEST.attachment.rationale}</p>
+          <p className="text-sm text-gray-600">{FORM_CORRECTION_REQUEST.attachment.rationale}</p>
         </div>
       )}
 
+      {/* .sheet-scroll 은 @media screen 에서만 동작한다. 인쇄에는 영향이 없다. */}
+      <div className="sheet-scroll">
       {isForm1 ? (
         <Form1
           selectedItems={selectedItems}
@@ -553,25 +594,38 @@ export default function Document() {
           s2HasContent={s2HasContent}
         />
       )}
+      </div>
 
-      <div className="no-print flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="rounded bg-gray-900 px-5 py-3 text-white hover:bg-gray-700"
-        >
-          인쇄 / PDF로 저장
-        </button>
-        <Link to="/next" className="rounded border px-5 py-3 hover:bg-gray-50">
-          출력했다면, 이후 절차 보기
-        </Link>
-        <p className="text-xs text-gray-500">
+      <div className="no-print space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <button type="button" onClick={() => window.print()} className="btn btn-primary">
+            인쇄 / PDF로 저장
+          </button>
+          <Link to="/next" className="btn btn-secondary">
+            출력했다면, 이후 절차 보기
+          </Link>
+        </div>
+        <p className="text-sm text-gray-600">
           인쇄 대화상자에서 용지를 A4, 배율 100%로 두세요. 지금 보고 있는 서식만 인쇄됩니다.
         </p>
       </div>
+
+      {/* 전자우편 제출 — 시행령 제31조의2 제6항이 허용한 행사 방법 */}
+      <EmailDraft
+        formId={tab}
+        personal={personal}
+        selectedItems={selectedItems}
+        rows={rows}
+        favorable={favorable}
+        enabled={enabled}
+        recipientOrg={
+          recipient.trim() || customInstitutionLabel
+        }
+      />
+
       {/* s4 의존 규칙 근거를 화면에도 남긴다 */}
       {!isForm1 && s4.dependsOn && (
-        <p className="no-print text-xs text-gray-500">{s4.dependsOn.message}</p>
+        <p className="no-print text-sm text-gray-500">{s4.dependsOn.message}</p>
       )}
     </div>
   )
