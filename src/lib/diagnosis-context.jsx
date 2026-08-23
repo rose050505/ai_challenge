@@ -20,6 +20,10 @@ const EMPTY = {
   limitKind: null,
   /** /strategy 에서 사용자가 고른 R3 후보. 서식 2 섹션 3으로 넘어간다. */
   selectedCandidates: [],
+  /** /response 에서 "사실과 다르다"고 표시한 항목. 서식 2 섹션 2로 넘어간다. */
+  correctionRows: [],
+  /** /response 에서 설명되지 않은 것으로 판정된 유형. 서식 1 재요구에 쓴다. */
+  missingRequestItems: [],
 }
 
 export function DiagnosisProvider({ children }) {

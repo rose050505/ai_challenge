@@ -721,6 +721,38 @@ export const EXPLANATION_METHODS = [
   },
 ]
 
+/**
+ * 회신 해석(/response)의 판정 축.
+ *
+ * ★ 새로 만들지 않는다. 시행령 제31조의2 제8항의 3유형(EXPLANATION_METHODS)을 그대로 쓴다.
+ *   id 는 result / criteria / baseInfo 로, 서식 1의 요청 항목(FORM_REQUEST_ITEMS)과 같다.
+ *   따라서 "누락된 유형 → 서식 1 재요구" 연결이 id 하나로 성립한다.
+ */
+export const RESPONSE_TYPES = EXPLANATION_METHODS
+
+export const RESPONSE_TYPE_IDS = EXPLANATION_METHODS.map((m) => m.id)
+
+export const RESPONSE_TYPES_BY_ID = Object.fromEntries(
+  EXPLANATION_METHODS.map((m) => [m.id, m]),
+)
+
+/**
+ * ★ 제도의 한계 — 시행령 제31조의2 제8항 제3호 단서.
+ * 회신을 받은 사용자가 "왜 이것밖에 안 알려주지"라고 느끼는 지점의 근거다.
+ * 우리 서비스의 결함이 아니라 제도의 설계이므로 정면으로 밝힌다.
+ */
+export const RESPONSE_LIMITATION = {
+  basis: '시행령 제31조의2 제8항 제3호 단서',
+  proviso: EXPLANATION_METHODS.find((m) => m.id === 'baseInfo').proviso,
+  explanation:
+    '금융회사가 종합신용정보집중기관·개인신용평가회사 등으로부터 **직접 입수한** 신용정보는 ' +
+    '설명받을 수 있습니다. 그러나 금융회사가 그 정보를 자체적으로 가공하거나 추론해 만든 ' +
+    '정보는 제외할 수 있습니다.',
+  consequence:
+    '따라서 평가 모델이 각 정보를 어떻게 조합해 점수를 냈는지, 그 내부 로직 자체는 ' +
+    '받을 수 없습니다. 회신이 부실해 보인다면 상당 부분은 이 단서 때문입니다.',
+}
+
 /* ============================================================
  * 6. 서식
  * ============================================================ */

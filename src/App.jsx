@@ -5,12 +5,14 @@ import Diagnose from './pages/Diagnose.jsx'
 import Document from './pages/Document.jsx'
 import Strategy from './pages/Strategy.jsx'
 import Next from './pages/Next.jsx'
+import Response from './pages/Response.jsx'
 
 const NAV = [
   { to: '/diagnose', label: '진단' },
   { to: '/document', label: '서식' },
   { to: '/strategy', label: '전략' },
   { to: '/next', label: '이후 절차' },
+  { to: '/response', label: '회신 해석' },
 ]
 
 export default function App() {
@@ -38,6 +40,7 @@ export default function App() {
           <Route path="/document" element={<Document />} />
           <Route path="/strategy" element={<Strategy />} />
           <Route path="/next" element={<Next />} />
+          <Route path="/response" element={<Response />} />
           <Route path="*" element={<h1 className="text-xl font-bold">404</h1>} />
         </Routes>
       </main>

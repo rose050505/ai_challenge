@@ -372,7 +372,16 @@ export default function Document() {
   )
 
   // 서식 1 — unknown 분기는 선행 단계가 지정한 요청 항목(기초정보의 개요)을 미리 선택한다.
-  const [selectedItems, setSelectedItems] = useState(branch?.steps?.[0]?.requestItemIds ?? [])
+  /**
+   * 서식 1 요청 항목.
+   * /response 에서 "설명되지 않음"으로 판정된 유형이 있으면 그것만 선택된 상태로 시작한다.
+   * 없으면 라우팅 선행 단계가 지정한 항목을 쓴다.
+   */
+  const [selectedItems, setSelectedItems] = useState(
+    (diagnosis.missingRequestItems ?? []).length > 0
+      ? diagnosis.missingRequestItems
+      : (branch?.steps?.[0]?.requestItemIds ?? []),
+  )
   const [hopeResult, setHopeResult] = useState('')
   const [consent, setConsent] = useState(null)
 
@@ -382,7 +391,20 @@ export default function Document() {
 
   // 서식 2
   const [enabled, setEnabled] = useState({ s2: true, s3: true, s4: true })
-  const [rows, setRows] = useState({})
+  /**
+   * 섹션 2 정정·삭제 표.
+   * /response 에서 "사실과 다르다"고 표시한 항목이 "현행 정보" 칸으로 들어온다.
+   * "정정 또는 삭제 내용" 칸은 사용자가 직접 채운다.
+   * 같은 분류에 여러 건이면 줄바꿈으로 합친다.
+   */
+  const [rows, setRows] = useState(() => {
+    const init = {}
+    for (const r of diagnosis.correctionRows ?? []) {
+      const prev = init[r.categoryId]?.current
+      init[r.categoryId] = { current: prev ? `${prev}\n${r.current}` : r.current, correction: '' }
+    }
+    return init
+  })
   /**
    * 섹션 3은 /strategy 에서 고른 후보로 채워진다.
    * 아직 안 거쳤으면 빈 표 3행으로 시작한다.
@@ -481,6 +503,13 @@ export default function Document() {
                 </div>
               )
             })}
+          {(diagnosis.correctionRows ?? []).length > 0 && (
+            <p className="text-xs text-gray-600">
+              회신 해석에서 표시하신 {diagnosis.correctionRows.length}건이 섹션 2의 &ldquo;현행
+              정보&rdquo; 칸에 채워졌습니다. &ldquo;정정 또는 삭제 내용&rdquo;은 직접 적어
+              주세요.
+            </p>
+          )}
           {(diagnosis.selectedCandidates ?? []).length > 0 && (
             <p className="text-xs text-gray-600">
               대응 전략에서 고른 {diagnosis.selectedCandidates.length}개 항목이 섹션 3에

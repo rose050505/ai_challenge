@@ -191,6 +191,20 @@ export default function Next() {
         </div>
       </Section>
 
+      <div className="rounded border-2 border-gray-900 p-4">
+        <h2 className="font-semibold">답변서를 받으셨나요?</h2>
+        <p className="mt-1 text-sm text-gray-700">
+          금융회사가 보낸 회신을 붙여넣으면 무엇을 받았고 무엇이 빠졌는지 확인해 드립니다.
+          틀린 기초정보를 찾으면 정정·삭제 요구서로 바로 이어집니다.
+        </p>
+        <Link
+          to="/response"
+          className="mt-3 inline-block rounded bg-gray-900 px-5 py-3 text-white hover:bg-gray-700"
+        >
+          회신 해석하러 가기
+        </Link>
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <Link to="/document" className="rounded border px-5 py-3 hover:bg-gray-50">
           서식으로 돌아가기
