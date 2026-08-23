@@ -26,7 +26,15 @@ import { interpretResponse } from '../lib/interpret-client.js'
  * 독립 진입 가능. 진단을 거치지 않아도 동작한다.
  */
 
-/** 다음 행동 판정 — 코드가 결정한다. AI에게 맡기지 않는다. */
+/**
+ * 다음 행동 판정 — 코드가 결정한다. AI에게 맡기지 않는다.
+ *
+ * ★ excludedByProviso 는 여기서 보지 않는다. 의도적이다.
+ *   시행령 §31-2⑧3호 단서의 법정 제외는 거절이 아니라 정상 회신이므로,
+ *   거절 분기로 보내면 안 된다. 세 유형을 다 받았고 오류가 없으면
+ *   제외가 적용됐더라도 'done'(유리한 정보 제출) 분기로 간다.
+ *   RESPONSE_DISPOSITIONS 참조.
+ */
 function decideNextAction({ interpretation, errorCount }) {
   if (errorCount > 0) {
     return {
@@ -95,6 +103,8 @@ export default function Response() {
   const [state, setState] = useState('idle') // idle | loading | done
   const [result, setResult] = useState(null)
   const [errors, setErrors] = useState([]) // 사실과 다르다고 체크한 baseInfoItems 인덱스
+  // 사용자가 직접 고친 분류. 분류는 정정 요구의 근거이므로 최종 판단은 사용자 몫이다.
+  const [catOverrides, setCatOverrides] = useState({})
   // 수동 모드 상태
   const [manualCovered, setManualCovered] = useState([])
   const [manualItems, setManualItems] = useState([
@@ -106,6 +116,7 @@ export default function Response() {
     const r = await interpretResponse({ sampleId, responseText: text })
     setResult(r)
     setErrors([])
+    setCatOverrides({})
     if (r.mode === 'manual') {
       setManualCovered([])
       setManualItems([{ 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label }])
@@ -118,6 +129,7 @@ export default function Response() {
     setText(s.text)
     setState('idle')
     setResult(null)
+    setCatOverrides({})
   }
 
   // 수동 모드에서 만든 해석 결과를 AI 결과와 같은 모양으로 맞춘다
@@ -127,10 +139,20 @@ export default function Response() {
     baseInfoItems: manualItems.filter((i) => i.항목.trim()),
     refused: false,
     refusalReasonText: '',
+    excludedByProviso: false,
+    provisoText: '',
   }
 
   const interpretation =
     result?.mode === 'manual' ? manualInterpretation : (result?.interpretation ?? null)
+
+  // 서버가 법정 정의로 보정한 분류 위에 사용자의 선택을 덮어쓴다.
+  const items = (interpretation?.baseInfoItems ?? []).map((it, i) =>
+    catOverrides[i] ? { ...it, 분류: catOverrides[i] } : it,
+  )
+  // 수동 모드에서는 표 안에서 이미 분류를 고르므로 별도 보정 UI를 띄우지 않는다.
+  const showCategoryPicker = result?.mode !== 'manual'
+  const excluded = interpretation?.excludedByProviso === true
 
   const toggleError = (i) =>
     setErrors((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]))
@@ -138,7 +160,7 @@ export default function Response() {
   const goNext = (action) => {
     // 회신에서 읽은 값을 서식으로 넘긴다. 정정 내용은 사용자가 채운다.
     const rows = errors.map((i) => {
-      const item = interpretation.baseInfoItems[i]
+      const item = items[i]
       const cat = BASE_INFO_CATEGORIES.find((c) => c.label === item.분류) ?? BASE_INFO_CATEGORIES[4]
       return { categoryId: cat.id, current: `${item.항목}: ${item.내용}` }
     })
@@ -361,9 +383,30 @@ export default function Response() {
             )}
           </div>
 
-          {/* (2) 제도의 한계 — 반드시 표시 */}
-          <div className="rounded border border-gray-400 p-4">
-            <h2 className="font-semibold">받을 수 없는 것이 있습니다</h2>
+          {/* (2) 제도의 한계 — 반드시 표시. 실제 적용된 회신이면 강조한다. */}
+          <div
+            className={
+              excluded
+                ? 'rounded border-2 border-amber-600 bg-amber-50 p-4'
+                : 'rounded border border-gray-400 p-4'
+            }
+          >
+            <h2 className="font-semibold">
+              {excluded ? '이번 회신에 적용된 제외입니다' : '받을 수 없는 것이 있습니다'}
+            </h2>
+            {excluded && (
+              <>
+                <p className="mt-2 text-sm text-amber-900">{RESPONSE_LIMITATION.appliedNotice}</p>
+                {interpretation.provisoText && (
+                  <blockquote className="mt-2 rounded border bg-white p-3 text-sm whitespace-pre-line text-gray-700">
+                    {interpretation.provisoText}
+                  </blockquote>
+                )}
+                <p className="mt-2 rounded border bg-white p-3 text-sm text-gray-800">
+                  {RESPONSE_LIMITATION.notRefusalNote}
+                </p>
+              </>
+            )}
             <p className="mt-2 text-sm font-medium">{RESPONSE_LIMITATION.proviso}</p>
             <p className="mt-2 text-sm text-gray-700">{RESPONSE_LIMITATION.explanation}</p>
             <p className="mt-2 text-sm text-gray-700">{RESPONSE_LIMITATION.consequence}</p>
@@ -377,7 +420,7 @@ export default function Response() {
           {/* (3) 받은 기초정보 검토 */}
           <div>
             <h2 className="mb-2 text-lg font-semibold">받은 기초정보를 확인하세요</h2>
-            {interpretation.baseInfoItems.length === 0 ? (
+            {items.length === 0 ? (
               <p className="rounded border border-dashed p-3 text-sm text-gray-600">
                 회신에서 개별 기초정보 항목을 찾지 못했습니다.
               </p>
@@ -387,7 +430,7 @@ export default function Response() {
                   사실과 다른 항목에 표시하세요. 표시한 항목이 정정·삭제 요구서로 넘어갑니다.
                 </p>
                 {BASE_INFO_CATEGORIES.map((cat) => {
-                  const rows = interpretation.baseInfoItems
+                  const rows = items
                     .map((it, i) => ({ it, i }))
                     .filter(({ it }) => it.분류 === cat.label)
                   if (rows.length === 0) return null
@@ -415,6 +458,31 @@ export default function Response() {
                                 </span>
                               </span>
                             </label>
+                            {showCategoryPicker && (
+                              <div className="mt-1 flex flex-wrap items-center gap-2 pl-6">
+                                <span className="text-xs text-gray-500">분류</span>
+                                <select
+                                  value={it.분류}
+                                  onChange={(e) =>
+                                    setCatOverrides((p) => ({ ...p, [i]: e.target.value }))
+                                  }
+                                  className="rounded border px-1 py-0.5 text-xs"
+                                >
+                                  {BASE_INFO_CATEGORIES.map((c) => (
+                                    <option key={c.id} value={c.label}>
+                                      {c.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                {it.correctedFrom && catOverrides[i] === undefined && (
+                                  <span className="text-xs text-gray-600">
+                                    AI는 「{it.correctedFrom}」로 분류했으나 법 정의(
+                                    {it.correctionBasis})에 따라 바로잡았습니다. 다르다고 보시면
+                                    직접 고치세요.
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </li>
                         ))}
                       </ul>

@@ -6,8 +6,11 @@
  *
  * AI가 하는 것: 붙여넣은 회신 텍스트를 읽고
  *   - 시행령 §31-2⑧ 3유형 중 무엇이 설명됐고 무엇이 빠졌는지 분류
- *   - 기초정보 항목을 뽑아 5분류에 배치
- *   - 거절 여부와 회신에 적힌 거절 사유 원문 추출
+ *   - 기초정보 항목을 뽑아 5분류에 배치 (명백한 오분류는 코드가 보정)
+ *   - 거절(법 §36-2③)인지, 설명 범위의 법정 제외(시행령 §31-2⑧3호 단서)인지 구분
+ *
+ * ★ AI는 이 둘을 혼동한 전력이 있다. 최종 판정은 applyInterpretGuards 가 한다.
+ *   docs/cases/refusal-vs-proviso.md
  *
  * AI가 하지 않는 것:
  *   - 회신이 적법한지 판단하지 않는다
@@ -20,7 +23,15 @@
  * ────────────────────────────────────────────────────────────────
  */
 import Anthropic from '@anthropic-ai/sdk'
-import { RESPONSE_TYPES, RESPONSE_TYPE_IDS, BASE_INFO_CATEGORIES } from '../src/data/law.js'
+import {
+  RESPONSE_TYPES,
+  RESPONSE_TYPE_IDS,
+  RESPONSE_DISPOSITIONS_BY_ID,
+  RESPONSE_LIMITATION,
+  BASE_INFO_CATEGORIES,
+  BASE_INFO_CATEGORIES_BY_ID,
+  BASE_INFO_KEYWORD_RULES,
+} from '../src/data/law.js'
 
 const MODEL = 'claude-sonnet-5'
 const MAX_TOKENS = 4096
@@ -33,6 +44,14 @@ const MAX_BASE_INFO_ITEMS = 20
 
 const CATEGORY_LABELS = BASE_INFO_CATEGORIES.map((c) => c.label)
 const FALLBACK_CATEGORY = BASE_INFO_CATEGORIES.find((c) => c.id === 'other').label
+
+const D_REFUSED = RESPONSE_DISPOSITIONS_BY_ID.refused
+const D_EXCLUDED = RESPONSE_DISPOSITIONS_BY_ID.excludedByProviso
+
+/** 5분류의 법정 정의와 예시를 전부 주입한다. 분류명만 주고 알아서 판단하게 두지 않는다. */
+const CATEGORY_BLOCK = BASE_INFO_CATEGORIES.map(
+  (c) => `- ${c.label} (${c.definitionBasis})\n  법이 든 예: ${c.examples.join(', ')}`,
+).join('\n')
 
 const SYSTEM_PROMPT = `당신은 금융회사가 보낸 회신문을 읽고 분류하는 도구입니다.
 
@@ -47,19 +66,38 @@ const SYSTEM_PROMPT = `당신은 금융회사가 보낸 회신문을 읽고 분�
 ${RESPONSE_TYPES.map((t) => `- ${t.id}: ${t.label}\n  (금융회사는 보통 이렇게 답합니다: ${t.text})`).join('\n')}
 
 회신문에 각 유형의 내용이 실제로 담겨 있으면 covered 에, 없으면 missing 에 넣으십시오.
-"자체 가공·추론한 정보라 제공할 수 없다"는 취지로 거절된 유형은 missing 에 넣으십시오.
 
 [기초정보 항목 추출]
 회신문에 개별 정보 항목이 열거되어 있으면 baseInfoItems 로 뽑으십시오.
-각 항목의 "분류"는 반드시 아래 다섯 중 하나여야 합니다:
-${CATEGORY_LABELS.map((l) => `- ${l}`).join('\n')}
-판단이 어려우면 "${FALLBACK_CATEGORY}"로 두십시오. 최대 ${MAX_BASE_INFO_ITEMS}개.
+각 항목의 "분류"는 반드시 아래 다섯 중 하나여야 합니다. 법이 정한 정의와 예시입니다.
+${CATEGORY_BLOCK}
+법이 예로 든 단어가 항목 이름에 그대로 나오면 그 분류를 쓰십시오.
+특히 직업·재산·채무·소득·납세실적·건강보험 납부실적은 "신용거래능력 판단정보"입니다.
+식별정보는 성명·주소·전화번호·개인식별번호·생체정보에 한정됩니다.
+그 밖에 판단이 어려우면 "${FALLBACK_CATEGORY}"로 두십시오. 최대 ${MAX_BASE_INFO_ITEMS}개.
 "내용"은 회신문에 적힌 값을 그대로 옮기십시오. 추측해서 채우지 마십시오.
 
-[거절 여부]
-회신이 요구를 거절하는 취지이면 refused 를 true 로 하고,
-회신문에 적힌 거절 사유 문장을 refusalReasonText 에 원문 그대로 옮기십시오.
-사유가 적혀 있지 않으면 빈 문자열로 두십시오. 사유를 지어내지 마십시오.
+[★ 반드시 구분할 것 — 거절과 법정 제외는 다른 개념입니다]
+
+A. ${D_REFUSED.label} (${D_REFUSED.basis})
+   ${D_REFUSED.text}
+   요구에 응하지 않겠다는 취지일 때만 refused 를 true 로 하십시오.
+   예: "동일한 거래에 대해 반복하여 요구하셨으므로 응할 수 없습니다",
+       "다른 법령상 의무 때문에 안내가 불가합니다"
+
+B. ${D_EXCLUDED.label} (${D_EXCLUDED.basis})
+   ${D_EXCLUDED.text}
+   해당 단서: "${RESPONSE_LIMITATION.proviso}"
+   요구에는 답하면서 일부 내용만 제외한 취지일 때 excludedByProviso 를 true 로 하십시오.
+   예: "가중치 산정 방식은 당사가 자체 개발·가공하여 생성한 정보이므로 제공 대상에서 제외됩니다",
+       "세부 지표는 자체적으로 가공·추론하여 산출한 것으로 제공이 어렵습니다"
+
+"제외", "제공 대상이 아님", "자체 개발", "자체 가공", "산출" 이라는 표현은
+그 자체로 거절이 아닙니다. B입니다. refused 를 true 로 하지 마십시오.
+회신이 세 유형에 모두 답하고 있다면 그것은 어떤 경우에도 거절이 아닙니다.
+
+refusalReasonText 에는 A의 사유 문장을, provisoText 에는 B의 문장을
+회신문에 적힌 그대로 옮기십시오. 없으면 빈 문자열로 두십시오. 지어내지 마십시오.
 
 [응답 형식]
 아래 JSON만 출력하십시오. 설명, 인사말, 마크다운 코드펜스를 붙이지 마십시오.
@@ -70,7 +108,9 @@ ${CATEGORY_LABELS.map((l) => `- ${l}`).join('\n')}
     { "항목": "항목 이름", "내용": "회신에 적힌 값", "분류": "${CATEGORY_LABELS[0]}" }
   ],
   "refused": false,
-  "refusalReasonText": ""
+  "refusalReasonText": "",
+  "excludedByProviso": false,
+  "provisoText": ""
 }`
 
 /** 마크다운 코드펜스를 벗기고 JSON 파싱. 실패하면 null. (테스트용 export) */
@@ -93,10 +133,30 @@ export function parseInterpretation(raw) {
 }
 
 /**
+ * 항목 이름을 법정 정의와 대조해 명백한 오분류만 바로잡는다. (테스트용 export)
+ *
+ * 항목 이름만 본다. 내용까지 보면 "총 대출 잔액 — 연체 없음" 같은 값에서
+ * 엉뚱한 규칙이 걸린다.
+ *
+ * 보정한 경우 correctedFrom / correctionBasis 를 남긴다.
+ * 화면은 이 값을 보고 사용자에게 "바꿀 수 있다"고 알린다. 최종 판단은 사용자 몫이다.
+ */
+export function correctCategory(name, claimed) {
+  for (const rule of BASE_INFO_KEYWORD_RULES) {
+    if (!rule.keywords.some((k) => name.includes(k))) continue
+    const label = BASE_INFO_CATEGORIES_BY_ID[rule.categoryId].label
+    if (label === claimed) break
+    return { 분류: label, correctedFrom: claimed, correctionBasis: rule.basis }
+  }
+  return { 분류: claimed, correctedFrom: null, correctionBasis: null }
+}
+
+/**
  * 서버 가드. 클라이언트도 LLM도 믿지 않는다. (테스트용 export)
  * - covered/missing 은 세 리터럴 외 전부 버린다
- * - 분류는 5분류로 강제하고, 벗어나면 "기타 정보"로 귀속시킨다
+ * - 분류는 5분류로 강제하고, 벗어나면 "기타 정보"로 귀속시킨 뒤 법정 정의로 보정한다
  * - baseInfoItems 는 최대 20개
+ * - ★ 거절(법 §36-2③)과 법정 제외(시행령 §31-2⑧3호 단서)의 논리 검증
  */
 export function applyInterpretGuards(parsed) {
   const pickIds = (arr) =>
@@ -104,7 +164,14 @@ export function applyInterpretGuards(parsed) {
 
   const covered = pickIds(parsed?.covered)
   // 같은 유형이 양쪽에 들어오면 covered 를 우선한다
-  const missing = pickIds(parsed?.missing).filter((id) => !covered.includes(id))
+  const claimedMissing = pickIds(parsed?.missing).filter((id) => !covered.includes(id))
+  // 세 유형 중 covered 도 missing 도 아닌 것은 missing 으로 본다
+  const missing = [
+    ...new Set([
+      ...claimedMissing,
+      ...RESPONSE_TYPE_IDS.filter((id) => !covered.includes(id) && !claimedMissing.includes(id)),
+    ]),
+  ]
 
   const items = []
   for (const raw of Array.isArray(parsed?.baseInfoItems) ? parsed.baseInfoItems : []) {
@@ -113,18 +180,42 @@ export function applyInterpretGuards(parsed) {
     const value = String(raw['내용'] ?? '').trim()
     if (!name) continue
     const claimed = String(raw['분류'] ?? '').trim()
-    const category = CATEGORY_LABELS.includes(claimed) ? claimed : FALLBACK_CATEGORY
-    items.push({ 항목: name, 내용: value, 분류: category })
+    const normalized = CATEGORY_LABELS.includes(claimed) ? claimed : FALLBACK_CATEGORY
+    items.push({ 항목: name, 내용: value, ...correctCategory(name, normalized) })
     if (items.length >= MAX_BASE_INFO_ITEMS) break
+  }
+
+  let refused = parsed?.refused === true
+  let refusalReasonText = String(parsed?.refusalReasonText ?? '').trim()
+  let excludedByProviso = parsed?.excludedByProviso === true
+  let provisoText = String(parsed?.provisoText ?? '').trim()
+
+  // ★ 논리 검증 — AI가 뭐라 하든 코드가 판정한다.
+  //
+  //   법 제36조의2 제3항의 "거절"은 요구 자체에 응하지 않은 것이다.
+  //   세 유형을 모두 설명했다면 요구에 응한 것이므로 거절일 수 없다.
+  //   (missing 은 위에서 세 유형으로 채워지므로, missing 이 비었다는 것과
+  //    covered 가 세 유형을 모두 포함한다는 것은 같은 조건이다.)
+  //
+  //   이때 AI가 거절 사유라고 넘긴 문장은 시행령 제31조의2 제8항 제3호 단서의
+  //   법정 제외(가공·추론 정보 제외)를 가리키는 것이므로 provisoText 로 옮긴다.
+  if (refused && missing.length === 0) {
+    refused = false
+    if (refusalReasonText) {
+      if (!provisoText) provisoText = refusalReasonText
+      excludedByProviso = true
+      refusalReasonText = ''
+    }
   }
 
   return {
     covered,
-    // 세 유형 중 covered 도 missing 도 아닌 것은 missing 으로 본다
-    missing: [...new Set([...missing, ...RESPONSE_TYPE_IDS.filter((id) => !covered.includes(id) && !missing.includes(id))])],
+    missing,
     baseInfoItems: items,
-    refused: parsed?.refused === true,
-    refusalReasonText: String(parsed?.refusalReasonText ?? '').trim(),
+    refused,
+    refusalReasonText,
+    excludedByProviso,
+    provisoText,
   }
 }
 

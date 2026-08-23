@@ -52,12 +52,14 @@ export const RESPONSE_SAMPLES = [
       ],
       refused: false,
       refusalReasonText: '',
+      excludedByProviso: false,
+      provisoText: '',
     },
   },
   {
     id: 'partial',
     title: '일부만 설명받은 회신',
-    summary: '결과는 안내받았으나 주요 기준과 기초정보는 "자체 가공 정보"라며 제외됐다.',
+    summary: '결과는 안내받았으나 주요 기준과 기초정보는 "자체 가공 정보"라며 제외됐다. 거절이 아니다.',
     /** ★ 제도의 한계를 심사자가 직접 보게 하는 샘플 */
     demonstrates: '시행령 §31-2⑧3호 단서로 모델 내부 로직을 받지 못하는 제도의 한계',
     text: `귀하의 요청에 대하여 아래와 같이 회신드립니다.
@@ -82,8 +84,14 @@ export const RESPONSE_SAMPLES = [
       baseInfoItems: [
         { 항목: '타사 대출 건수', 내용: '2건', 분류: '거래내용 판단정보' },
       ],
+      // ★ 거절이 아니다. 요구에는 응하면서 가공·추론 정보만 뺀 것이다.
+      //    시행령 §31-2⑧3호 단서. RESPONSE_DISPOSITIONS 참조.
       refused: false,
       refusalReasonText: '',
+      excludedByProviso: true,
+      provisoText:
+        '당사의 평가 기준 및 가중치 산정 방식은 당사가 자체적으로 개발·가공하여 생성한 정보에 ' +
+        '해당하므로, 관련 법령에 따라 제공 대상에서 제외됨을 알려드립니다.',
     },
   },
 ]
