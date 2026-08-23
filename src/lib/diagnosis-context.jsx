@@ -16,6 +16,10 @@ const EMPTY = {
   reason: '',
   routingBranchId: null,
   sampleId: null,
+  /** 한도 축소 × 은행 조합에서만 쓰인다 ('loan' | 'card') */
+  limitKind: null,
+  /** /strategy 에서 사용자가 고른 R3 후보. 서식 2 섹션 3으로 넘어간다. */
+  selectedCandidates: [],
 }
 
 export function DiagnosisProvider({ children }) {

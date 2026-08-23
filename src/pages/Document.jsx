@@ -383,11 +383,18 @@ export default function Document() {
   // 서식 2
   const [enabled, setEnabled] = useState({ s2: true, s3: true, s4: true })
   const [rows, setRows] = useState({})
-  const [favorable, setFavorable] = useState([
-    { infoName: '', detail: '' },
-    { infoName: '', detail: '' },
-    { infoName: '', detail: '' },
-  ])
+  /**
+   * 섹션 3은 /strategy 에서 고른 후보로 채워진다.
+   * 아직 안 거쳤으면 빈 표 3행으로 시작한다.
+   */
+  const [favorable, setFavorable] = useState(() => {
+    const picked = (diagnosis.selectedCandidates ?? []).map((c) => ({
+      infoName: c['정보명'] ?? '',
+      detail: c['세부내용'] ?? '',
+    }))
+    const blanks = Math.max(0, 3 - picked.length)
+    return [...picked, ...Array.from({ length: blanks }, () => ({ infoName: '', detail: '' }))]
+  })
   const [recipient, setRecipient] = useState('')
 
   const s2HasContent = Object.values(rows).some(
@@ -474,6 +481,12 @@ export default function Document() {
                 </div>
               )
             })}
+          {(diagnosis.selectedCandidates ?? []).length > 0 && (
+            <p className="text-xs text-gray-600">
+              대응 전략에서 고른 {diagnosis.selectedCandidates.length}개 항목이 섹션 3에
+              채워졌습니다. 세부 수치는 직접 확인해 수정하세요.
+            </p>
+          )}
           {!FORM_CORRECTION_REQUEST.sections[0].verbatimVerified && (
             <p className="border-t pt-2 text-xs text-amber-700">
               섹션 1 원문은 확보했으나 아직 원본과 대조하지 않았습니다. 제출 전 실물 서식과

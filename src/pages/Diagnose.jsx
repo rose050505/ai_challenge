@@ -9,6 +9,8 @@ import {
   FORMS_BY_ID,
   LAW_META,
   resolveTransactionBasis,
+  needsLimitKind,
+  LIMIT_KIND_QUESTION,
 } from '../data/law.js'
 import { EVENT_TYPES } from '../data/events.js'
 import { SAMPLE_SCENARIOS, SAMPLE_SCENARIOS_BY_ID } from '../data/samples.js'
@@ -51,6 +53,7 @@ export default function Diagnose() {
     customInstitution,
     reason,
     sampleId,
+    limitKind,
   } = diagnosis
 
   const applySample = (s) =>
@@ -62,6 +65,7 @@ export default function Diagnose() {
       reason: s.reason,
       routingBranchId: s.routingBranchId,
       sampleId: s.id,
+      limitKind: s.limitKind ?? null,
     })
 
   // 랜딩의 [샘플 시나리오로 체험하기] 진입 시 입력을 미리 채운다.
@@ -80,7 +84,9 @@ export default function Diagnose() {
 
   // 사건 유형 × 업권 조합으로 법 제2조 제1호의3 가목의 어느 호인지 판정한다.
   // CB사에는 업권 개념이 없으므로 sectorId 를 넘기지 않는다.
-  const transaction = resolveTransactionBasis(eventId, needsSector ? institutionSectorId : null)
+  const sectorForLaw = needsSector ? institutionSectorId : null
+  const askLimitKind = needsLimitKind(eventId, sectorForLaw)
+  const transaction = resolveTransactionBasis(eventId, sectorForLaw, limitKind)
   const activeSample = SAMPLE_SCENARIOS_BY_ID[sampleId]
 
   return (
@@ -123,7 +129,7 @@ export default function Diagnose() {
             <Choice
               key={e.id}
               selected={eventId === e.id}
-              onClick={() => update({ eventId: e.id })}
+              onClick={() => update({ eventId: e.id, limitKind: null })}
             >
               {e.label}
             </Choice>
@@ -173,7 +179,7 @@ export default function Diagnose() {
         >
           <select
             value={institutionSectorId}
-            onChange={(e) => update({ institutionSectorId: e.target.value })}
+            onChange={(e) => update({ institutionSectorId: e.target.value, limitKind: null })}
             className="w-full rounded border p-2"
           >
             <option value="">선택하세요</option>
@@ -203,6 +209,23 @@ export default function Diagnose() {
               className="mt-2 w-full rounded border p-2"
             />
           )}
+        </Step>
+      )}
+
+      {/* 이 조합에서만 뜨는 하위 질문. 다른 조합에는 일괄 적용하지 않는다. */}
+      {askLimitKind && (
+        <Step n="3-1" title={LIMIT_KIND_QUESTION.question} hint="어떤 한도였는지에 따라 근거 조문이 달라집니다.">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {LIMIT_KIND_QUESTION.options.map((o) => (
+              <Choice
+                key={o.id}
+                selected={limitKind === o.id}
+                onClick={() => update({ limitKind: o.id })}
+              >
+                {o.label}
+              </Choice>
+            ))}
+          </div>
         </Step>
       )}
 
@@ -356,7 +379,12 @@ function Result({ counterparty, transaction }) {
         {transaction.item && (
           <p className="mt-1 text-xs text-gray-600">{transaction.item.text}</p>
         )}
-        {transaction.caveat && (
+        {transaction.needsMoreInfo && (
+          <p className="mt-2 text-xs text-amber-700">
+            위 &ldquo;{LIMIT_KIND_QUESTION.question}&rdquo;에 답하면 근거 조문을 특정할 수 있습니다.
+          </p>
+        )}
+        {transaction.caveat && !transaction.needsMoreInfo && (
           <p className="mt-2 text-xs text-amber-700">{transaction.caveat}</p>
         )}
       </div>
@@ -379,12 +407,17 @@ function Result({ counterparty, transaction }) {
         </ul>
       </div>
 
-      <Link
-        to="/document"
-        className="inline-block rounded bg-gray-900 px-5 py-3 text-white hover:bg-gray-700"
-      >
-        서식 만들러 가기
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/strategy"
+          className="rounded bg-gray-900 px-5 py-3 text-white hover:bg-gray-700"
+        >
+          제출할 정보 정하러 가기
+        </Link>
+        <Link to="/document" className="rounded border px-5 py-3 hover:bg-gray-50">
+          바로 서식 만들기
+        </Link>
+      </div>
 
       <p className="text-xs text-gray-500">
         {LAW_META.act.name} {LAW_META.act.article} / {LAW_META.decree.name}{' '}

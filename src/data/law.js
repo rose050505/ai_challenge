@@ -460,9 +460,34 @@ const SECURITIES_LIKE = ['investment', 'securityFinance', 'merchantBank', 'trans
 const CARD_LIKE = ['creditFinance', 'concurrentCredit']
 
 /**
- * @returns {{resolved: boolean, item: object|null, basis: string, label: string, caveat: string|null}}
+ * 하위 질문 — 이 조합에서만 띄운다.
+ * 은행의 "한도 축소"는 신용대출 한도(가목 1))인지 카드 한도(가목 2))인지에 따라 근거가 갈린다.
+ * 사용자는 어떤 한도였는지 알고 있으므로 회피하지 말고 한 번 더 묻는다.
+ * 다른 조합에는 일괄 적용하지 않는다.
  */
-export function resolveTransactionBasis(eventId, sectorId) {
+export const LIMIT_KIND_QUESTION = {
+  question: '어떤 한도가 줄었나요?',
+  options: [
+    { id: 'loan', label: '대출 한도', transactionCode: 1 },
+    { id: 'card', label: '카드 한도', transactionCode: 2 },
+  ],
+  /** 이 조합에서만 노출한다 */
+  appliesTo: { eventId: 'limitReduced', sectorIds: BANK_LIKE },
+}
+
+/** 하위 질문을 띄워야 하는 조합인지 */
+export function needsLimitKind(eventId, sectorId) {
+  return (
+    eventId === LIMIT_KIND_QUESTION.appliesTo.eventId &&
+    LIMIT_KIND_QUESTION.appliesTo.sectorIds.includes(sectorId)
+  )
+}
+
+/**
+ * @param {string|null} limitKind 'loan' | 'card' — needsLimitKind 가 true 일 때만 쓰인다
+ * @returns {{resolved: boolean, item: object|null, basis: string, label: string, caveat: string|null, needsMoreInfo?: boolean}}
+ */
+export function resolveTransactionBasis(eventId, sectorId, limitKind = null) {
   const ambiguous = (caveat = null) => ({
     resolved: false,
     item: null,
@@ -491,22 +516,30 @@ export function resolveTransactionBasis(eventId, sectorId) {
     if (BANK_LIKE.includes(sectorId)) return pick(1)
     if (SECURITIES_LIKE.includes(sectorId)) return pick(3)
     if (CARD_LIKE.includes(sectorId)) return pick(2)
-    // 저축은행·신협·보험 등은 은행법·자본시장법 어느 쪽 신용공여인지 단정할 수 없다.
+    /**
+     * 저축은행·신협·보험 등.
+     * 가목 1)의 신용공여는 「은행법」 제2조제7호에 따른 것이므로 은행법상 은행에 적용되고,
+     * 가목 3)은 자본시장법상 금융투자업자에 적용된다.
+     * 따라서 이 업권의 대출은 가목 1)~3) 어디에도 직접 해당하지 않는다.
+     * 근거는 가목 4)의 "대통령령으로 정하는 거래"에 있을 가능성이 높으나 목록 미확인(TODO-5).
+     * → 회피가 아니라 정확한 판단이다. 상위 문구만 표시한다.
+     */
     return ambiguous(
-      '이 업권의 대출이 법 제2조 제1호의3 가목 1)~4) 중 어디에 해당하는지는 ' +
-        '단정하지 않습니다. 상위 문구만 표시합니다.',
+      '「은행법」상 신용공여(가목 1))나 자본시장법상 신용공여(가목 3))에 직접 해당하지 ' +
+        '않는 업권입니다. 가목 4)의 위임 거래 목록이 확인되지 않아 하위 호를 특정하지 ' +
+        '않고 상위 문구만 표시합니다.',
     )
   }
 
   if (eventId === 'limitReduced') {
-    // 카드 한도인지 신용대출 한도인지에 따라 근거가 갈린다.
+    // 카드사·증권사는 상품이 하나로 정해지므로 바로 판정된다.
     if (CARD_LIKE.includes(sectorId)) return pick(2)
     if (SECURITIES_LIKE.includes(sectorId)) return pick(3)
+    // 은행은 대출 한도인지 카드 한도인지 한 번 더 묻는다 (LIMIT_KIND_QUESTION).
     if (BANK_LIKE.includes(sectorId)) {
-      return ambiguous(
-        '신용대출 한도이면 법 제2조 제1호의3 가목 1), 카드 한도이면 2)입니다. ' +
-          '은행이 카드업을 겸영하는 경우(겸영여신업자)가 있어 단정하지 않습니다.',
-      )
+      const opt = LIMIT_KIND_QUESTION.options.find((o) => o.id === limitKind)
+      if (opt) return pick(opt.transactionCode)
+      return { ...ambiguous(), needsMoreInfo: true }
     }
     return ambiguous()
   }
@@ -944,6 +977,17 @@ export const R3_SCOPE = {
   outOfScopeNote:
     '위 정의(직업·재산·채무·소득의 총액·납세실적) 밖의 항목은 제안하지 않는다. ' +
     '예: 성격, 학력.',
+  /**
+   * 범주 밖이 명백한 표현. 서버에서 후보를 버리는 데 쓴다.
+   * 신용거래능력 판단정보(법 제2조 제1호의5)의 정의에 포함될 수 없는 것들이다.
+   */
+  deniedTerms: [
+    '성격', '인성', '성실성', '태도', '의지', '노력', '평판', '인맥', '인간관계',
+    '학력', '학벌', '출신학교', '전공',
+    '가족관계', '혼인', '종교', '정치', '성별', '나이', '연령', '외모', '건강상태', '병력',
+  ],
+  /** 최대 후보 수 */
+  maxCandidates: 5,
 }
 
 /**
