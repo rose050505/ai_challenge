@@ -1,4 +1,5 @@
 import { Routes, Route, Link, NavLink } from 'react-router-dom'
+import { DiagnosisProvider } from './lib/diagnosis-context.jsx'
 import Landing from './pages/Landing.jsx'
 import Diagnose from './pages/Diagnose.jsx'
 import Document from './pages/Document.jsx'
@@ -14,8 +15,9 @@ const NAV = [
 
 export default function App() {
   return (
+    <DiagnosisProvider>
     <div className="min-h-screen">
-      <header className="border-b">
+      <header className="border-b no-print">
         <nav className="mx-auto flex max-w-3xl gap-4 p-4 text-sm">
           <Link to="/" className="font-semibold">왜요</Link>
           {NAV.map((n) => (
@@ -29,7 +31,7 @@ export default function App() {
           ))}
         </nav>
       </header>
-      <main className="mx-auto max-w-3xl p-4">
+      <main className="mx-auto max-w-3xl p-4 print:max-w-none print:p-0">
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/diagnose" element={<Diagnose />} />
@@ -40,5 +42,6 @@ export default function App() {
         </Routes>
       </main>
     </div>
+    </DiagnosisProvider>
   )
 }

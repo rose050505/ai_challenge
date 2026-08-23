@@ -115,9 +115,9 @@ export const COUNTERPARTY_TYPES_BY_ID = Object.fromEntries(
  * 「금융위원회의 설치 등에 관한 법률」 제38조 각 호 — 법 원문 계층.
  * 시행령 제31조의2제1항이 이 목록을 그대로 인용한다.
  *
- * ⚠️ TODO-1-partial — **제4호·제5호는 확인되지 않았다.**
- * text: null 인 슬롯은 추측해서 채우지 않는다. 원문 확인 후에만 채운다.
- * 미확인분은 INSTITUTION_OTHER_OPTION("목록에 없음 / 직접 입력")이 흡수한다.
+ * TODO-1 해소 (2026-08-23, docs/law/law-reference-addendum.md): 10개 호 전부 원문 확인 완료.
+ * 출처: 「금융위원회의 설치 등에 관한 법률」 제38조(검사 대상 기관)
+ *       [시행 2026. 1. 2.] [법률 제21065호, 2025. 10. 1., 타법개정]
  */
 export const FSC_ACT_ARTICLE_38_CLAUSES = [
   {
@@ -131,7 +131,7 @@ export const FSC_ACT_ARTICLE_38_CLAUSES = [
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호',
     text:
       '「자본시장과 금융투자업에 관한 법률」에 따른 금융투자업자, 증권금융회사, ' +
-      '종합금융회사 및 명의개서대행회사',
+      '종합금융회사 및 명의개서대행회사(名義改書代行會社)',
     verified: true,
   },
   {
@@ -141,23 +141,21 @@ export const FSC_ACT_ARTICLE_38_CLAUSES = [
     verified: true,
   },
   {
-    // ⚠️ TODO-1-partial: 제4호 원문 미확인. 추측 금지.
     clause: 4,
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제4호',
-    text: null,
-    verified: false,
+    text: '「상호저축은행법」에 따른 상호저축은행과 그 중앙회',
+    verified: true,
   },
   {
-    // ⚠️ TODO-1-partial: 제5호 원문 미확인. 추측 금지.
     clause: 5,
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제5호',
-    text: null,
-    verified: false,
+    text: '「신용협동조합법」에 따른 신용협동조합 및 그 중앙회',
+    verified: true,
   },
   {
     clause: 6,
     basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호',
-    text: '「여신전문금융업법」에 따른 여신전문금융회사 및 겸영여신업자',
+    text: '「여신전문금융업법」에 따른 여신전문금융회사 및 겸영여신업자(兼營與信業者)',
     verified: true,
   },
   {
@@ -212,18 +210,18 @@ export const INSTITUTION_SECTORS = [
   { id: 'merchantBank', label: '종합금융회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
   { id: 'transferAgent', label: '명의개서대행회사', clauseNo: 2, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제2호', verified: true },
   { id: 'insurance', label: '보험회사', clauseNo: 3, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제3호', verified: true },
+  /**
+   * 제4호·제5호 확정 (docs/law/law-reference-addendum.md).
+   * ⚠️ 새마을금고는 제38조 각 호에 명시되어 있지 않다.
+   *   9호 해당 여부는 별도 확인이 필요하므로 이 라벨에 임의로 포함시키지 말 것.
+   *   5호는 신용협동조합(신협)과 그 중앙회로 정확히 표기한다.
+   */
+  { id: 'savingsBank', label: '상호저축은행', clauseNo: 4, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제4호', verified: true },
+  { id: 'mutualCredit', label: '신용협동조합', clauseNo: 5, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제5호', verified: true },
   { id: 'creditFinance', label: '여신전문금융회사 (카드사·캐피탈·리스 등)', clauseNo: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호', verified: true },
   { id: 'concurrentCredit', label: '겸영여신업자', clauseNo: 6, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제6호', verified: true },
   { id: 'nonghyupBank', label: '농협은행', clauseNo: 7, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제7호', verified: true },
   { id: 'suhyupBank', label: '수협은행', clauseNo: 8, basis: '「금융위원회의 설치 등에 관한 법률」 제38조 제8호', verified: true },
-  /**
-   * ⚠️ TODO-1-partial — 제4호·제5호 문구가 미확인이므로 근거 호수를 붙이지 않는다.
-   * 저축은행·상호금융이 금융감독원 검사대상기관이라는 점 자체는 다툼이 없으므로
-   * 선택지로는 노출하되, clauseNo/basis 는 null 로 두고 UI에서 조문 배지를 숨긴다.
-   * 4·5호 원문이 확인되면 그때 근거를 붙인다. 추측해서 채우지 말 것.
-   */
-  { id: 'savingsBank', label: '상호저축은행', clauseNo: null, basis: null, verified: false },
-  { id: 'mutualCredit', label: '신용협동조합·상호금융', clauseNo: null, basis: null, verified: false },
   {
     id: 'fssExamined',
     label: '그 밖에 금융감독원 검사 대상 기관',
@@ -243,9 +241,9 @@ export const INSTITUTION_SECTORS = [
 ]
 
 /**
- * 드롭다운 마지막에 **반드시** 둔다.
- * 미확인 제4·5호에 해당하는 기관을 포함해, 목록에서 찾지 못한 기관을 흡수한다.
- * (어떤 업권이 4·5호인지 추정하지 않는다.)
+ * 드롭다운 마지막에 둔다.
+ * 제38조 각 호는 모두 확인됐으나, 9호·10호처럼 열거되지 않은 기관이 있고
+ * 새마을금고처럼 해당 여부가 확인되지 않은 기관도 있으므로 직접 입력 경로를 남긴다.
  * 법령 항목이 아니므로 근거 호수를 붙이지 않는다.
  */
 export const INSTITUTION_OTHER_OPTION = {
@@ -255,9 +253,7 @@ export const INSTITUTION_OTHER_OPTION = {
   basis: null,
   verified: false,
   statutory: false,
-  uiNote:
-    '「금융위원회의 설치 등에 관한 법률」 제38조 제4호·제5호가 아직 확인되지 않았습니다. ' +
-    '목록에서 찾지 못한 기관은 여기에 직접 입력하세요.',
+  uiNote: '목록에서 찾지 못한 기관은 여기에 직접 입력하세요.',
 }
 
 /** 드롭다운에 그대로 넣을 수 있는 최종 옵션 목록 */
@@ -581,6 +577,70 @@ export const EXPLANATION_METHODS = [
  * 대응 권리: R1, R2 (법 제36조의2 제1항)
  * 명세: docs/law/form-spec.md
  */
+/**
+ * 서식 1 의 [섹션 3] 신청자 인적사항 칸.
+ * 명세: docs/law/form-spec.md §[섹션 3]
+ *
+ * ★ 주민등록번호는 입력받지 않는다. 서식에는 칸이 있으므로 공란으로 출력하고
+ *   "출력 후 직접 기재" 안내를 붙인다. (CLAUDE.md 민감정보 처리 원칙)
+ */
+export const FORM1_APPLICANT_FIELDS = [
+  { id: 'name', label: '성명', input: true },
+  {
+    id: 'residentNumber',
+    label: '주민등록번호',
+    /** 입력 UI를 만들지 않는다 */
+    input: false,
+    /** 서식상 표기 형태 */
+    placeholderMark: '        -        ',
+    note: '출력 후 직접 기재하세요 — 이 서비스는 주민등록번호를 입력받지 않습니다.',
+  },
+  { id: 'phone', label: '휴대폰', input: true },
+  { id: 'email', label: '이메일', input: true },
+]
+
+/**
+ * 서식 1 의 고정 문구.
+ * 고시 서식의 문구다. 화면에서 다시 쓰지 않고 여기서만 읽어간다.
+ * 명세: docs/law/form-spec.md
+ */
+export const FORM1_TEXTS = {
+  /** [섹션 1] 신용평가주체의 대응권 개요 — 고정 안내문 */
+  overviewTitle: '신용평가주체의 대응권 개요',
+  overviewBody:
+    '개인인 신용정보주체는 신용정보법 제36조의2 제1항·제2항 및 하위법령에 따라 ' +
+    '개인신용평가회사 및 대통령령으로 정하는 신용정보제공·이용자에 대하여 자동화평가 ' +
+    '실시 여부, 그 결과·주요기준·기초정보의 개요 등의 설명을 요구할 수 있으며, ' +
+    '유리하다고 판단되는 정보의 제출, 기초정보의 정정·삭제 및 자동화평가 결과의 ' +
+    '재산출을 요구할 수 있습니다.',
+  refusalLead: '다만 아래의 경우 금융회사가 요청을 거부할 수 있습니다.',
+
+  /** [섹션 2] 요청 내용 리드 문장. {성명} 자리에 사용자 입력이 들어간다. */
+  requestSectionTitle: '요청 내용',
+  requestLeadBefore: '(성명) 은(는) 귀 사의 상기 설명 내용을 듣고 이해하였으며, ',
+  requestLeadAfter: '이에 따라 아래 내용에 대해 설명을 요구합니다.',
+
+  /** [섹션 3] */
+  applicantSectionTitle: '신청자 인적사항',
+
+  /** [섹션 4] 개인신용정보 제공 동의 — 고정 문구 + 체크박스 */
+  consentText:
+    '※ 이와 관련, 본인은 귀 사가 신용정보집중기관 또는 개인신용평가회사, ' +
+    '개인사업자신용평가회사 또는 기업신용조회회사 등으로부터 본인의 개인신용정보를 ' +
+    '제공받는 것에 동의합니다.',
+  consentAgreeLabel: '동의',
+  consentDisagreeLabel: '비동의',
+  /** 기본값을 우리가 정하지 않는다. 둘 다 비워둔 상태로 출력해도 무방하다. */
+  consentDefault: null,
+}
+
+/** [섹션 5] 서명란 — 서식 1·2 공통. 날짜는 자동 채움 가능하되 서명란은 반드시 공란. */
+export const FORM_SIGNATURE_TEXTS = {
+  dateMark: '20\u00a0\u00a0\u00a0.\u00a0\u00a0\u00a0.\u00a0\u00a0\u00a0.',
+  applicantLabel: '신청인 :',
+  signatureMark: '(서명 또는 인)',
+}
+
 export const FORM_EXPLANATION_REQUEST = {
   id: 'explanationRequest',
   title: '자동화평가 결과에 대한 설명요구서',
@@ -723,6 +783,11 @@ export const CORRECTION_ROUTING = {
       submitTo: 'originatingInstitution',
       submitToLabel: '정보가 발생한 그 금융회사에 제출',
       requiresPrecedingStep: false,
+      /**
+       * 수신처가 지금 상대하는 회사와 달라지므로 서식 2에 "수신 기관"을 따로 받아야 한다.
+       * 서식 원문에는 없는 칸이다. /document 에서 서식 상단 입력란으로 구현한다.
+       */
+      requiresRecipientInput: true,
       note:
         '지금 거절한 회사가 아니라, 그 정보가 만들어진 금융회사에 제출해야 한다. ' +
         '상대를 잘못 고르면 요청이 반려된다.',
@@ -819,6 +884,14 @@ export const FORM_CORRECTION_REQUEST = {
       toggleable: false,
       right: null,
       basis: null,
+      /**
+       * ⚠️ 섹션 1 원문 전문 미확보. docs/law/form-spec-2.md 에는 아직 "내용 요지"만 있다.
+       * 원문을 받으면 여기에 넣고 verbatimVerified 를 검토한다.
+       * 확보 전까지 /document 는 summary 로 렌더하며, 고시 서식 재현이 아님을 화면에 밝힌다.
+       */
+      verbatimText: null,
+      /** 원본 대조 완료 여부. 대조 전까지 false 로 둔다. */
+      verbatimVerified: false,
       summary: [
         '금융회사는 고객 요청에 따라 자동화평가 결과, 주요 기준, 기초정보의 개요를 설명한다.',
         '기초정보가 정확하지 않은 경우 정정·삭제 및 수정된 정보를 활용한 재산출을 요청할 수 있다.',
@@ -826,10 +899,20 @@ export const FORM_CORRECTION_REQUEST = {
       /** 이 섹션이 CORRECTION_ROUTING 의 근거 조항이다 */
       routingRuleRef: 'CORRECTION_ROUTING',
       /**
-       * 원문의 "저축은행" 표현은 **기관 중립적으로 치환**해서 렌더링한다.
-       * 치환은 기관명 한정이고 나머지 문구는 수정하지 않는다.
+       * 원문의 기관명 표현만 **기관 중립적으로 치환**해서 렌더링한다.
+       * 나머지 문구는 수정하지 않는다.
        */
       neutralizeInstitutionName: true,
+      substitution: {
+        /** 치환 대상은 이 문자열뿐이다 */
+        targets: ['저축은행'],
+        /** 사용자가 고른 업권 라벨로 바꾼다 */
+        placeholder: '{기관}',
+        /** 업권 선택이 없을 때의 기본값 */
+        fallbackLabel: '금융회사',
+        /** ★ "당사"는 치환하지 않는다. 서식 작성 주체를 가리키는 표현이다. */
+        doNotSubstitute: ['당사'],
+      },
     },
     {
       id: 's2',
@@ -838,12 +921,15 @@ export const FORM_CORRECTION_REQUEST = {
       right: 'R4',
       basis: '법 제36조의2 제2항 제2호 가목',
       toggleable: true,
-      /** 리드 문장. 밑줄이 사용자 입력(신청자 성명). 문구 수정 금지. */
-      leadText:
-        '______(신청자 성명)______ 은(는) 기초정보 정정·삭제 및 자동화평가 결과 재산출과 ' +
-        '관련하여 귀 사의 상기 설명을 읽고 이해하였으며, 회사가 보유하고 있는 본인의 ' +
-        '기초정보 중 정확하지 않거나 최신의 정보가 아닌 내용이 있어 아래와 같이 정정 및 ' +
-        '삭제를 요구합니다.',
+      /**
+       * 리드 문장. 밑줄이 사용자 입력(신청자 성명). 문구 수정 금지.
+       * 화면에서 문자열을 잘라 쓰지 않도록 자리표시자 앞뒤를 미리 나눠 둔다.
+       */
+      leadPlaceholder: '______(신청자 성명)______',
+      leadRest:
+        ' 은(는) 기초정보 정정·삭제 및 자동화평가 결과 재산출과 관련하여 귀 사의 상기 ' +
+        '설명을 읽고 이해하였으며, 회사가 보유하고 있는 본인의 기초정보 중 정확하지 않거나 ' +
+        '최신의 정보가 아닌 내용이 있어 아래와 같이 정정 및 삭제를 요구합니다.',
       table: {
         columns: [
           { id: 'category', label: '구 분' },

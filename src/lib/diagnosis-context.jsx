@@ -1,0 +1,38 @@
+import { createContext, useContext, useMemo, useState } from 'react'
+
+/**
+ * /diagnose 의 선택을 /document 로 넘기기 위한 공유 상태.
+ * 외부 상태 라이브러리를 쓰지 않는다 (CLAUDE.md: React state만).
+ *
+ * 서버로 보내지 않고 저장하지도 않는다. 새로고침하면 사라진다 — 설계다.
+ */
+const DiagnosisContext = createContext(null)
+
+const EMPTY = {
+  eventId: null,
+  counterpartyId: null,
+  institutionSectorId: '',
+  customInstitution: '',
+  reason: '',
+  routingBranchId: null,
+  sampleId: null,
+}
+
+export function DiagnosisProvider({ children }) {
+  const [diagnosis, setDiagnosis] = useState(EMPTY)
+  const value = useMemo(
+    () => ({
+      diagnosis,
+      update: (patch) => setDiagnosis((d) => ({ ...d, ...patch })),
+      reset: () => setDiagnosis(EMPTY),
+    }),
+    [diagnosis],
+  )
+  return <DiagnosisContext.Provider value={value}>{children}</DiagnosisContext.Provider>
+}
+
+export function useDiagnosis() {
+  const ctx = useContext(DiagnosisContext)
+  if (!ctx) throw new Error('useDiagnosis must be used within DiagnosisProvider')
+  return ctx
+}

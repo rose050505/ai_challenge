@@ -1,1 +1,63 @@
 @import "tailwindcss";
+
+/* ──────────────────────────────────────────────────────────────
+ * 인쇄 규칙 (CLAUDE.md: PDF 출력은 window.print() + @media print)
+ * 화면용 컴포넌트와 인쇄용 레이아웃을 두 벌로 관리하지 않는다.
+ * 같은 DOM 에 인쇄 규칙만 다르게 준다. (docs/law/form-spec.md §구현 시 주의 3)
+ * ────────────────────────────────────────────────────────────── */
+@page {
+  size: A4;
+  margin: 12mm 14mm;
+}
+
+@media print {
+  /* 화면 전용 UI(네비게이션, 버튼, 안내 패널)는 인쇄에서 제외한다 */
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  /* A4 1페이지 기준. 서식은 이 크기로 조판한다. */
+  .print-sheet {
+    font-size: 9.2pt;
+    line-height: 1.35;
+    color: #000;
+    break-inside: avoid;
+  }
+
+  .print-sheet table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .print-sheet th,
+  .print-sheet td {
+    border: 1px solid #000;
+    padding: 2.5pt 4pt;
+    vertical-align: top;
+  }
+
+  /* 빈 칸은 출력 후 손으로 채운다. 쓸 수 있는 높이를 확보한다. */
+  .print-sheet tbody td {
+    height: 22pt;
+  }
+
+  /* 서식은 페이지 중간에서 잘리지 않게 한다 */
+  .print-sheet section,
+  .print-sheet tr {
+    break-inside: avoid;
+  }
+
+  /* 입력 칸은 인쇄 시 테두리만 남기고 배경을 없앤다 (체크박스는 글리프로 대체되므로 제외) */
+  .print-sheet input:not([type='checkbox']),
+  .print-sheet textarea {
+    border: none;
+    background: transparent;
+    color: #000;
+    padding: 0;
+  }
+}

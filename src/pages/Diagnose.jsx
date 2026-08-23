@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useSearchParams, Link } from 'react-router-dom'
 import {
   RIGHTS,
   COUNTERPARTY_TYPES,
@@ -10,12 +10,17 @@ import {
   LAW_META,
 } from '../data/law.js'
 import { SAMPLE_SCENARIOS, SAMPLE_SCENARIOS_BY_ID } from '../data/samples.js'
+import { useDiagnosis } from '../lib/diagnosis-context.jsx'
 
 /**
  * 1단계 선택지. 법령 텍스트가 아니라 사용자가 겪은 일의 분류다.
  *
- * ⚠️ 각 사건이 법 제2조제1호의3 가목 1)~4)의 어느 거래에 해당하는지는
- *    TODO-2(미확인)이므로 조문 매핑을 붙이지 않는다. 추측하지 말 것.
+ * 현재는 **맥락 수집용**이다. 결과 분기에는 아직 쓰이지 않는다.
+ * 이후 /strategy 의 LLM 입력이 되고, 서식 1 ①번 항목의 맥락이 된다.
+ *
+ * TODO-2 해소 시 조문 매핑:
+ *   각 사건이 법 제2조제1호의3 가목 1)~4)의 어느 거래에 해당하는지 확정되면
+ *   여기에 근거 조문을 붙이고 결과 분기에 반영한다. 그 전까지 추측하지 말 것.
  */
 const EVENT_TYPES = [
   { id: 'loanRejected', label: '신용대출이 거절됐다' },
@@ -53,62 +58,61 @@ function Choice({ selected, onClick, children }) {
 
 export default function Diagnose() {
   const [params] = useSearchParams()
-  const [eventId, setEventId] = useState(null)
-  const [counterpartyId, setCounterpartyId] = useState(null)
-  const [sectorId, setSectorId] = useState('')
-  const [customSector, setCustomSector] = useState('')
-  const [reason, setReason] = useState('')
-  const [routingId, setRoutingId] = useState(null)
-  const [sampleTitle, setSampleTitle] = useState(null)
+  const { diagnosis, update } = useDiagnosis()
+  const {
+    eventId,
+    counterpartyId,
+    institutionSectorId,
+    customInstitution,
+    reason,
+    sampleId,
+  } = diagnosis
+
+  const applySample = (s) =>
+    update({
+      eventId: s.eventId,
+      counterpartyId: s.counterpartyId,
+      institutionSectorId: s.institutionSectorId ?? '',
+      customInstitution: '',
+      reason: s.reason,
+      routingBranchId: s.routingBranchId,
+      sampleId: s.id,
+    })
 
   // 랜딩의 [샘플 시나리오로 체험하기] 진입 시 입력을 미리 채운다.
   useEffect(() => {
     const s = SAMPLE_SCENARIOS_BY_ID[params.get('sample')]
-    if (!s) return
-    setEventId(s.eventId)
-    setCounterpartyId(s.counterpartyId)
-    setSectorId(s.institutionSectorId)
-    setReason(s.reason)
-    setSampleTitle(s.title)
+    if (s) applySample(s)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
-
-  const applySample = (s) => {
-    setEventId(s.eventId)
-    setCounterpartyId(s.counterpartyId)
-    setSectorId(s.institutionSectorId)
-    setCustomSector('')
-    setReason(s.reason)
-    setRoutingId(null)
-    setSampleTitle(s.title)
-  }
 
   const counterparty = COUNTERPARTY_TYPES.find((c) => c.id === counterpartyId)
   const needsSector = counterparty?.requiresInstitutionLookup === true
-  const sector = INSTITUTION_OPTIONS.find((o) => o.id === sectorId)
-  const sectorDone = !needsSector || (sector && (sector.id !== 'other' || customSector.trim()))
+  const sector = INSTITUTION_OPTIONS.find((o) => o.id === institutionSectorId)
+  const sectorDone =
+    !needsSector || (sector && (sector.id !== 'other' || customInstitution.trim()))
   const ready = Boolean(eventId && counterparty && sectorDone)
-
-  const routing = CORRECTION_ROUTING.branches.find((b) => b.id === routingId)
+  const activeSample = SAMPLE_SCENARIOS_BY_ID[sampleId]
 
   return (
     <div className="space-y-6 py-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-bold">진단</h1>
         <p className="text-sm text-gray-600">
-          네 가지만 고르면 행사할 수 있는 권리와 근거 조문을 보여드립니다.
+          몇 가지만 고르면 행사할 수 있는 권리와 근거 조문을 보여드립니다.
         </p>
       </header>
 
       <section className="rounded border bg-gray-50 p-3">
         <p className="mb-2 text-sm font-medium">샘플 시나리오로 바로 채우기</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-2 sm:grid-cols-3">
           {SAMPLE_SCENARIOS.map((s) => (
             <button
               key={s.id}
               type="button"
               onClick={() => applySample(s)}
-              className={`rounded border px-3 py-2 text-left text-sm ${
-                sampleTitle === s.title ? 'border-gray-900 bg-white' : 'bg-white hover:bg-gray-100'
+              className={`rounded border p-2 text-left text-sm ${
+                sampleId === s.id ? 'border-gray-900 bg-white' : 'bg-white hover:bg-gray-100'
               }`}
             >
               <span className="block font-medium">{s.title}</span>
@@ -116,12 +120,22 @@ export default function Diagnose() {
             </button>
           ))}
         </div>
+        {activeSample && (
+          <p className="mt-2 text-xs text-gray-700">
+            <span className="font-medium">이 샘플이 보여주는 것: </span>
+            {activeSample.demonstrates}
+          </p>
+        )}
       </section>
 
       <Step n={1} title="무슨 일이 있었나요?">
         <div className="grid gap-2 sm:grid-cols-2">
           {EVENT_TYPES.map((e) => (
-            <Choice key={e.id} selected={eventId === e.id} onClick={() => setEventId(e.id)}>
+            <Choice
+              key={e.id}
+              selected={eventId === e.id}
+              onClick={() => update({ eventId: e.id })}
+            >
               {e.label}
             </Choice>
           ))}
@@ -138,11 +152,9 @@ export default function Diagnose() {
             <Choice
               key={c.id}
               selected={counterpartyId === c.id}
-              onClick={() => {
-                setCounterpartyId(c.id)
-                setSectorId('')
-                setCustomSector('')
-              }}
+              onClick={() =>
+                update({ counterpartyId: c.id, institutionSectorId: '', customInstitution: '' })
+              }
             >
               <span className="block font-medium">{c.label}</span>
               <span
@@ -171,8 +183,8 @@ export default function Diagnose() {
           hint="이 목록에 해당해야 법이 정한 상대방이 됩니다."
         >
           <select
-            value={sectorId}
-            onChange={(e) => setSectorId(e.target.value)}
+            value={institutionSectorId}
+            onChange={(e) => update({ institutionSectorId: e.target.value })}
             className="w-full rounded border p-2"
           >
             <option value="">선택하세요</option>
@@ -196,8 +208,8 @@ export default function Diagnose() {
 
           {sector?.id === 'other' && (
             <input
-              value={customSector}
-              onChange={(e) => setCustomSector(e.target.value)}
+              value={customInstitution}
+              onChange={(e) => update({ customInstitution: e.target.value })}
               placeholder="기관 종류를 직접 입력하세요"
               className="mt-2 w-full rounded border p-2"
             />
@@ -212,7 +224,7 @@ export default function Diagnose() {
       >
         <textarea
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={(e) => update({ reason: e.target.value })}
           rows={5}
           placeholder="예: 이직한 지 얼마 안 됐고 카드 사용 이력이 거의 없습니다."
           className="w-full rounded border p-2"
@@ -223,7 +235,7 @@ export default function Diagnose() {
       </Step>
 
       {ready ? (
-        <Result counterparty={counterparty} routing={routing} onRouting={setRoutingId} />
+        <Result counterparty={counterparty} />
       ) : (
         <p className="rounded border border-dashed p-4 text-sm text-gray-500">
           1~{needsSector ? 3 : 2}단계를 선택하면 행사 가능한 권리가 표시됩니다.
@@ -233,12 +245,86 @@ export default function Diagnose() {
   )
 }
 
+/**
+ * 정정 요청 상대방 3분기.
+ * 결과 화면의 필수 단계가 아니라 R4·R5 카드 안의 펼침으로 둔다.
+ * 정정 의사가 없는 사용자는 이 질문을 아예 보지 않는다.
+ */
+function RoutingDisclosure() {
+  const { diagnosis, update } = useDiagnosis()
+  const branch = CORRECTION_ROUTING.branches.find((b) => b.id === diagnosis.routingBranchId)
+
+  return (
+    <details className="mt-3 rounded border border-amber-300 bg-amber-50" open={Boolean(branch)}>
+      <summary className="cursor-pointer p-2 text-sm font-medium">
+        정정을 요구하려면 먼저 확인할 것이 있습니다
+      </summary>
+      <div className="border-t border-amber-200 p-3">
+        <p className="font-medium">{CORRECTION_ROUTING.question}</p>
+        <p className="mt-1 text-sm text-gray-700">
+          상대를 잘못 고르면 요청이 반려됩니다.
+        </p>
+        <div className="mt-3 space-y-2">
+          {CORRECTION_ROUTING.branches.map((b) => (
+            <Choice
+              key={b.id}
+              selected={branch?.id === b.id}
+              onClick={() => update({ routingBranchId: b.id })}
+            >
+              <span className="block font-medium">{b.label}</span>
+              <span
+                className={`mt-1 block text-sm ${
+                  branch?.id === b.id ? 'text-gray-200' : 'text-gray-600'
+                }`}
+              >
+                {b.submitToLabel}
+              </span>
+            </Choice>
+          ))}
+        </div>
+
+        {branch && (
+          <div className="mt-4 rounded border bg-white p-3">
+            {branch.requiresPrecedingStep && (
+              <p className="mb-2 text-sm font-medium">
+                두 단계로 나눠 진행해야 합니다. 순서가 중요합니다.
+              </p>
+            )}
+            <ol className="space-y-2">
+              {branch.steps.map((s) => (
+                <li key={s.order} className="text-sm">
+                  <span className="mr-2 font-semibold">{s.order}.</span>
+                  {s.description}
+                  <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs">
+                    {FORMS_BY_ID[s.formId].title} · {s.rights.join(', ')}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {branch.note && <p className="mt-2 text-xs text-gray-600">{branch.note}</p>}
+            {branch.requiresRecipientInput && (
+              <p className="mt-2 text-xs text-gray-600">
+                서식을 만들 때 수신 기관을 따로 지정해야 합니다.
+              </p>
+            )}
+          </div>
+        )}
+
+        <p className="mt-3 text-xs text-gray-500">근거: {CORRECTION_ROUTING.basis}</p>
+        <p className="mt-1 text-xs text-gray-600">{CORRECTION_ROUTING.ruleText}</p>
+      </div>
+    </details>
+  )
+}
+
 function RightCard({ right, counterparty }) {
   const form = FORMS_BY_ID[FORM_BY_RIGHT[right.id]]
   // R1 나목처럼 상대방이 한정되는 대상 행위를 표시한다.
   const restricted = (right.targetActs ?? []).filter(
     (a) => a.counterpartyRestriction && !a.counterpartyRestriction.includes(counterparty.id),
   )
+  // 정정 계열 권리에만 라우팅 분기를 붙인다.
+  const isCorrectionRelated = right.id === 'R4' || right.id === 'R5'
 
   return (
     <li className="rounded border p-3">
@@ -258,11 +344,12 @@ function RightCard({ right, counterparty }) {
           적용되지 않습니다. ({a.basis})
         </p>
       ))}
+      {isCorrectionRelated && <RoutingDisclosure />}
     </li>
   )
 }
 
-function Result({ counterparty, routing, onRouting }) {
+function Result({ counterparty }) {
   const p1 = RIGHTS.filter((r) => r.paragraph === 1 && r.counterparties.includes(counterparty.id))
   const p2 = RIGHTS.filter((r) => r.paragraph === 2 && r.counterparties.includes(counterparty.id))
 
@@ -288,51 +375,12 @@ function Result({ counterparty, routing, onRouting }) {
         </ul>
       </div>
 
-      <div className="rounded border border-amber-300 bg-amber-50 p-4">
-        <h3 className="font-semibold">{CORRECTION_ROUTING.question}</h3>
-        <p className="mt-1 text-sm text-gray-700">
-          정정을 요구할 때는 상대를 잘못 고르면 요청이 반려됩니다. 아래에서 골라 주세요.
-        </p>
-        <div className="mt-3 space-y-2">
-          {CORRECTION_ROUTING.branches.map((b) => (
-            <Choice key={b.id} selected={routing?.id === b.id} onClick={() => onRouting(b.id)}>
-              <span className="block font-medium">{b.label}</span>
-              <span
-                className={`mt-1 block text-sm ${
-                  routing?.id === b.id ? 'text-gray-200' : 'text-gray-600'
-                }`}
-              >
-                {b.submitToLabel}
-              </span>
-            </Choice>
-          ))}
-        </div>
-
-        {routing && (
-          <div className="mt-4 rounded border bg-white p-3">
-            {routing.requiresPrecedingStep && (
-              <p className="mb-2 text-sm font-medium">
-                두 단계로 나눠 진행해야 합니다. 순서가 중요합니다.
-              </p>
-            )}
-            <ol className="space-y-2">
-              {routing.steps.map((s) => (
-                <li key={s.order} className="text-sm">
-                  <span className="mr-2 font-semibold">{s.order}.</span>
-                  {s.description}
-                  <span className="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs">
-                    {FORMS_BY_ID[s.formId].title} · {s.rights.join(', ')}
-                  </span>
-                </li>
-              ))}
-            </ol>
-            {routing.note && <p className="mt-2 text-xs text-gray-600">{routing.note}</p>}
-          </div>
-        )}
-
-        <p className="mt-3 text-xs text-gray-500">근거: {CORRECTION_ROUTING.basis}</p>
-        <p className="mt-1 text-xs text-gray-600">{CORRECTION_ROUTING.ruleText}</p>
-      </div>
+      <Link
+        to="/document"
+        className="inline-block rounded bg-gray-900 px-5 py-3 text-white hover:bg-gray-700"
+      >
+        서식 만들러 가기
+      </Link>
 
       <p className="text-xs text-gray-500">
         {LAW_META.act.name} {LAW_META.act.article} / {LAW_META.decree.name}{' '}
