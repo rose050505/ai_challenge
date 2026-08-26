@@ -16,9 +16,13 @@ import { paginate } from '../lib/paginate.js'
  * ────────────────────────────────────────────────────────────────
  */
 
-/** @page { size: A4; margin: 12mm 14mm } 에서 나오는 본문 영역 */
+/**
+ * @page { size: A4; margin: 20mm 14mm } 에서 나오는 본문 영역.
+ * ★ index.css 의 @page 여백과 .paged-page 의 min-height 와 반드시 함께 움직인다.
+ *   가로 210 - 14×2 = 182 / 세로 297 - 20×2 = 257
+ */
 export const PAGE_CONTENT_WIDTH_MM = 182
-export const PAGE_CONTENT_HEIGHT_MM = 273
+export const PAGE_CONTENT_HEIGHT_MM = 257
 /**
  * 조판 오차 여유.
  * 측정은 화면 렌더러, 실제 조판은 인쇄 렌더러가 한다. 반올림 차이로 마지막 블록이

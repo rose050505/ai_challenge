@@ -305,7 +305,20 @@ body {
  * ────────────────────────────────────────────────────────────── */
 @page {
   size: A4;
-  margin: 12mm 14mm;
+  /*
+   * 세로 여백 20mm.
+   *
+   * 브라우저는 인쇄물 상하단에 제목·URL·날짜·쪽수를 자동으로 넣는다(CSS 로 끌 수 없다).
+   * 여백이 좁으면 그것이 본문에 바짝 붙는다. 금융회사에 내는 법정 서식에
+   * vercel.app 주소가 본문과 겹쳐 찍히는 일을 막기 위해 위아래를 넓혔다.
+   * 사용자에게는 화면에서 "머리글 및 바닥글 끄기"를 안내한다.
+   *
+   * ★ 이 값을 고치면 반드시 함께 고칠 곳:
+   *   - .paged-page 의 min-height
+   *   - src/components/PagedSheet.jsx 의 PAGE_CONTENT_HEIGHT_MM
+   *   어긋나면 화면이 예고한 페이지 수와 실제 인쇄가 달라진다.
+   */
+  margin: 20mm 14mm;
 }
 
 @media print {
@@ -382,15 +395,15 @@ body {
 
   .paged-page {
     /*
-     * 본문 높이 = A4 297mm - 위아래 여백 12mm×2 = 273mm.
+     * 본문 높이 = A4 297mm - 위아래 여백 20mm×2 = 257mm.
      * height 가 아니라 min-height 를 쓴다.
      *   height + overflow:hidden 이면 계산이 어긋났을 때 내용이 **말없이 잘린다**.
      *   법적 요구서에서 내용이 사라지는 것보다는 페이지가 한 장 늘어나는 편이 낫다.
      *   min-height 면 넘칠 때 브라우저가 나눠서라도 전부 인쇄한다.
-     * 273 이 아니라 271 인 이유: 인쇄 영역과 정확히 같으면 반올림 한 픽셀에
+     * 257 이 아니라 255 인 이유: 인쇄 영역과 정확히 같으면 반올림 한 픽셀에
      *   빈 페이지가 끼어들 수 있다.
      */
-    min-height: 271mm;
+    min-height: 255mm;
     display: flex;
     flex-direction: column;
     break-inside: avoid;
@@ -410,7 +423,8 @@ body {
 
   .paged-foot {
     flex: none;
-    padding-top: 3pt;
+    /* 우리 쪽 번호와 본문 사이 간격 */
+    padding-top: 8pt;
   }
 
   /* 섹션 제목이 페이지 하단에 홀로 남지 않게 한다.
@@ -513,11 +527,16 @@ body {
     font-size: 8pt;
   }
   .print-sheet .paged-runhead {
-    margin-bottom: 4pt;
+    /* 반복 머리와 본문 사이 간격 */
+    margin-bottom: 8pt;
   }
   /* ★ paginate 의 gap 값(BLOCK_GAP_PT)과 같아야 한다 */
   .print-sheet .paged-block + .paged-block {
     margin-top: 6pt;
+  }
+  /* 블록 안쪽 여백이 밖으로 새어 나가(margin collapsing) 측정과 어긋나지 않게 한다 */
+  .print-sheet .paged-block {
+    display: flow-root;
   }
 }
 
@@ -534,7 +553,19 @@ body {
   font-size: 8pt;
 }
 .print-metrics .paged-runhead {
-  margin-bottom: 4pt;
+  margin-bottom: 8pt;
+}
+
+.print-metrics .paged-foot {
+  padding-top: 8pt;
+}
+
+/* 측정 단위도 인쇄와 같은 방식으로 여백을 품게 한다 (margin collapsing 방지) */
+.print-metrics > [data-mhead],
+.print-metrics > [data-mfoot],
+.print-metrics > [data-mid],
+.print-metrics .paged-block {
+  display: flow-root;
 }
 
 /* ──────────────────────────────────────────────────────────────
