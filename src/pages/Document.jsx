@@ -953,10 +953,11 @@ export default function Document() {
             </p>
           )}
           {!FORM_CORRECTION_REQUEST.sections[0].verbatimVerified && (
-            <p className="border-t border-gray-200 pt-2 text-sm text-amber-900">
+            <p className="border-t border-gray-200 pt-2 text-sm text-gray-700">
               <span aria-hidden="true">※ </span>
-              섹션 1 원문은 확보했으나 아직 원본과 대조하지 않았습니다. 제출 전 실물 서식과
-              대조해 주세요.
+              섹션 1의 안내문은 {FORM_CORRECTION_REQUEST.source}에서 그대로 옮겼습니다. 다만 PDF
+              에서 글자를 추출해 다시 조판한 것이라 문장 부호나 줄바꿈 수준의 차이가 남아 있을 수
+              있습니다. 항목 구조와 요구 문구는 같습니다.
             </p>
           )}
           <p className="text-sm text-gray-600">{FORM_CORRECTION_REQUEST.attachment.rationale}</p>
@@ -989,6 +990,12 @@ export default function Document() {
       </div>
 
       <div className="no-print space-y-3">
+        {/* 서식 출처 — 어느 실물을 보고 재현했는지 밝힌다 */}
+        <p className="rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-700">
+          <b>서식 출처</b> — 이 서식은 {currentForm.source}을 기준으로 재현했습니다.{' '}
+          {currentForm.sourceNote ?? currentForm.sourceCaveat}{' '}
+          <Basis>{currentForm.basis}</Basis>
+        </p>
         {/* ★ 안내가 버튼보다 먼저 눈에 들어와야 한다. 누른 뒤에 읽으면 늦다. */}
         <PrintSetupNotice />
         {confirming ? (

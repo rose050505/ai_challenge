@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { basisLink } from '../data/law.js'
 
 /**
  * 표현 계층 공용 조각.
@@ -37,15 +38,39 @@ export function PageHeader({ kicker, title, description, children }) {
  * @param {string} [prefix] "근거", "근거 체인" 등 앞에 붙일 말
  * @param {boolean} [chain] 위임 경로처럼 긴 문자열이면 블록으로 흐른다
  */
-export function Basis({ children, prefix, chain = false, className = '' }) {
+export function Basis({ children, prefix, chain = false, className = '', link = true }) {
   if (!children) return null
-  return (
-    <span className={`basis ${chain ? 'basis-chain' : ''} ${className}`}>
-      <span>
-        {prefix && <span className="font-semibold">{prefix} </span>}
-        {children}
-      </span>
+  const inner = (
+    <span>
+      {prefix && <span className="font-semibold">{prefix} </span>}
+      {children}
     </span>
+  )
+  const cls = `basis ${chain ? 'basis-chain' : ''} ${className}`
+
+  /*
+   * 원문으로 가는 길.
+   * 주소는 law.js 가 만든다(basisLink). 화면에는 주소를 하나도 적지 않는다.
+   * 배지 글자가 문자열일 때만 건다 — 여러 조각이 섞인 배지는 어느 조문인지 단정할 수 없다.
+   */
+  const target = link && typeof children === 'string' ? basisLink(children) : null
+  if (!target) return <span className={cls}>{inner}</span>
+
+  return (
+    <a
+      href={target.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      /* 이 배지가 <label> 안에 있을 때 체크박스까지 토글되지 않게 한다 */
+      onClick={(e) => e.stopPropagation()}
+      aria-label={`${children} — 국가법령정보센터에서 원문 보기, 새 탭에서 열립니다`}
+      className={`${cls} basis-link`}
+    >
+      {inner}
+      <span aria-hidden="true" className="basis-ext">
+        ↗
+      </span>
+    </a>
   )
 }
 

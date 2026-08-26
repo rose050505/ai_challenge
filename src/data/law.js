@@ -34,6 +34,95 @@ export const LAW_META = {
     revision: '대통령령 제36574호, 2026. 8. 11., 일부개정',
   },
   competentAuthority: '금융위원회 금융데이터정책과',
+  /**
+   * 다른 법률. 상대방 판정에 쓰이는 검사 대상 기관 목록이 여기서 온다.
+   * 판본: docs/law/law-reference-addendum.md
+   */
+  fscAct: {
+    name: '금융위원회의 설치 등에 관한 법률',
+    article: '제38조',
+    effectiveDate: '2026-01-02',
+    revision: '법률 제21065호, 2025. 10. 1., 타법개정',
+  },
+  /** 서식이 실린 금융위원회 고시 */
+  supervisionRule: {
+    name: '신용정보업감독규정',
+    article: '제40조의5',
+    effectiveDate: null,
+    revision: null,
+  },
+}
+
+/* ============================================================
+ * 0-2. 법령 원문 링크
+ *
+ * ★ 이 서비스의 주장은 "법에 근거한다"는 것이다. 심사자든 사용자든
+ *   그 자리에서 원문을 확인할 수 있어야 주장이 완성된다.
+ *
+ * 국가법령정보센터는 `/법령/{법령명}/제N조의M` 형태의 조문 단위 딥링크를 지원한다.
+ *   확인 2026-08-26 — 위 주소가 실제로 해당 조문(joNo/joBrNo)으로 해석된다.
+ *   예) .../신용정보의이용및보호에관한법률/제36조의2 → joNo=0036&joBrNo=02
+ * 행정규칙(고시)은 조문 단위 해석이 되지 않아 **규정 단위까지만** 건다.
+ *   조문 번호는 배지 글자에 이미 들어 있으므로 함께 보인다.
+ * ============================================================ */
+
+const LAW_GO_KR = 'https://www.law.go.kr'
+
+export const LAW_SOURCES = {
+  act: {
+    label: LAW_META.act.name,
+    url: `${LAW_GO_KR}/법령/신용정보의이용및보호에관한법률`,
+    articleLink: true,
+  },
+  decree: {
+    label: LAW_META.decree.name,
+    url: `${LAW_GO_KR}/법령/신용정보의이용및보호에관한법률시행령`,
+    articleLink: true,
+  },
+  fscAct: {
+    label: LAW_META.fscAct.name,
+    url: `${LAW_GO_KR}/법령/금융위원회의설치등에관한법률`,
+    articleLink: true,
+  },
+  supervisionRule: {
+    label: LAW_META.supervisionRule.name,
+    url: `${LAW_GO_KR}/행정규칙/신용정보업감독규정`,
+    // 행정규칙은 조문 단위로 열리지 않는다 (확인 2026-08-26)
+    articleLink: false,
+  },
+}
+
+/** 근거 문자열에서 어느 법령을 가리키는지 찾는다. 먼저 나오는 쪽이 이긴다. */
+const SOURCE_MATCHERS = [
+  { id: 'decree', keys: ['시행령'] },
+  { id: 'fscAct', keys: ['금융위원회의 설치 등에 관한 법률'] },
+  { id: 'supervisionRule', keys: ['신용정보업감독규정'] },
+  { id: 'act', keys: ['법 제', '신용정보법 제'] },
+]
+
+/**
+ * 근거 배지 문자열 → 국가법령정보센터 주소.
+ *
+ * @param {string} basis 예: '법 제36조의2 제2항 제2호 나목'
+ * @returns {{href: string, label: string, article: string|null}|null}
+ *          연결할 곳이 없으면 null (고시 서식 자체 등)
+ */
+export function basisLink(basis) {
+  if (typeof basis !== 'string' || !basis) return null
+  let best = null
+  for (const m of SOURCE_MATCHERS) {
+    for (const k of m.keys) {
+      const i = basis.indexOf(k)
+      if (i < 0) continue
+      if (!best || i < best.at) best = { id: m.id, at: i }
+    }
+  }
+  if (!best) return null
+  const src = LAW_SOURCES[best.id]
+  const m = /제(\d+)조(?:의(\d+))?/.exec(basis.slice(best.at))
+  const article = m ? (m[2] ? `제${m[1]}조의${m[2]}` : `제${m[1]}조`) : null
+  const href = src.articleLink && article ? `${src.url}/${article}` : src.url
+  return { href, label: src.label, article }
 }
 
 /* ============================================================
@@ -877,6 +966,10 @@ export const FORM_EXPLANATION_REQUEST = {
   basis: '신용정보업감독규정 제40조의5제1항 관련 (금융위원회 고시 서식)',
   coveredRights: ['R1', 'R2'],
   available: true,
+  /** 어느 실물을 보고 재현했는지 — docs/law/form-spec.md */
+  source: 'BC카드 공개본',
+  sourceNote:
+    '금융위원회 고시 별지 서식을 금융회사가 각자 비치한다. 기관마다 표 모양이 조금씩 다를 수 있으나 항목 구조와 요구 문구는 같다.',
 }
 
 /**
@@ -1281,6 +1374,10 @@ export const FORM_CORRECTION_REQUEST = {
   sourceCaveat:
     '금융위 고시 별지 서식의 정본과 기관별 변형본 사이에 차이가 있을 수 있다. ' +
     '복수 기관이 동일한 명칭·구조로 비치하고 있어 실무 표준으로 취급한다.',
+  /** 화면에 그대로 보이는 문장 (sourceCaveat 는 개발자용 주석에 가깝다) */
+  sourceNote:
+    '금융위원회 고시 별지 서식을 금융회사가 각자 비치합니다. 여러 기관이 같은 명칭과 구조로 ' +
+    '비치하고 있어 실무 표준으로 다룹니다.',
 
   /** 서식 1과의 차이 — 개인정보 최소화 (docs/law/form-spec-2.md §서식 1과의 차이) */
   collectsResidentNumber: false,

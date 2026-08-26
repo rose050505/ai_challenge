@@ -3,7 +3,7 @@ import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom'
 import { DiagnosisProvider, useJourney } from './lib/diagnosis-context.jsx'
 import { SaveStatus, JourneyFlash, STORAGE_SCOPE_TEXT } from './components/Journey.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
-import { LAW_META } from './data/law.js'
+import LawVersions from './components/LawVersions.jsx'
 import Landing from './pages/Landing.jsx'
 import Diagnose from './pages/Diagnose.jsx'
 import Document from './pages/Document.jsx'
@@ -192,10 +192,8 @@ export default function App() {
 
         <footer className="no-print mt-12 border-t border-gray-200 bg-white">
           <div className="mx-auto max-w-3xl px-4 py-6 text-sm text-gray-600">
-            <p>
-              {LAW_META.act.name} {LAW_META.act.article} · {LAW_META.decree.name}{' '}
-              {LAW_META.decree.article} 기준 (시행 {LAW_META.act.effectiveDate})
-            </p>
+            {/* 판본 표시는 각주가 아니라 근거다. 본문과 같은 크기로 둔다. */}
+            <LawVersions className="mb-5 text-base" />
             <p className="mt-1">
               법률 자문이 아닙니다. 회원가입이 없고, 입력한 내용은 서버에 저장되지 않습니다.
             </p>
