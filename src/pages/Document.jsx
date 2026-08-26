@@ -19,6 +19,7 @@ import { neutralizeInstitution } from '../lib/neutralize.js'
 import { PageHeader, Basis, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import EmailDraft from '../components/EmailDraft.jsx'
+import { PrintSetupNotice, PrintConfirm, usePrintAck } from '../components/PrintSetup.jsx'
 import PagedSheet from '../components/PagedSheet.jsx'
 import { useSheetMode } from '../lib/sheet-mode.js'
 import { BackupPanel, STORAGE_SCOPE_TEXT } from '../components/Journey.jsx'
@@ -621,6 +622,8 @@ export default function Document() {
    * "이제 뭐 하지" 상태가 된다. afterprint 로 다음 단계를 이어 붙인다.
    */
   const [stage, setStage] = useState('form') // form | afterPrint
+  const [confirming, setConfirming] = useState(false)
+  const printAck = usePrintAck()
   const [emailOpen, setEmailOpen] = useState(false)
   const [checked, setChecked] = useState({})
   const printing = useRef(false)
@@ -633,12 +636,25 @@ export default function Document() {
     setStage('afterPrint')
   }
 
-  const handlePrint = () => {
+  const doPrint = () => {
+    setConfirming(false)
     printing.current = true
     setStage('form')
     window.print()
     // afterprint 가 오지 않는 브라우저를 위한 보조 경로. 둘 다 와도 한 번만 처리된다.
     setTimeout(finishPrint, 300)
+  }
+
+  /**
+   * 머리글·바닥글은 브라우저가 제어하므로 우리가 끌 수 없다.
+   * 처음 인쇄하는 사용자에게 한 번만 확인 단계를 둔다. (docs/cases/print-headers.md)
+   */
+  const handlePrint = () => {
+    if (!printAck.acked) {
+      setConfirming(true)
+      return
+    }
+    doPrint()
   }
 
   useEffect(() => {
@@ -973,6 +989,15 @@ export default function Document() {
       </div>
 
       <div className="no-print space-y-3">
+        {/* ★ 안내가 버튼보다 먼저 눈에 들어와야 한다. 누른 뒤에 읽으면 늦다. */}
+        <PrintSetupNotice />
+        {confirming ? (
+          <PrintConfirm
+            onPrint={doPrint}
+            onCancel={() => setConfirming(false)}
+            onRemember={printAck.remember}
+          />
+        ) : null}
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <button type="button" onClick={handlePrint} className="btn btn-primary">
             인쇄 / PDF로 저장
@@ -1002,31 +1027,6 @@ export default function Document() {
           인쇄 대화상자에서 용지를 A4, 배율 100%로 두세요. 지금 보고 있는 서식만 인쇄됩니다.
         </p>
 
-        {/*
-         * 브라우저가 넣는 머리글·바닥글은 CSS 로 끌 수 없다. 사용자가 인쇄 설정에서 꺼야 한다.
-         * 끄지 않으면 금융회사에 내는 법정 서식에 이 서비스의 주소와 출력 날짜가 찍힌다.
-         */}
-        <Notice title="인쇄 전에 한 가지만 꺼 주세요">
-          <p>
-            브라우저가 인쇄물 상하단에 페이지 제목과 주소를 자동으로 넣습니다. 인쇄 설정에서{' '}
-            <b>&lsquo;머리글 및 바닥글&rsquo;</b>을 끄면 서식만 깔끔하게 출력됩니다.
-          </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>
-              <b>Chrome</b> — 인쇄 대화상자에서 [옵션 더보기] → <b>머리글/바닥글</b> 체크 해제
-            </li>
-            <li>
-              <b>Firefox</b> — 인쇄 미리보기에서 [설정 자세히] → <b>머리글 및 바닥글</b> 해제
-            </li>
-          </ul>
-          <p className="mt-2 text-sm">
-            끄지 않으면 서식 위아래에 이 서비스의 주소와 출력 날짜가 함께 인쇄됩니다. 금융회사에
-            제출하는 문서이므로 꺼 두시는 편이 좋습니다.
-          </p>
-          <p className="mt-2 text-sm">
-            쪽 번호는 이 서비스가 서식 안에 직접 넣습니다. 브라우저 것을 꺼도 쪽 번호는 남습니다.
-          </p>
-        </Notice>
       </div>
 
       {/* 전자우편 제출 — 시행령 제31조의2 제6항이 허용한 행사 방법 */}
