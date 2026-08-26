@@ -10,19 +10,24 @@ import {
   FORM1_APPLICANT_FIELDS,
   FORM_SIGNATURE_TEXTS,
   BASE_INFO_CATEGORIES,
+  BASE_INFO_CATEGORIES_BY_ID,
   CORRECTION_ROUTING_BY_ID,
   INSTITUTION_OPTIONS,
   RIGHTS_BY_ID,
+  COUNTERPARTY_TYPES,
+  COUNTERPARTY_TYPES_BY_ID,
 } from '../data/law.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { neutralizeInstitution } from '../lib/neutralize.js'
 import { PageHeader, Basis, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import EmailDraft from '../components/EmailDraft.jsx'
-import { PrintSetupNotice, PrintConfirm, usePrintAck } from '../components/PrintSetup.jsx'
+import { PrintSetupNotice, PrePrintPanel, usePrintAck } from '../components/PrintSetup.jsx'
+import { preflightIssues } from '../lib/preflight.js'
 import PagedSheet from '../components/PagedSheet.jsx'
 import { useSheetMode } from '../lib/sheet-mode.js'
 import { BackupPanel, STORAGE_SCOPE_TEXT } from '../components/Journey.jsx'
+import CaseSwitcher from '../components/CaseSwitcher.jsx'
 import { formatWhen, formatDate, todayInputValue } from '../lib/journey-storage.js'
 
 /* ── 공용 조각 ───────────────────────────────────────────────── */
@@ -452,13 +457,45 @@ function form2Blocks({
 
 /* ── 화면 ────────────────────────────────────────────────────── */
 
+/**
+ * 복수 기관 동시 행사.
+ *
+ * 진단 화면은 "대출이 거절된 경우 양쪽 모두에 각각 요구할 수 있습니다"라고 안내한다
+ * (법 제36조의2 제1항 — 개인신용평가회사와 금융회사가 각각 상대방이 된다).
+ * 그런데 서식은 한 벌만 만들어 줬다. 말과 기능이 어긋나 있었다.
+ *
+ * ★ 기본은 한 건이다. 필요할 때 두 번째 건을 **추가**한다.
+ *   화면을 늘 두 갈래로 보여주면 대부분의 사용자에게는 방해일 뿐이다.
+ *
+ * 건이 바뀌면 작성 내용이 통째로 달라지므로 key 로 다시 마운트한다.
+ * (화면들이 useState 초기값으로 저장 내용을 읽기 때문이다)
+ */
 export default function Document() {
+  const { journey } = useJourney()
+  const active = journey.form?.second ? (journey.form?.activeCase ?? 'base') : 'base'
+  return <DocumentSheet key={active} activeCase={active} />
+}
+
+function DocumentSheet({ activeCase }) {
   const { journey, setSection, storageAvailable } = useJourney()
   const diagnosis = journey.diagnosis
   /** 저장된 서식 작성 내용. 없으면 각 항목의 기본값을 쓴다. */
   const savedForm = journey.form ?? {}
-  const savedF1 = savedForm.form1 ?? {}
+  const isSecond = activeCase === 'second'
+  const secondCase = savedForm.second ?? null
+  /**
+   * 두 번째 건은 설명요구서(서식 1)만 갖는다.
+   * 서식 2의 제출처는 정보의 출처에 따라 라우팅이 판정하므로 임의로 두 벌 만들지 않는다.
+   */
+  const savedF1 = (isSecond ? secondCase?.form1 : savedForm.form1) ?? {}
   const savedF2 = savedForm.form2 ?? {}
+  /** 이 건의 상대방 (기본 건은 진단이 정한 상대방) */
+  const caseCounterpartyId = isSecond
+    ? (secondCase?.counterpartyId ?? null)
+    : (diagnosis.counterpartyId ?? null)
+  const caseCounterparty = COUNTERPARTY_TYPES_BY_ID[caseCounterpartyId] ?? null
+  /** 여정 기록에서 두 건을 구분한다 */
+  const caseKey = isSecond ? ':second' : ''
   const branch = CORRECTION_ROUTING_BY_ID[diagnosis.routingBranchId]
   const sector = INSTITUTION_OPTIONS.find((o) => o.id === diagnosis.institutionSectorId)
   /**
@@ -474,6 +511,8 @@ export default function Document() {
   // ?form=<서식 id> 로 특정 서식을 바로 열 수 있다.
   const [params] = useSearchParams()
   const [tab, setTab] = useState(() => {
+    // 두 번째 건에는 서식 2가 없다 (CaseSwitcher 주석 참조). 건이 바뀌면 다시 마운트된다.
+    if (isSecond) return FORM_EXPLANATION_REQUEST.id
     if (params.get('form') === FORM_CORRECTION_REQUEST.id) return FORM_CORRECTION_REQUEST.id
     if (params.get('form') === FORM_EXPLANATION_REQUEST.id) return FORM_EXPLANATION_REQUEST.id
     // 회신 해석에서 "이 항목을 다시 요구하라"고 넘어왔으면 서식 1이다
@@ -484,6 +523,7 @@ export default function Document() {
     if (savedForm.tab === FORM_CORRECTION_REQUEST.id) return FORM_CORRECTION_REQUEST.id
     return FORM_EXPLANATION_REQUEST.id
   })
+  // 두 번째 건에는 서식 2가 없다. 저장된 탭이 서식 2였어도 서식 1로 연다.
 
   // 서식 1 — unknown 분기는 선행 단계가 지정한 요청 항목(기초정보의 개요)을 미리 선택한다.
   /**
@@ -580,12 +620,13 @@ export default function Document() {
    * 타이핑 중마다 쓰지 않는다 — setSection 이 입력이 멈춘 뒤(1.5초) 한 번 저장한다.
    */
   useEffect(() => {
-    setSection('form', {
-      tab,
-      personal,
-      form1: { selectedItems, hopeResult, consent },
-      form2: { enabled, rows, favorable, recipient },
-    })
+    const f1 = { selectedItems, hopeResult, consent }
+    setSection('form', (prev) =>
+      isSecond
+        ? // 두 번째 건은 자기 칸에만 쓴다. 기본 건의 작성 내용을 건드리지 않는다.
+          { ...prev, tab, personal, second: { ...prev.second, form1: f1 } }
+        : { ...prev, tab, personal, form1: f1, form2: { enabled, rows, favorable, recipient } },
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, personal, selectedItems, hopeResult, consent, enabled, rows, favorable, recipient])
 
@@ -603,7 +644,9 @@ export default function Document() {
   const s4 = FORM_CORRECTION_REQUEST.sections[3]
   const isForm1 = tab === FORM_EXPLANATION_REQUEST.id
   const currentForm = isForm1 ? FORM_EXPLANATION_REQUEST : FORM_CORRECTION_REQUEST
-  const milestone = journey.milestones?.[tab] ?? { printedAt: null, submittedAt: null }
+  /** 여정 기록 키 — 두 번째 건은 별도로 센다 */
+  const milestoneKey = `${tab}${caseKey}`
+  const milestone = journey.milestones?.[milestoneKey] ?? { printedAt: null, submittedAt: null }
 
   const setMilestone = (formId, patch) =>
     setSection(
@@ -632,7 +675,7 @@ export default function Document() {
   const finishPrint = () => {
     if (!printing.current) return
     printing.current = false
-    setMilestone(tab, { printedAt: new Date().toISOString() })
+    setMilestone(milestoneKey, { printedAt: new Date().toISOString() })
     setStage('afterPrint')
   }
 
@@ -646,11 +689,27 @@ export default function Document() {
   }
 
   /**
-   * 머리글·바닥글은 브라우저가 제어하므로 우리가 끌 수 없다.
-   * 처음 인쇄하는 사용자에게 한 번만 확인 단계를 둔다. (docs/cases/print-headers.md)
+   * 인쇄 직전 검토.
+   *
+   * 두 가지를 한 번에 확인한다.
+   *   1) 빠뜨린 칸 (경고만 한다 — 진행은 막지 않는다)
+   *   2) 머리글·바닥글 (브라우저가 제어하므로 우리가 끌 수 없다 — docs/cases/print-headers.md)
+   * 확인할 것이 하나도 없으면 곧바로 인쇄한다.
    */
+  const issues = preflightIssues({
+    isForm1,
+    personal,
+    selectedItems,
+    rows,
+    favorable,
+    enabled,
+    needsRecipient: Boolean(branch?.requiresRecipientInput),
+    recipient,
+    categoryLabel: (id) => BASE_INFO_CATEGORIES_BY_ID[id]?.label ?? id,
+  })
+
   const handlePrint = () => {
-    if (!printAck.acked) {
+    if (!printAck.acked || issues.length > 0) {
       setConfirming(true)
       return
     }
@@ -799,7 +858,7 @@ export default function Document() {
                 max={todayInputValue()}
                 value={milestone.submittedAt ?? ''}
                 aria-describedby="submitted-at-help"
-                onChange={(e) => setMilestone(tab, { submittedAt: e.target.value || null })}
+                onChange={(e) => setMilestone(milestoneKey, { submittedAt: e.target.value || null })}
                 className="rounded-md border border-gray-300 px-3 py-2"
               />
               {milestone.submittedAt && (
@@ -850,8 +909,12 @@ export default function Document() {
         </div>
       )}
 
+      {/* 복수 기관 동시 행사 — 기본은 한 건, 필요할 때 추가한다 */}
+      <CaseSwitcher activeCase={activeCase} isForm1={isForm1} />
+
       <div className="no-print flex flex-col gap-2 sm:flex-row sm:flex-wrap" role="group" aria-label="서식 선택">
-        {[FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST].map((f, i) => (
+        {/* 두 번째 건은 설명요구서만 갖는다 (CaseSwitcher 주석 참조) */}
+        {(isSecond ? [FORM_EXPLANATION_REQUEST] : [FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST]).map((f, i) => (
           <button
             key={f.id}
             type="button"
@@ -999,7 +1062,9 @@ export default function Document() {
         {/* ★ 안내가 버튼보다 먼저 눈에 들어와야 한다. 누른 뒤에 읽으면 늦다. */}
         <PrintSetupNotice />
         {confirming ? (
-          <PrintConfirm
+          <PrePrintPanel
+            issues={issues}
+            needAck={!printAck.acked}
             onPrint={doPrint}
             onCancel={() => setConfirming(false)}
             onRemember={printAck.remember}

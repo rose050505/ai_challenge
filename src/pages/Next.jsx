@@ -17,6 +17,7 @@ import { useDiagnosis } from '../lib/diagnosis-context.jsx'
 import { PageHeader, Basis, Card, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import { SubmissionRecord } from '../components/Journey.jsx'
+import NoReply from '../components/NoReply.jsx'
 
 /**
  * 마지막 화면. 서류를 출력한 사용자가 "이제 뭘 하지"에서 막히지 않게 한다.
@@ -139,6 +140,9 @@ export default function Next() {
           <Basis prefix="근거">{RESPONSE_DUTY.basis}</Basis>
         </p>
       </Section>
+
+      {/* 3-2. 회신이 오지 않을 때 — 기한이 없으므로 실제 문제가 된다 */}
+      <NoReply />
 
       {/* 4. 어떤 답을 받게 되나 — 기대치 조정 */}
       <Section

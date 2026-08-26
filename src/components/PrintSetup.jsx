@@ -117,50 +117,87 @@ export function PrintSetupNotice() {
 }
 
 /**
- * 첫 인쇄 확인 단계.
- * 매번 뜨면 성가시므로 한 번 확인하면 이 브라우저에서는 다시 묻지 않는다.
+ * 인쇄 직전 단계 — 제출 전 검토 + 머리글·바닥글 확인.
+ *
+ * 두 가지를 한 화면에서 끝낸다. 관문을 두 번 통과하게 만들면
+ * 사용자는 두 번째 것을 읽지 않는다.
+ *
+ * ★ 진행을 막지 않는다. [이대로 인쇄하기] 는 언제나 활성 상태다.
+ *   빠뜨린 것이 의도일 수도 있고, 그 판단은 사용자의 것이다.
  */
-export function PrintConfirm({ onPrint, onCancel, onRemember }) {
+export function PrePrintPanel({ issues = [], needAck, onPrint, onCancel, onRemember }) {
   const [dontAsk, setDontAsk] = useState(true)
   return (
     <div
       role="group"
-      aria-labelledby="print-confirm-heading"
+      aria-labelledby="preprint-heading"
       className="rounded-lg border-2 border-ink-700 bg-white p-4"
     >
-      <h3 id="print-confirm-heading" className="text-lg font-bold text-gray-900">
-        인쇄 설정에서 머리글·바닥글을 끄셨나요?
+      <h3 id="preprint-heading" className="text-lg font-bold text-gray-900">
+        인쇄하기 전에 확인하세요
       </h3>
-      <p className="mt-1 text-gray-700">
-        인쇄 대화상자가 열리면 아래를 먼저 확인하세요. 이 서비스가 대신 꺼 드릴 수 없는
-        설정입니다.
-      </p>
-      <div className="text-gray-800">
-        <HeaderFooterSteps />
-      </div>
-      <label className="mt-3 flex items-center gap-2 text-gray-800">
-        <input
-          type="checkbox"
-          checked={dontAsk}
-          onChange={(e) => setDontAsk(e.target.checked)}
-          className="h-5 w-5 accent-ink-700"
-        />
-        이 브라우저에서 다시 묻지 않기
-      </label>
+
+      {issues.length > 0 ? (
+        <div className="mt-3">
+          <p className="font-bold text-amber-900">
+            <span aria-hidden="true">! </span>
+            비어 있는 곳이 {issues.length}군데 있습니다
+          </p>
+          <ul className="mt-2 space-y-2">
+            {issues.map((it) => (
+              <li key={it.id} className="rounded-md border border-amber-300 bg-amber-50 p-3">
+                <span className="block text-amber-900">{it.text}</span>
+                {it.hint && <span className="mt-1 block text-sm text-amber-900">{it.hint}</span>}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-sm text-gray-700">
+            일부러 비워 두신 것이라면 그대로 인쇄하셔도 됩니다. 막지 않습니다.
+          </p>
+        </div>
+      ) : (
+        <p className="mt-2 text-gray-800">
+          <span aria-hidden="true">✓ </span>
+          비어 있는 칸은 없습니다.
+        </p>
+      )}
+
+      {needAck && (
+        <div className="mt-4 border-t border-gray-200 pt-4">
+          <p className="font-bold text-gray-900">인쇄 설정에서 머리글·바닥글을 끄셨나요?</p>
+          <p className="mt-1 text-gray-700">
+            인쇄 대화상자가 열리면 아래를 먼저 확인하세요. 이 서비스가 대신 꺼 드릴 수 없는
+            설정입니다.
+          </p>
+          <div className="text-gray-800">
+            <HeaderFooterSteps />
+          </div>
+          <label className="mt-3 flex items-center gap-2 text-gray-800">
+            <input
+              type="checkbox"
+              checked={dontAsk}
+              onChange={(e) => setDontAsk(e.target.checked)}
+              className="h-5 w-5 accent-ink-700"
+            />
+            이 브라우저에서 다시 묻지 않기
+          </label>
+        </div>
+      )}
+
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
           autoFocus
           className="btn btn-primary"
           onClick={() => {
-            if (dontAsk) onRemember()
+            if (needAck && dontAsk) onRemember()
             onPrint()
           }}
         >
-          확인했습니다 · 인쇄하기
+          이대로 인쇄하기
         </button>
         <button type="button" className="btn btn-quiet" onClick={onCancel}>
-          취소
+          돌아가서 고치기
         </button>
       </div>
     </div>

@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST, FORMS_BY_ID } from '../data/law.js'
+import {
+  FORMS_BY_ID,
+  COUNTERPARTY_TYPES_BY_ID,
+} from '../data/law.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { formatWhen, formatDate, daysSince } from '../lib/journey-storage.js'
 import { Notice, Card } from './ui.jsx'
@@ -13,6 +16,19 @@ import { Notice, Card } from './ui.jsx'
  *   오해가 생기면 신뢰를 잃는다. 이 문장은 여러 곳에서 같은 말로 반복한다.
  */
 
+/**
+ * 여정 기록 키 → 사람이 읽는 이름.
+ * 복수 기관 동시 행사에서 두 번째 건은 키가 `<서식id>:second` 다.
+ */
+export function milestoneLabel(key, journey) {
+  const [formId, tag] = String(key).split(':')
+  const title = FORMS_BY_ID[formId]?.title ?? ''
+  if (tag !== 'second') return title
+  const cpId = journey?.form?.second?.counterpartyId
+  const cp = COUNTERPARTY_TYPES_BY_ID[cpId]
+  return cp ? `${title} (${cp.label})` : title
+}
+
 export const STORAGE_SCOPE_TEXT =
   '이 기록은 지금 사용 중인 브라우저에만 저장됩니다. 다른 기기나 시크릿 모드에서는 보이지 않습니다.'
 
@@ -21,11 +37,11 @@ export function lastStep(journey) {
   const m = journey.milestones ?? {}
   const submitted = Object.entries(m).find(([, v]) => v?.submittedAt)
   if (submitted) {
-    return { label: '제출 기록', to: '/next', detail: `${FORMS_BY_ID[submitted[0]]?.title ?? ''} 제출` }
+    return { label: '제출 기록', to: '/next', detail: `${milestoneLabel(submitted[0], journey)} 제출` }
   }
   const printed = Object.entries(m).find(([, v]) => v?.printedAt)
   if (printed) {
-    return { label: '서식 인쇄', to: '/document', detail: `${FORMS_BY_ID[printed[0]]?.title ?? ''} 인쇄` }
+    return { label: '서식 인쇄', to: '/document', detail: `${milestoneLabel(printed[0], journey)} 인쇄` }
   }
   if (journey.response?.interpretation) return { label: '회신 해석', to: '/response', detail: '해석 결과 저장됨' }
   const f = journey.form ?? {}
@@ -319,7 +335,6 @@ export function WhyNoLogin() {
 
 /* ── 제출 기록 ────────────────────────────────────────────────── */
 
-const FORM_ORDER = [FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST]
 
 /**
  * 제출 기록 표시.
@@ -329,21 +344,22 @@ const FORM_ORDER = [FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST]
  */
 export function SubmissionRecord({ showLink = true }) {
   const { journey } = useJourney()
-  const submitted = FORM_ORDER.map((f) => ({ form: f, m: journey.milestones?.[f.id] })).filter(
-    (x) => x.m?.submittedAt,
-  )
+  // 서식별 · 건별로 모두 센다 (복수 기관 동시 행사에서 두 건이 될 수 있다)
+  const submitted = Object.entries(journey.milestones ?? {})
+    .filter(([, m]) => m?.submittedAt)
+    .map(([key, m]) => ({ key, title: milestoneLabel(key, journey), m }))
   if (submitted.length === 0) return null
 
   return (
     <Card>
       <h2 className="text-lg font-bold text-gray-900">제출 기록</h2>
       <ul className="mt-3 space-y-2">
-        {submitted.map(({ form, m }) => {
+        {submitted.map(({ key, title, m }) => {
           const days = daysSince(m.submittedAt)
           return (
-            <li key={form.id} className="text-gray-800">
+            <li key={key} className="text-gray-800">
               <b>
-                {formatDate(m.submittedAt)}에 {form.title}를 제출하셨습니다.
+                {formatDate(m.submittedAt)}에 {title}를 제출하셨습니다.
               </b>
               {days !== null && (
                 <span className="text-gray-600">

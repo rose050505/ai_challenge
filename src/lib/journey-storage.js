@@ -56,6 +56,17 @@ export const EMPTY_JOURNEY = {
     personal: { name: '', phone: '', email: '' },
     form1: { selectedItems: null, hopeResult: '', consent: null },
     form2: { enabled: null, rows: null, favorable: null, recipient: '' },
+    /**
+     * 복수 기관 동시 행사.
+     *
+     * 기본은 **한 건**이다 (위 form1/form2 — 진단이 정한 상대방에게 낼 것).
+     * 두 곳에 각각 내야 할 때만 두 번째 건이 생긴다.
+     *   second.counterpartyId — 'CB' | 'FI'
+     *   second.form1          — 두 번째 건의 설명요구서 작성 내용
+     * 지금 어느 건을 보고 있는지는 activeCase 가 가리킨다 ('base' | 'second').
+     */
+    activeCase: null,
+    second: null,
   },
   /** /response 해석 결과. 붙여넣은 원문은 담지 않는다. */
   response: { interpretation: null, errors: [], catOverrides: {} },
@@ -121,6 +132,8 @@ export function normalizeJourney(raw) {
         favorable: Array.isArray(f2.favorable) ? f2.favorable.filter(isObj) : null,
         recipient: str(f2.recipient),
       },
+      activeCase: f.activeCase === 'second' ? 'second' : f.activeCase === 'base' ? 'base' : null,
+      second: normalizeSecondCase(f.second),
     },
     response: {
       interpretation: isObj(r.interpretation) ? r.interpretation : null,
@@ -140,6 +153,24 @@ export function normalizeJourney(raw) {
             ]),
         )
       : {},
+  }
+}
+
+/** 두 번째 건 — 설명요구서(서식 1)만 갖는다. 없으면 null. */
+function normalizeSecondCase(raw) {
+  if (!isObj(raw)) return null
+  const cp = raw.counterpartyId
+  if (cp !== 'CB' && cp !== 'FI') return null
+  const f1 = isObj(raw.form1) ? raw.form1 : {}
+  return {
+    counterpartyId: cp,
+    form1: {
+      selectedItems: Array.isArray(f1.selectedItems)
+        ? f1.selectedItems.filter((x) => typeof x === 'string')
+        : null,
+      hopeResult: str(f1.hopeResult),
+      consent: f1.consent === 'agree' || f1.consent === 'disagree' ? f1.consent : null,
+    },
   }
 }
 
