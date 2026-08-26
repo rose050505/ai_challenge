@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
   RIGHTS,
@@ -14,8 +14,8 @@ import {
 } from '../data/law.js'
 import { EVENT_TYPES } from '../data/events.js'
 import { SAMPLE_SCENARIOS, SAMPLE_SCENARIOS_BY_ID } from '../data/samples.js'
-import { useDiagnosis } from '../lib/diagnosis-context.jsx'
-import { PageHeader, Basis, Card, Choice } from '../components/ui.jsx'
+import { useDiagnosis, useJourney } from '../lib/diagnosis-context.jsx'
+import { PageHeader, Basis, Card, Choice, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 
 /** 단계 카드. 화면 전체의 제목-설명-본문 리듬을 여기 한 곳에서 정한다. */
@@ -34,9 +34,66 @@ function Step({ n, title, children, hint }) {
   )
 }
 
+/**
+ * 진단을 고치면 이후 단계가 어떻게 되는지 알린다.
+ *
+ * ★ 조용히 지우지 않는다. 무엇이 남아 있고 무엇이 안 맞을 수 있는지 말한 뒤,
+ *   지울지 말지는 사용자가 정한다.
+ */
+function DownstreamNotice({ changed }) {
+  const { journey, setSection } = useJourney()
+  const kept = []
+  if ((journey.strategy?.candidates ?? []).length > 0) {
+    kept.push(`대응 전략 후보 ${journey.strategy.candidates.length}개`)
+  }
+  const f = journey.form ?? {}
+  if (f.personal?.name || f.form2?.rows || f.form2?.favorable || (f.form1?.selectedItems ?? []).length) {
+    kept.push('서식 작성 내용')
+  }
+  if (journey.response?.interpretation) kept.push('회신 해석 결과')
+  if (kept.length === 0) return null
+
+  return (
+    <Notice
+      title={changed ? '진단을 바꾸셨습니다' : '이후 단계에 저장된 내용이 있습니다'}
+      mark={changed ? '!' : 'i'}
+    >
+      <p>
+        지금 저장돼 있는 것: <b>{kept.join(', ')}</b>.
+      </p>
+      <p className="mt-2">
+        진단을 바꿔도 이 내용은 <b>지우지 않습니다.</b> 다만 대응 전략 후보는 진단 내용을 바탕으로
+        만든 것이라, 진단이 달라지면 지금 상황과 맞지 않을 수 있습니다. 다시 만들지 여부는
+        직접 정하세요.
+      </p>
+      {(journey.strategy?.candidates ?? []).length > 0 && (
+        <button
+          type="button"
+          className="btn btn-secondary mt-3"
+          onClick={() =>
+            setSection(
+              'strategy',
+              { candidates: [], picked: [], notice: null },
+              { immediate: true },
+            )
+          }
+        >
+          전략 후보 지우고 다시 만들기
+        </button>
+      )}
+    </Notice>
+  )
+}
+
 export default function Diagnose() {
   const [params] = useSearchParams()
   const { diagnosis, update } = useDiagnosis()
+  /** 이 화면에 들어온 뒤 진단을 실제로 고쳤는지 (고쳤을 때만 경고 톤으로 바꾼다) */
+  const [changed, setChanged] = useState(false)
+  const edit = (patch) => {
+    setChanged(true)
+    update(patch, { immediate: true })
+  }
   const {
     eventId,
     counterpartyId,
@@ -88,6 +145,8 @@ export default function Diagnose() {
         description="몇 가지만 고르면 행사할 수 있는 권리와 근거 조문을 보여드립니다."
       />
 
+      <DownstreamNotice changed={changed} />
+
       <section className="panel" aria-labelledby="sample-heading">
         <p id="sample-heading" className="mb-3 font-bold text-gray-900">
           샘플 시나리오로 바로 채우기
@@ -127,7 +186,7 @@ export default function Diagnose() {
             <Choice
               key={e.id}
               selected={eventId === e.id}
-              onClick={() => update({ eventId: e.id, limitKind: null })}
+              onClick={() => edit({ eventId: e.id, limitKind: null })}
             >
               {e.label}
             </Choice>
@@ -146,7 +205,7 @@ export default function Diagnose() {
               key={c.id}
               selected={counterpartyId === c.id}
               onClick={() =>
-                update({ counterpartyId: c.id, institutionSectorId: '', customInstitution: '' })
+                edit({ counterpartyId: c.id, institutionSectorId: '', customInstitution: '' })
               }
             >
               <span className="block font-medium">{c.label}</span>
@@ -182,7 +241,7 @@ export default function Diagnose() {
           <select
             id="sector"
             value={institutionSectorId}
-            onChange={(e) => update({ institutionSectorId: e.target.value, limitKind: null })}
+            onChange={(e) => edit({ institutionSectorId: e.target.value, limitKind: null })}
             className="w-full rounded-md border border-gray-300 bg-white p-3"
           >
             <option value="">선택하세요</option>
@@ -212,7 +271,7 @@ export default function Diagnose() {
               <input
                 id="customInstitution"
                 value={customInstitution}
-                onChange={(e) => update({ customInstitution: e.target.value })}
+                onChange={(e) => edit({ customInstitution: e.target.value })}
                 placeholder="예: 상호금융조합"
                 className="mt-1 w-full rounded-md border border-gray-300 p-3"
               />
@@ -229,7 +288,7 @@ export default function Diagnose() {
               <Choice
                 key={o.id}
                 selected={limitKind === o.id}
-                onClick={() => update({ limitKind: o.id })}
+                onClick={() => edit({ limitKind: o.id })}
               >
                 {o.label}
               </Choice>

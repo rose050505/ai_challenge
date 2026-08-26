@@ -16,6 +16,7 @@ import {
 import { useDiagnosis } from '../lib/diagnosis-context.jsx'
 import { PageHeader, Basis, Card, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
+import { SubmissionRecord } from '../components/Journey.jsx'
 
 /**
  * 마지막 화면. 서류를 출력한 사용자가 "이제 뭘 하지"에서 막히지 않게 한다.
@@ -50,6 +51,9 @@ export default function Next() {
         title="서류를 출력했다면 여기서부터"
         description="법령에 정해진 것과 정해지지 않은 것을 그대로 구분해 알려드립니다."
       />
+
+      {/* 제출 기록이 있으면 맨 위에. 카운트다운은 만들지 않는다 (법령에 기한 규정 없음) */}
+      <SubmissionRecord />
 
       {/* 6. unknown 라우팅이었다면 순서를 먼저 다시 보여준다 */}
       {branch?.requiresPrecedingStep && (

@@ -3,6 +3,13 @@ import { LAW_META, RIGHTS, DEFINITION_AUTOMATED_EVALUATION } from '../data/law.j
 import { SAMPLE_SCENARIOS } from '../data/samples.js'
 import { Basis, Card } from '../components/ui.jsx'
 import { Term, GlossaryList } from '../components/Term.jsx'
+import {
+  ResumeCard,
+  BackupPanel,
+  WhyNoLogin,
+  SubmissionRecord,
+  STORAGE_SCOPE_TEXT,
+} from '../components/Journey.jsx'
 
 // 법조문 텍스트는 전부 src/data/law.js 에서만 읽는다. 이 파일에 하드코딩하지 않는다.
 export default function Landing() {
@@ -10,6 +17,10 @@ export default function Landing() {
 
   return (
     <div className="space-y-12 py-8 sm:py-12">
+      {/* ── 이어서 하기 — 기록이 있을 때만 맨 위에 뜬다 ────────── */}
+      <ResumeCard />
+      <SubmissionRecord />
+
       {/* ── 도입 ─────────────────────────────────────────────── */}
       <section className="space-y-5">
         <p className="text-sm font-semibold tracking-wide text-ink-600">
@@ -105,14 +116,22 @@ export default function Landing() {
         <GlossaryList />
       </section>
 
+      {/* ── 기록 보관 ─────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <h2 className="text-2xl font-bold text-gray-900">기록은 어디에 남나요</h2>
+        <p className="text-gray-700">{STORAGE_SCOPE_TEXT}</p>
+        <BackupPanel />
+        <WhyNoLogin />
+      </section>
+
       {/* ── 서비스 고지 ───────────────────────────────────────── */}
       <section className="card">
         <h2 className="font-bold text-gray-900">이 서비스에 대해</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-gray-700">
           <li>회원가입과 로그인이 없습니다. 바로 사용할 수 있습니다.</li>
           <li>주민등록번호는 입력받지 않습니다. 서식에서는 공란으로 출력됩니다.</li>
-          <li>입력한 내용은 브라우저에만 있습니다. 서버에 저장하지 않습니다.</li>
-          <li>새로고침하면 입력이 모두 사라집니다. 버그가 아니라 설계입니다.</li>
+          <li>입력한 내용은 서버로 전송되지 않습니다.</li>
+          <li>진행 상황은 이 브라우저에만 저장되고, 파일로 내보내 보관할 수 있습니다.</li>
           <li>법률 자문이 아닙니다. 법령과 고시 서식의 내용을 정리해 보여줄 뿐입니다.</li>
         </ul>
       </section>

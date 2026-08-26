@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
   FORM_EXPLANATION_REQUEST,
@@ -14,13 +14,15 @@ import {
   INSTITUTION_OPTIONS,
   RIGHTS_BY_ID,
 } from '../data/law.js'
-import { useDiagnosis } from '../lib/diagnosis-context.jsx'
+import { useJourney } from '../lib/diagnosis-context.jsx'
 import { neutralizeInstitution } from '../lib/neutralize.js'
 import { PageHeader, Basis, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import EmailDraft from '../components/EmailDraft.jsx'
 import PagedSheet from '../components/PagedSheet.jsx'
 import { useSheetMode } from '../lib/sheet-mode.js'
+import { BackupPanel, STORAGE_SCOPE_TEXT } from '../components/Journey.jsx'
+import { formatWhen, formatDate, todayInputValue } from '../lib/journey-storage.js'
 
 /* ── 공용 조각 ───────────────────────────────────────────────── */
 
@@ -450,7 +452,12 @@ function form2Blocks({
 /* ── 화면 ────────────────────────────────────────────────────── */
 
 export default function Document() {
-  const { diagnosis } = useDiagnosis()
+  const { journey, setSection, storageAvailable } = useJourney()
+  const diagnosis = journey.diagnosis
+  /** 저장된 서식 작성 내용. 없으면 각 항목의 기본값을 쓴다. */
+  const savedForm = journey.form ?? {}
+  const savedF1 = savedForm.form1 ?? {}
+  const savedF2 = savedForm.form2 ?? {}
   const branch = CORRECTION_ROUTING_BY_ID[diagnosis.routingBranchId]
   const sector = INSTITUTION_OPTIONS.find((o) => o.id === diagnosis.institutionSectorId)
   /**
@@ -465,11 +472,17 @@ export default function Document() {
   // 라우팅이 unknown 이면 서식 1이 선행 단계이므로 서식 1 탭에서 시작한다.
   // ?form=<서식 id> 로 특정 서식을 바로 열 수 있다.
   const [params] = useSearchParams()
-  const [tab, setTab] = useState(
-    params.get('form') === FORM_CORRECTION_REQUEST.id
-      ? FORM_CORRECTION_REQUEST.id
-      : FORM_EXPLANATION_REQUEST.id,
-  )
+  const [tab, setTab] = useState(() => {
+    if (params.get('form') === FORM_CORRECTION_REQUEST.id) return FORM_CORRECTION_REQUEST.id
+    if (params.get('form') === FORM_EXPLANATION_REQUEST.id) return FORM_EXPLANATION_REQUEST.id
+    // 회신 해석에서 "이 항목을 다시 요구하라"고 넘어왔으면 서식 1이다
+    if ((diagnosis.missingRequestItems ?? []).length > 0) return FORM_EXPLANATION_REQUEST.id
+    // 정정할 항목이나 유리한 정보가 넘어왔으면 서식 2다
+    if ((diagnosis.correctionRows ?? []).length > 0 || (diagnosis.selectedCandidates ?? []).length > 0)
+      return FORM_CORRECTION_REQUEST.id
+    if (savedForm.tab === FORM_CORRECTION_REQUEST.id) return FORM_CORRECTION_REQUEST.id
+    return FORM_EXPLANATION_REQUEST.id
+  })
 
   // 서식 1 — unknown 분기는 선행 단계가 지정한 요청 항목(기초정보의 개요)을 미리 선택한다.
   /**
@@ -477,20 +490,54 @@ export default function Document() {
    * /response 에서 "설명되지 않음"으로 판정된 유형이 있으면 그것만 선택된 상태로 시작한다.
    * 없으면 라우팅 선행 단계가 지정한 항목을 쓴다.
    */
-  const [selectedItems, setSelectedItems] = useState(
-    (diagnosis.missingRequestItems ?? []).length > 0
-      ? diagnosis.missingRequestItems
-      : (branch?.steps?.[0]?.requestItemIds ?? []),
-  )
-  const [hopeResult, setHopeResult] = useState('')
-  const [consent, setConsent] = useState(null)
+  /**
+   * 다른 화면에서 막 넘어온 값(hand-off).
+   *
+   * 우선순위: **방금 넘어온 값 > 저장된 작성 내용 > 기본값**
+   *   회신 해석에서 "이 항목이 누락됐다"고 판정해 넘어온 것은 사용자의 방금 행동이므로
+   *   며칠 전 저장된 선택보다 우선한다.
+   * 소비한 뒤에는 비운다. 안 그러면 이후 방문마다 사용자의 수정을 계속 덮어쓴다.
+   */
+  const [handoff] = useState(() => ({
+    requestItems: diagnosis.missingRequestItems ?? [],
+    correctionRows: diagnosis.correctionRows ?? [],
+    candidates: diagnosis.selectedCandidates ?? [],
+  }))
+  useEffect(() => {
+    if (
+      handoff.requestItems.length ||
+      handoff.correctionRows.length ||
+      handoff.candidates.length
+    ) {
+      setSection(
+        'diagnosis',
+        { missingRequestItems: [], correctionRows: [], selectedCandidates: [] },
+        { immediate: true },
+      )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // 인적사항은 브라우저 메모리에만 둔다. 서버로 보내지 않는다.
-  const [personal, setPersonalState] = useState({ name: '', phone: '', email: '' })
+  const [selectedItems, setSelectedItems] = useState(
+    handoff.requestItems.length > 0
+      ? handoff.requestItems
+      : (savedF1.selectedItems ?? branch?.steps?.[0]?.requestItemIds ?? []),
+  )
+  const [hopeResult, setHopeResult] = useState(savedF1.hopeResult ?? '')
+  const [consent, setConsent] = useState(savedF1.consent ?? null)
+
+  /**
+   * 인적사항.
+   * 서버로 보내지 않는다. 이 브라우저에만 저장된다.
+   * ★ 주민등록번호는 여기에 없다. 애초에 입력받지 않으므로 저장할 것도 없다.
+   */
+  const [personal, setPersonalState] = useState(
+    savedForm.personal ?? { name: '', phone: '', email: '' },
+  )
   const setPersonal = (k, v) => setPersonalState((p) => ({ ...p, [k]: v }))
 
   // 서식 2
-  const [enabled, setEnabled] = useState({ s2: true, s3: true, s4: true })
+  const [enabled, setEnabled] = useState(savedF2.enabled ?? { s2: true, s3: true, s4: true })
   /**
    * 섹션 2 정정·삭제 표.
    * /response 에서 "사실과 다르다"고 표시한 항목이 "현행 정보" 칸으로 들어온다.
@@ -498,26 +545,48 @@ export default function Document() {
    * 같은 분류에 여러 건이면 줄바꿈으로 합친다.
    */
   const [rows, setRows] = useState(() => {
-    const init = {}
-    for (const r of diagnosis.correctionRows ?? []) {
-      const prev = init[r.categoryId]?.current
-      init[r.categoryId] = { current: prev ? `${prev}\n${r.current}` : r.current, correction: '' }
+    const saved = savedF2.rows ?? {}
+    if (handoff.correctionRows.length === 0) return saved
+    // 방금 넘어온 항목은 "현행 정보"만 덮어쓰고, 저장돼 있던 "정정 내용"은 살린다
+    const incoming = {}
+    for (const r of handoff.correctionRows) {
+      const prev = incoming[r.categoryId]
+      incoming[r.categoryId] = prev ? `${prev}\n${r.current}` : r.current
     }
-    return init
+    const merged = { ...saved }
+    for (const [cat, current] of Object.entries(incoming)) {
+      merged[cat] = { current, correction: merged[cat]?.correction ?? '' }
+    }
+    return merged
   })
   /**
    * 섹션 3은 /strategy 에서 고른 후보로 채워진다.
    * 아직 안 거쳤으면 빈 표 3행으로 시작한다.
    */
   const [favorable, setFavorable] = useState(() => {
-    const picked = (diagnosis.selectedCandidates ?? []).map((c) => ({
+    if (handoff.candidates.length === 0 && savedF2.favorable) return savedF2.favorable
+    const picked = handoff.candidates.map((c) => ({
       infoName: c['정보명'] ?? '',
       detail: c['세부내용'] ?? '',
     }))
     const blanks = Math.max(0, 3 - picked.length)
     return [...picked, ...Array.from({ length: blanks }, () => ({ infoName: '', detail: '' }))]
   })
-  const [recipient, setRecipient] = useState('')
+  const [recipient, setRecipient] = useState(savedF2.recipient ?? '')
+
+  /**
+   * 서식 내용 자동 저장.
+   * 타이핑 중마다 쓰지 않는다 — setSection 이 입력이 멈춘 뒤(1.5초) 한 번 저장한다.
+   */
+  useEffect(() => {
+    setSection('form', {
+      tab,
+      personal,
+      form1: { selectedItems, hopeResult, consent },
+      form2: { enabled, rows, favorable, recipient },
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, personal, selectedItems, hopeResult, consent, enabled, rows, favorable, recipient])
 
   const s2HasContent = Object.values(rows).some(
     (r) => (r?.current ?? '').trim() || (r?.correction ?? '').trim(),
@@ -532,6 +601,82 @@ export default function Document() {
 
   const s4 = FORM_CORRECTION_REQUEST.sections[3]
   const isForm1 = tab === FORM_EXPLANATION_REQUEST.id
+  const currentForm = isForm1 ? FORM_EXPLANATION_REQUEST : FORM_CORRECTION_REQUEST
+  const milestone = journey.milestones?.[tab] ?? { printedAt: null, submittedAt: null }
+
+  const setMilestone = (formId, patch) =>
+    setSection(
+      'milestones',
+      (m) => ({
+        ...m,
+        [formId]: { printedAt: null, submittedAt: null, ...(m?.[formId] ?? {}), ...patch },
+      }),
+      { immediate: true },
+    )
+
+  /**
+   * 인쇄 후 화면.
+   *
+   * 지금까지는 인쇄 버튼을 누르면 서비스가 거기서 끊겼다. 사용자는 종이를 들고
+   * "이제 뭐 하지" 상태가 된다. afterprint 로 다음 단계를 이어 붙인다.
+   */
+  const [stage, setStage] = useState('form') // form | afterPrint
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [checked, setChecked] = useState({})
+  const printing = useRef(false)
+  const afterPrintRef = useRef(null)
+
+  const finishPrint = () => {
+    if (!printing.current) return
+    printing.current = false
+    setMilestone(tab, { printedAt: new Date().toISOString() })
+    setStage('afterPrint')
+  }
+
+  const handlePrint = () => {
+    printing.current = true
+    setStage('form')
+    window.print()
+    // afterprint 가 오지 않는 브라우저를 위한 보조 경로. 둘 다 와도 한 번만 처리된다.
+    setTimeout(finishPrint, 300)
+  }
+
+  useEffect(() => {
+    const onAfter = () => finishPrint()
+    window.addEventListener('afterprint', onAfter)
+    // 옛 Safari 등은 afterprint 대신 print 미디어 질의 변화로만 알린다
+    const mq = window.matchMedia?.('print')
+    const onMq = (e) => {
+      if (!e.matches) finishPrint()
+    }
+    mq?.addEventListener?.('change', onMq)
+    return () => {
+      window.removeEventListener('afterprint', onAfter)
+      mq?.removeEventListener?.('change', onMq)
+    }
+  })
+
+  useEffect(() => {
+    if (stage === 'afterPrint') afterPrintRef.current?.scrollIntoView({ block: 'start' })
+  }, [stage])
+
+  /** 제출까지 남은 실물 작업. 서식에 따라 항목이 달라진다. */
+  const checklist = [
+    { id: 'sign', label: '출력물에 서명 또는 날인했습니다' },
+    isForm1 && {
+      id: 'rrn',
+      label: '주민등록번호를 직접 기재했습니다',
+      note: '이 서비스는 주민등록번호를 입력받지 않습니다. 서식에 공란으로 출력되니 손으로 적으세요.',
+    },
+    !isForm1 &&
+      s2HasContent && {
+        id: 'evidence',
+        label: '증빙자료를 첨부했습니다',
+        note: FORM_CORRECTION_REQUEST.attachment.label,
+      },
+    { id: 'where', label: '제출할 곳을 확인했습니다' },
+  ].filter(Boolean)
+  const doneCount = checklist.filter((c) => checked[c.id]).length
 
   /** 서식 2 의 예상 인쇄 페이지 수. PagedSheet 가 측정해서 알려준다. */
   const [pageCount, setPageCount] = useState(1)
@@ -558,6 +703,111 @@ export default function Document() {
         title="고시 서식을 채워 인쇄하세요"
         description="화면에서 채운 내용이 그대로 인쇄됩니다. 서버로 전송하지 않으며 새로고침하면 사라집니다."
       />
+
+      {/* ── 인쇄 후 — 제출까지 이어 붙인다 ─────────────────── */}
+      {stage === 'afterPrint' && (
+        <section
+          ref={afterPrintRef}
+          className="no-print rounded-lg border-2 border-ink-700 bg-white p-5"
+          aria-labelledby="afterprint-heading"
+        >
+          <p className="text-sm font-semibold tracking-wide text-ink-600">인쇄했습니다</p>
+          <h2 id="afterprint-heading" className="mt-1 text-xl font-bold text-gray-900">
+            제출 전에 확인하세요
+          </h2>
+          <p className="mt-1 text-gray-600">
+            {currentForm.title}
+            {milestone.printedAt && ` · ${formatWhen(milestone.printedAt)} 인쇄`}
+          </p>
+
+          <ul className="mt-4 space-y-2">
+            {checklist.map((c) => (
+              <li key={c.id} className="rounded-md border border-gray-200 p-3">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(checked[c.id])}
+                    onChange={() => setChecked((p) => ({ ...p, [c.id]: !p[c.id] }))}
+                    className="mt-1 h-5 w-5 shrink-0 accent-ink-700"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="font-bold text-gray-900">{c.label}</span>
+                    {c.note && <span className="mt-1 block text-sm text-gray-600">{c.note}</span>}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          <p role="status" aria-live="polite" className="mt-2 text-sm text-gray-600">
+            {doneCount}/{checklist.length} 확인
+          </p>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setEmailOpen(true)
+                setTimeout(
+                  () => document.getElementById('email-draft')?.scrollIntoView({ block: 'start' }),
+                  0,
+                )
+              }}
+            >
+              이메일 초안 열기
+            </button>
+            <Link to="/next" className="btn btn-secondary">
+              제출 절차 자세히
+            </Link>
+            <button type="button" className="btn btn-secondary" onClick={handlePrint}>
+              다시 인쇄
+            </button>
+            <button type="button" className="btn btn-quiet" onClick={() => setStage('form')}>
+              서식 계속 고치기
+            </button>
+          </div>
+
+          {/* 제출은 우리가 대행하지 않으므로 날짜를 자동으로 알 수 없다 */}
+          <div className="mt-6 border-t border-gray-200 pt-4">
+            <label htmlFor="submitted-at" className="block font-bold text-gray-900">
+              제출한 날짜를 기록해 두세요
+            </label>
+            <p id="submitted-at-help" className="mt-1 text-sm text-gray-600">
+              이 서비스는 제출을 대행하지 않아 언제 내셨는지 알 수 없습니다. 직접 적어 두시면
+              나중에 &ldquo;언제 냈더라&rdquo;를 찾지 않으셔도 됩니다.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <input
+                id="submitted-at"
+                type="date"
+                max={todayInputValue()}
+                value={milestone.submittedAt ?? ''}
+                aria-describedby="submitted-at-help"
+                onChange={(e) => setMilestone(tab, { submittedAt: e.target.value || null })}
+                className="rounded-md border border-gray-300 px-3 py-2"
+              />
+              {milestone.submittedAt && (
+                <span className="text-gray-700">
+                  {formatDate(milestone.submittedAt)}에 제출한 것으로 기록했습니다.
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 저장이 막힌 환경이면 타이핑을 시작하기 전에 알린다 */}
+      {!storageAvailable && (
+        <div className="no-print">
+          <Notice title="이 브라우저에서는 자동 저장이 안 됩니다">
+            <p>
+              시크릿 모드이거나 브라우저가 저장을 막고 있습니다. 화면을 닫으면 입력이 사라지니,
+              아래 [작성 중인 내용 불러오기 · 파일로 보관하기]에서 파일로 내보내 두세요. 서식
+              작성과 인쇄는 그대로 됩니다.
+            </p>
+          </Notice>
+        </div>
+      )}
 
       {/* 모바일 안내 — 서식은 A4 고정이므로 작은 화면에서는 축소돼 보이는 것이 정상이다 */}
       <div className="no-print md:hidden">
@@ -613,6 +863,27 @@ export default function Document() {
         채우지 못합니다.
       </p>
 
+      {/*
+       * ★ 인쇄만 하고 닫았다가 며칠 뒤 돌아오는 것이 정상 사용 패턴이다.
+       *   그래서 불러오기는 항상 보이는 자리에 둔다.
+       */}
+      <details className="no-print rounded-lg border border-gray-200 bg-white">
+        <summary className="cursor-pointer rounded-lg px-4 py-3 font-bold text-gray-900">
+          작성 중인 내용 불러오기 · 파일로 보관하기
+        </summary>
+        <div className="space-y-3 border-t border-gray-200 p-4">
+          <p className="text-gray-700">
+            {journey.updatedAt
+              ? `이 브라우저에 저장된 내용을 자동으로 불러왔습니다 (마지막 저장 ${formatWhen(
+                  journey.updatedAt,
+                )}). 이어서 고치시면 됩니다.`
+              : '아직 저장된 내용이 없습니다. 입력을 시작하면 자동으로 저장됩니다.'}
+          </p>
+          <p className="text-sm text-gray-600">{STORAGE_SCOPE_TEXT}</p>
+          <BackupPanel />
+        </div>
+      </details>
+
       {/* 서식 밖 안내. 인쇄되는 서식 본문에는 넣지 않는다 (renderOutsideFormOnly). */}
       {isForm1 && (
         <div className="no-print panel">
@@ -652,17 +923,17 @@ export default function Document() {
                 </div>
               )
             })}
-          {(diagnosis.correctionRows ?? []).length > 0 && (
+          {handoff.correctionRows.length > 0 && (
             <p className="text-sm text-gray-700">
-              회신 해석에서 표시하신 {diagnosis.correctionRows.length}건이 섹션 2의 &ldquo;현행
+              회신 해석에서 표시하신 {handoff.correctionRows.length}건이 섹션 2의 &ldquo;현행
               정보&rdquo; 칸에 채워졌습니다. &ldquo;정정 또는 삭제 내용&rdquo;은 직접 적어
               주세요.
             </p>
           )}
-          {(diagnosis.selectedCandidates ?? []).length > 0 && (
+          {handoff.candidates.length > 0 && (
             <p className="text-sm text-gray-700">
-              대응 전략에서 고른 {diagnosis.selectedCandidates.length}개 항목이 섹션 3에
-              채워졌습니다. 세부 수치는 직접 확인해 수정하세요.
+              대응 전략에서 고른 {handoff.candidates.length}개 항목이 섹션 3에 채워졌습니다.
+              세부 수치는 직접 확인해 수정하세요.
             </p>
           )}
           {!FORM_CORRECTION_REQUEST.sections[0].verbatimVerified && (
@@ -703,7 +974,7 @@ export default function Document() {
 
       <div className="no-print space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <button type="button" onClick={() => window.print()} className="btn btn-primary">
+          <button type="button" onClick={handlePrint} className="btn btn-primary">
             인쇄 / PDF로 저장
           </button>
           <Link to="/next" className="btn btn-secondary">
@@ -720,6 +991,13 @@ export default function Document() {
             </>
           )}
         </p>
+        {/* 다시 들어왔을 때 "이거 냈던가" 를 여기서 바로 알 수 있게 한다 */}
+        {(milestone.printedAt || milestone.submittedAt) && (
+          <p className="rounded-md bg-ink-50 p-3 text-ink-800">
+            {milestone.printedAt && <>이 서식을 {formatWhen(milestone.printedAt)}에 인쇄하셨습니다. </>}
+            {milestone.submittedAt && <>제출일은 {formatDate(milestone.submittedAt)}로 기록돼 있습니다.</>}
+          </p>
+        )}
         <p className="text-sm text-gray-600">
           인쇄 대화상자에서 용지를 A4, 배율 100%로 두세요. 지금 보고 있는 서식만 인쇄됩니다.
         </p>
@@ -753,6 +1031,8 @@ export default function Document() {
 
       {/* 전자우편 제출 — 시행령 제31조의2 제6항이 허용한 행사 방법 */}
       <EmailDraft
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
         formId={tab}
         personal={personal}
         selectedItems={selectedItems}

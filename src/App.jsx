@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Routes, Route, Link, NavLink } from 'react-router-dom'
-import { DiagnosisProvider } from './lib/diagnosis-context.jsx'
+import { DiagnosisProvider, useJourney } from './lib/diagnosis-context.jsx'
+import { SaveStatus, JourneyFlash, STORAGE_SCOPE_TEXT } from './components/Journey.jsx'
 import { LAW_META } from './data/law.js'
 import Landing from './pages/Landing.jsx'
 import Diagnose from './pages/Diagnose.jsx'
@@ -92,6 +93,36 @@ function FontScale() {
   )
 }
 
+/**
+ * 파일을 불러오거나 기록을 지우면 세대 번호가 올라간다.
+ * 각 화면이 useState 초기값으로 저장된 내용을 읽으므로, 그때 화면을 새로 마운트해야
+ * 불러온 내용이 실제로 반영된다.
+ */
+function AppRoutes() {
+  const { generation } = useJourney()
+  return (
+    <Routes key={generation}>
+      <Route path="/" element={<Landing />} />
+      <Route path="/diagnose" element={<Diagnose />} />
+      <Route path="/document" element={<Document />} />
+      <Route path="/strategy" element={<Strategy />} />
+      <Route path="/next" element={<Next />} />
+      <Route path="/response" element={<Response />} />
+      <Route
+        path="*"
+        element={
+          <div className="py-10">
+            <h1 className="text-2xl font-bold">찾는 화면이 없습니다</h1>
+            <Link to="/" className="btn btn-secondary mt-4">
+              처음으로
+            </Link>
+          </div>
+        }
+      />
+    </Routes>
+  )
+}
+
 export default function App() {
   return (
     <DiagnosisProvider>
@@ -116,7 +147,10 @@ export default function App() {
                 자동화평가 설명·이의제기 도우미
               </span>
             </Link>
-            <FontScale />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <SaveStatus />
+              <FontScale />
+            </div>
           </div>
           <nav aria-label="주요 화면" className="mx-auto max-w-3xl px-4 pb-2">
             <ul className="flex flex-wrap gap-x-1 gap-y-1">
@@ -142,26 +176,12 @@ export default function App() {
           </nav>
         </header>
 
+        <JourneyFlash />
+
         <main id="main" className="app-main mx-auto w-full max-w-3xl px-4 print:max-w-none print:p-0">
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/diagnose" element={<Diagnose />} />
-            <Route path="/document" element={<Document />} />
-            <Route path="/strategy" element={<Strategy />} />
-            <Route path="/next" element={<Next />} />
-            <Route path="/response" element={<Response />} />
-            <Route
-              path="*"
-              element={
-                <div className="py-10">
-                  <h1 className="text-2xl font-bold">찾는 화면이 없습니다</h1>
-                  <Link to="/" className="btn btn-secondary mt-4">
-                    처음으로
-                  </Link>
-                </div>
-              }
-            />
-          </Routes>
+          {/* 파일을 불러오거나 기록을 지우면 화면을 새로 마운트한다
+              (각 화면이 useState 초기값으로 저장 내용을 읽기 때문) */}
+          <AppRoutes />
         </main>
 
         <footer className="no-print mt-12 border-t border-gray-200 bg-white">
@@ -173,6 +193,7 @@ export default function App() {
             <p className="mt-1">
               법률 자문이 아닙니다. 회원가입이 없고, 입력한 내용은 서버에 저장되지 않습니다.
             </p>
+            <p className="mt-1">{STORAGE_SCOPE_TEXT}</p>
           </div>
         </footer>
       </div>

@@ -17,7 +17,7 @@ import {
   BASE_INFO_CATEGORIES_BY_ID,
 } from '../data/law.js'
 import { RESPONSE_SAMPLES } from '../data/response-samples.js'
-import { useDiagnosis } from '../lib/diagnosis-context.jsx'
+import { useJourney } from '../lib/diagnosis-context.jsx'
 import { interpretResponse } from '../lib/interpret-client.js'
 import { PageHeader, Basis, Notice, Status } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
@@ -68,7 +68,8 @@ function decideNextAction({ interpretation, errorCount }) {
       title: '설명되지 않은 항목을 다시 요구하세요',
       detail: `누락된 ${interpretation.missing.length}개 항목만 선택된 상태로 서식 1이 준비됩니다.`,
       rights: ['R2'],
-      to: '/document',
+      // 저장된 마지막 탭이 서식 2일 수 있으므로 어느 서식인지 명시해서 넘긴다
+      to: `/document?form=${FORM_EXPLANATION_REQUEST.id}`,
       cta: '서식 1 다시 만들기',
     }
   }
@@ -120,14 +121,24 @@ function TypeRow({ type, got }) {
 
 export default function Response() {
   const navigate = useNavigate()
-  const { update } = useDiagnosis()
+  const { journey, setSection } = useJourney()
+  /**
+   * 저장된 해석 결과가 있으면 그대로 이어서 보여준다.
+   * ★ 붙여넣은 회신 원문은 저장하지 않는다. 개인 신용정보를 우리가 붙들고 있을 이유가 없다.
+   *   해석 결과(항목 목록)만 남긴다.
+   */
+  const savedResponse = journey.response
   const [text, setText] = useState('')
   const [sampleId, setSampleId] = useState(null)
-  const [state, setState] = useState('idle') // idle | loading | done
-  const [result, setResult] = useState(null)
-  const [errors, setErrors] = useState([]) // 사실과 다르다고 체크한 baseInfoItems 인덱스
+  const [state, setState] = useState(savedResponse.interpretation ? 'done' : 'idle')
+  const [result, setResult] = useState(
+    savedResponse.interpretation
+      ? { mode: 'restored', interpretation: savedResponse.interpretation, notice: null }
+      : null,
+  )
+  const [errors, setErrors] = useState(savedResponse.errors ?? [])
   // 사용자가 직접 고친 분류. 분류는 정정 요구의 근거이므로 최종 판단은 사용자 몫이다.
-  const [catOverrides, setCatOverrides] = useState({})
+  const [catOverrides, setCatOverrides] = useState(savedResponse.catOverrides ?? {})
   // 수동 모드 상태
   const [manualCovered, setManualCovered] = useState([])
   const [manualItems, setManualItems] = useState([
@@ -145,6 +156,12 @@ export default function Response() {
       setManualItems([{ 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label }])
     }
     setState('done')
+    // 단계 완료 — 해석 결과만 저장한다 (원문은 저장하지 않는다)
+    setSection(
+      'response',
+      { interpretation: r.mode === 'manual' ? null : r.interpretation, errors: [], catOverrides: {} },
+      { immediate: true },
+    )
   }
 
   const pickSample = (s) => {
@@ -178,7 +195,11 @@ export default function Response() {
   const excluded = interpretation?.excludedByProviso === true
 
   const toggleError = (i) =>
-    setErrors((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]))
+    setErrors((p) => {
+      const next = p.includes(i) ? p.filter((x) => x !== i) : [...p, i]
+      setSection('response', { errors: next })
+      return next
+    })
 
   const goNext = (action) => {
     // 회신에서 읽은 값을 서식으로 넘긴다. 정정 내용은 사용자가 채운다.
@@ -187,10 +208,14 @@ export default function Response() {
       const cat = BASE_INFO_CATEGORIES.find((c) => c.label === item.분류) ?? BASE_INFO_CATEGORIES[4]
       return { categoryId: cat.id, current: `${item.항목}: ${item.내용}` }
     })
-    update({
-      correctionRows: rows,
-      missingRequestItems: action.id === 'reRequest' ? interpretation.missing : [],
-    })
+    setSection(
+      'diagnosis',
+      {
+        correctionRows: rows,
+        missingRequestItems: action.id === 'reRequest' ? interpretation.missing : [],
+      },
+      { immediate: true },
+    )
     navigate(action.to)
   }
 
@@ -264,7 +289,7 @@ export default function Response() {
               회신 해석하기
             </button>
             <p className="text-sm text-gray-600">
-              붙여넣은 내용은 저장되지 않습니다. 새로고침하면 사라집니다.
+              붙여넣은 회신 원문은 저장하지 않습니다. 해석 결과만 이 브라우저에 남습니다.
             </p>
           </section>
         </>
@@ -282,6 +307,14 @@ export default function Response() {
 
       {state === 'done' && result && (
         <section className="space-y-6">
+          {result.mode === 'restored' && (
+            <Notice title="이전에 해석한 결과를 불러왔습니다" mark="i">
+              <p>
+                이 브라우저에 저장된 해석 결과입니다. 붙여넣으셨던 회신 원문은 저장하지 않으므로
+                여기에 없습니다. 새 회신을 넣으시려면 아래 [다른 회신 넣기]를 누르세요.
+              </p>
+            </Notice>
+          )}
           {result.notice && (
             <Notice title="안내" aria-live="polite">
               <p>{result.notice}</p>
@@ -548,7 +581,11 @@ export default function Response() {
                                   id={`cat-${i}`}
                                   value={it.분류}
                                   onChange={(e) =>
-                                    setCatOverrides((p) => ({ ...p, [i]: e.target.value }))
+                                    setCatOverrides((p) => {
+                                      const next = { ...p, [i]: e.target.value }
+                                      setSection('response', { catOverrides: next })
+                                      return next
+                                    })
                                   }
                                   className="rounded border border-gray-300 bg-white px-2 py-1 text-sm"
                                 >
@@ -693,6 +730,16 @@ export default function Response() {
                   onClick={() => {
                     setState('idle')
                     setResult(null)
+                    setText('')
+                    setSampleId(null)
+                    setErrors([])
+                    setCatOverrides({})
+                    // 저장된 해석도 함께 비운다. 안 그러면 새로고침 때 옛 결과가 되살아난다.
+                    setSection(
+                      'response',
+                      { interpretation: null, errors: [], catOverrides: {} },
+                      { immediate: true },
+                    )
                   }}
                   className="btn btn-secondary"
                 >

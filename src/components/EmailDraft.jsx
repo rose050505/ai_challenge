@@ -12,8 +12,19 @@ const emailChannel = EXERCISE_CHANNELS.find((c) => c.id === 'email')
  * ★ 초안은 편집 가능하다. 사용자가 최종 문장의 주인이다.
  * ★ 인쇄 대상이 아니다(no-print). 화면 전용 기능이다.
  */
-export default function EmailDraft(props) {
-  const [open, setOpen] = useState(false)
+/**
+ * @param {boolean} [props.open]  바깥에서 여닫을 때 (인쇄 후 화면의 [이메일 초안 열기])
+ * @param {(v:boolean)=>void} [props.onOpenChange]
+ */
+export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
+  const [openState, setOpenState] = useState(false)
+  const controlled = openProp !== undefined
+  const open = controlled ? openProp : openState
+  const setOpen = (next) => {
+    const v = typeof next === 'function' ? next(open) : next
+    if (!controlled) setOpenState(v)
+    onOpenChange?.(v)
+  }
   const [to, setTo] = useState('')
   const [edited, setEdited] = useState(null)
   const [copied, setCopied] = useState('')
@@ -35,7 +46,7 @@ export default function EmailDraft(props) {
   }
 
   return (
-    <section className="no-print rounded-lg border border-ink-200 bg-white">
+    <section id="email-draft" className="no-print rounded-lg border border-ink-200 bg-white">
       <h2>
         <button
           type="button"

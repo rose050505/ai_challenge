@@ -2,16 +2,21 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { R3_SCOPE, RIGHTS_BY_ID, INSTITUTION_OPTIONS } from '../data/law.js'
 import { EVENT_TYPES_BY_ID } from '../data/events.js'
-import { useDiagnosis } from '../lib/diagnosis-context.jsx'
+import { useJourney } from '../lib/diagnosis-context.jsx'
 import { requestCandidates } from '../lib/analyze-client.js'
 import { PageHeader, Basis, Card, Notice, Status } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 
 export default function Strategy() {
-  const { diagnosis, update } = useDiagnosis()
-  const [state, setState] = useState('idle') // idle | loading | done
-  const [result, setResult] = useState(null)
-  const [picked, setPicked] = useState([])
+  const { journey, setSection } = useJourney()
+  const diagnosis = journey.diagnosis
+  // 저장된 후보가 있으면 다시 만들지 않고 그대로 이어서 보여준다
+  const saved = journey.strategy
+  const [state, setState] = useState(saved.candidates.length > 0 ? 'done' : 'idle')
+  const [result, setResult] = useState(
+    saved.candidates.length > 0 ? { candidates: saved.candidates, notice: saved.notice } : null,
+  )
+  const [picked, setPicked] = useState(saved.picked ?? [])
 
   const right = RIGHTS_BY_ID[R3_SCOPE.rightId]
   const event = EVENT_TYPES_BY_ID[diagnosis.eventId]
@@ -26,14 +31,28 @@ export default function Strategy() {
       sectorLabel: sector?.label,
     })
     setResult(r)
-    setPicked(r.candidates.map((_, i) => i))
+    const all = r.candidates.map((_, i) => i)
+    setPicked(all)
     setState('done')
+    // 단계 완료 — 바로 저장한다
+    setSection('strategy', { candidates: r.candidates, notice: r.notice ?? null, picked: all }, {
+      immediate: true,
+    })
   }
 
-  const toggle = (i) => setPicked((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]))
+  const toggle = (i) =>
+    setPicked((p) => {
+      const next = p.includes(i) ? p.filter((x) => x !== i) : [...p, i]
+      setSection('strategy', { picked: next })
+      return next
+    })
 
   const confirm = () => {
-    update({ selectedCandidates: picked.map((i) => result.candidates[i]) })
+    setSection(
+      'diagnosis',
+      { selectedCandidates: picked.map((i) => result.candidates[i]) },
+      { immediate: true },
+    )
   }
 
   const selectedCount = picked.length
