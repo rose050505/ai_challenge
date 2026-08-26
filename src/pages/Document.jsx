@@ -486,8 +486,26 @@ function form2Blocks({
  * (화면들이 useState 초기값으로 저장 내용을 읽기 때문이다)
  */
 export default function Document() {
-  const { journey } = useJourney()
-  const active = journey.form?.second ? (journey.form?.activeCase ?? 'base') : 'base'
+  const { journey, setSection } = useJourney()
+  const [params] = useSearchParams()
+  const d = journey.diagnosis
+  /**
+   * 서식 2로 가려는 요청은 언제나 기본 건이다.
+   * 두 번째 건에는 서식 2가 없으므로, 두 번째 건을 보던 중에
+   * /response 나 /strategy 에서 서식 2로 넘어오면 갈 곳이 없어진다.
+   */
+  const wantsForm2 =
+    params.get('form') === FORM_CORRECTION_REQUEST.id ||
+    (d.correctionRows ?? []).length > 0 ||
+    (d.selectedCandidates ?? []).length > 0
+  const stored = journey.form?.second ? (journey.form?.activeCase ?? 'base') : 'base'
+  const active = wantsForm2 ? 'base' : stored
+
+  useEffect(() => {
+    if (active !== stored) setSection('form', { activeCase: active }, { immediate: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, stored])
+
   return <DocumentSheet key={active} activeCase={active} />
 }
 
