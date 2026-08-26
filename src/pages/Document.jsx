@@ -19,6 +19,8 @@ import { neutralizeInstitution } from '../lib/neutralize.js'
 import { PageHeader, Basis, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import EmailDraft from '../components/EmailDraft.jsx'
+import PagedSheet from '../components/PagedSheet.jsx'
+import { useSheetMode } from '../lib/sheet-mode.js'
 
 /* ── 공용 조각 ───────────────────────────────────────────────── */
 
@@ -28,16 +30,23 @@ import EmailDraft from '../components/EmailDraft.jsx'
  * 인쇄에서는 테두리 + 체크문자 글리프로 바꿔 출력한다. 값은 하나를 공유한다.
  */
 function Checkbox({ checked, onChange, disabled, children }) {
+  const measuring = useSheetMode() === 'measure'
   return (
     <label className={`flex items-start gap-2 ${disabled ? 'text-gray-400' : 'cursor-pointer'}`}>
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-1 print:hidden"
-      />
-      <span className="mt-0.5 hidden h-3 w-3 shrink-0 items-center justify-center border border-black text-[9px] leading-none text-black print:inline-flex">
+      {!measuring && (
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+          className="mt-1 print:hidden"
+        />
+      )}
+      <span
+        className={`mt-0.5 h-3 w-3 shrink-0 items-center justify-center border border-black text-[9px] leading-none text-black print:inline-flex ${
+          measuring ? 'inline-flex' : 'hidden'
+        }`}
+      >
         {checked ? '✓' : ''}
       </span>
       <span>{children}</span>
@@ -54,6 +63,12 @@ function Checkbox({ checked, onChange, disabled, children }) {
  * 포커스 링을 지우지 않는다. index.css 의 :focus-visible 이 표시한다.
  */
 function Field({ value, onChange, placeholder, className = '' }) {
+  const measuring = useSheetMode() === 'measure'
+  // 측정 영역에는 인쇄에 실제로 나가는 모양(줄바꿈되는 span)만 그린다.
+  // 입력칸을 그대로 두면 여러 줄로 접히는 긴 값의 높이를 놓친다.
+  if (measuring) {
+    return <span className="inline whitespace-pre-wrap break-words">{value}</span>
+  }
   return (
     <>
       <input
@@ -78,10 +93,13 @@ function Sheet({ title, subtitle, children }) {
   )
 }
 
-/** 서명란 — 날짜 표기는 두되 서명은 반드시 공란 */
-function SignatureBlock() {
+/**
+ * 서명란 — 날짜 표기는 두되 서명은 반드시 공란.
+ * paged=true 면 위 여백을 블록 간격에 맡긴다 (측정과 인쇄가 어긋나지 않게).
+ */
+function SignatureBlock({ paged = false }) {
   return (
-    <div className="pt-6 text-right text-sm print:pt-2">
+    <div className={`text-right text-sm ${paged ? '' : 'pt-6 print:pt-2'}`}>
       <p>{FORM_SIGNATURE_TEXTS.dateMark}</p>
       <p className="mt-2 whitespace-nowrap">
         {FORM_SIGNATURE_TEXTS.applicantLabel}
@@ -203,14 +221,44 @@ function Form1({ selectedItems, toggleItem, personal, setPersonal, consent, setC
 
 /* ── 서식 2 : 기초정보 정정·삭제 및 자동화평가 재산출 요청서 (R3~R5) ── */
 
-function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFavorable, recipient, setRecipient, needsRecipient, institutionShortLabel, s2HasContent }) {
+/**
+ * 서식 2 를 **블록 목록**으로 만든다.
+ *
+ * 왜 통짜 JSX 가 아니라 블록인가:
+ *   정정할 항목이 많은 사용자는 이 서식이 두 장이 된다. 그 사람이 이 서비스를
+ *   가장 필요로 하는 사람이므로 내용을 잘라내지 않는다. 대신 페이지를 제대로 나눈다.
+ *   페이지 번호 "- N / M -" 의 M 을 알려면 우리가 직접 나눠야 하고(paginate.js),
+ *   그러려면 서식이 "쪼갤 수 있는 단위"로 표현돼 있어야 한다.
+ *
+ * 블록 규칙:
+ *   group        — 같은 표에 속하는 행. 페이지가 갈리면 열 이름(thead)이 다시 붙는다.
+ *   keepWithNext — 섹션 제목. 첫 행과 떨어져 페이지 하단에 홀로 남지 않게 한다.
+ *   keepWithPrev — 서명란. 홀로 다음 장으로 넘어가지 않게 앞 블록과 붙인다.
+ */
+function form2Blocks({
+  enabled,
+  personal,
+  rows,
+  setRow,
+  favorable,
+  setFavorable,
+  recipient,
+  setRecipient,
+  needsRecipient,
+  institutionShortLabel,
+  s2HasContent,
+}) {
   const [s1, s2, s3, s4] = FORM_CORRECTION_REQUEST.sections
   const s4Blocked = Boolean(s4.dependsOn) && !s2HasContent
 
-  return (
-    <Sheet title={FORM_CORRECTION_REQUEST.title} subtitle={FORM_CORRECTION_REQUEST.subtitle}>
-      {/* 서식 원문에는 없는 칸. other 분기에서 수신처가 이 회사와 달라지므로 필요하다. */}
-      {needsRecipient && (
+  const blocks = []
+  const groups = []
+
+  // 서식 원문에는 없는 칸. other 분기에서 수신처가 이 회사와 달라지므로 필요하다.
+  if (needsRecipient) {
+    blocks.push({
+      id: 'recipient',
+      node: (
         <section className="text-sm">
           <span className="font-semibold">수신 기관 : </span>
           <Field
@@ -220,8 +268,14 @@ function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFav
             className="w-72 border-b border-gray-500 px-1"
           />
         </section>
-      )}
+      ),
+    })
+  }
 
+  // 섹션 1 안내문. 첫 블록이므로 자연히 1페이지에만 놓인다. 뒤 페이지에 반복하지 않는다.
+  blocks.push({
+    id: 's1',
+    node: (
       <section>
         <h3 className="font-semibold">1. {s1.title}</h3>
         {/* 원문 전문(verbatimText) 확보 시 그걸 쓰고, 기관명만 중립적으로 치환한다. */}
@@ -230,8 +284,28 @@ function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFav
           {neutralizeInstitution(s1.verbatimText, s1.substitution, institutionShortLabel)}
         </p>
       </section>
+    ),
+  })
 
-      {enabled.s2 && (
+  if (enabled.s2) {
+    // ★ table-fixed + 명시 너비.
+    //   표가 페이지를 넘어가면 장마다 <table> 이 새로 생기는데, auto 레이아웃이면
+    //   장마다 열 너비가 내용에 따라 달라져 같은 표로 보이지 않는다.
+    const S2_WIDTHS = ['22%', '39%', '39%']
+    groups.push({
+      id: 'S2',
+      tableClassName: 'w-full table-fixed border-collapse text-sm',
+      columns: s2.table.columns.map((c, i) => ({
+        id: c.id,
+        label: c.label,
+        className: 'border p-1',
+        style: { width: S2_WIDTHS[i] },
+      })),
+    })
+    blocks.push({
+      id: 's2-head',
+      keepWithNext: true,
+      node: (
         <section>
           <h3 className="font-semibold">
             2. {s2.title} <span className="text-xs font-normal">({s2.basis})</span>
@@ -240,57 +314,65 @@ function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFav
             <Blank value={personal.name} />
             {neutralizeInstitution(s2.leadRest, s1.substitution, institutionShortLabel)}
           </p>
-          <table className="mt-2 w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                {s2.table.columns.map((c) => (
-                  <th key={c.id} className="border p-1">
-                    {c.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* "구 분" 행은 5종 고정. 해당 없는 분류는 비워둔다. */}
-              {BASE_INFO_CATEGORIES.map((cat) => (
-                <tr key={cat.id}>
-                  <th className="w-36 border p-1 text-left font-normal align-top">
-                    {cat.label}
-                    {/* 법정 예시 힌트. 화면 전용이라 인쇄에는 나가지 않는다. */}
-                    <details className="no-print mt-1 font-normal">
-                      <summary className="cursor-pointer text-xs text-gray-500">
-                        무엇을 적나요?
-                      </summary>
-                      <ul className="mt-1 list-disc pl-4 text-xs text-gray-600">
-                        {cat.examples.map((ex) => (
-                          <li key={ex}>{ex}</li>
-                        ))}
-                      </ul>
-                      <p className="mt-1 text-[10px] text-gray-400">{cat.definitionBasis}</p>
-                    </details>
-                  </th>
-                  <td className="border p-1">
-                    <Field
-                      value={rows[cat.id]?.current ?? ''}
-                      onChange={(v) => setRow(cat.id, 'current', v)}
-                      className="w-full"
-                    />
-                  </td>
-                  <td className="border p-1">
-                    <Field
-                      value={rows[cat.id]?.correction ?? ''}
-                      onChange={(v) => setRow(cat.id, 'correction', v)}
-                      className="w-full"
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </section>
-      )}
+      ),
+    })
+    // "구 분" 행은 5종 고정. 해당 없는 분류는 비워둔다.
+    for (const cat of BASE_INFO_CATEGORIES) {
+      blocks.push({
+        id: `s2-${cat.id}`,
+        group: 'S2',
+        node: (
+          <tr key={cat.id}>
+            <th className="border p-1 text-left align-top font-normal">
+              {cat.label}
+              {/* 법정 예시 힌트. 화면 전용이라 인쇄에는 나가지 않는다. */}
+              <details className="no-print mt-1 font-normal">
+                <summary className="cursor-pointer text-xs text-gray-500">무엇을 적나요?</summary>
+                <ul className="mt-1 list-disc pl-4 text-xs text-gray-600">
+                  {cat.examples.map((ex) => (
+                    <li key={ex}>{ex}</li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-[10px] text-gray-500">{cat.definitionBasis}</p>
+              </details>
+            </th>
+            <td className="border p-1">
+              <Field
+                value={rows[cat.id]?.current ?? ''}
+                onChange={(v) => setRow(cat.id, 'current', v)}
+                className="w-full"
+              />
+            </td>
+            <td className="border p-1">
+              <Field
+                value={rows[cat.id]?.correction ?? ''}
+                onChange={(v) => setRow(cat.id, 'correction', v)}
+                className="w-full"
+              />
+            </td>
+          </tr>
+        ),
+      })
+    }
+  }
 
-      {enabled.s3 && (
+  if (enabled.s3) {
+    const S3_WIDTHS = ['33%', '67%']
+    groups.push({
+      id: 'S3',
+      tableClassName: 'w-full table-fixed border-collapse text-sm',
+      columns: s3.table.columns.map((c, i) => ({
+        id: c.id,
+        label: c.label,
+        className: 'border p-1',
+        style: { width: S3_WIDTHS[i] },
+      })),
+    })
+    blocks.push({
+      id: 's3-head',
+      keepWithNext: true,
+      node: (
         <section>
           <h3 className="font-semibold">
             3. {s3.title} <span className="text-xs font-normal">({s3.basis})</span>
@@ -298,60 +380,71 @@ function Form2({ enabled, personal, setPersonal, rows, setRow, favorable, setFav
           <p className="mt-1 text-sm">
             {s3.headerText} <span className="text-xs">{s3.headerNote}</span>
           </p>
-          <table className="mt-2 w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                {s3.table.columns.map((c) => (
-                  <th key={c.id} className="border p-1">
-                    {c.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* 지금은 빈 표다. /strategy 연결은 다음 단계. */}
-              {favorable.map((row, i) => (
-                <tr key={i}>
-                  <td className="w-1/3 border p-1">
-                    <Field
-                      value={row.infoName}
-                      onChange={(v) => setFavorable(i, 'infoName', v)}
-                      placeholder={i === 0 ? s3.table.example.infoName : ''}
-                      className="w-full"
-                    />
-                  </td>
-                  <td className="border p-1">
-                    <Field
-                      value={row.detail}
-                      onChange={(v) => setFavorable(i, 'detail', v)}
-                      placeholder={i === 0 ? s3.table.example.detail : ''}
-                      className="w-full"
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </section>
-      )}
+      ),
+    })
+    favorable.forEach((row, i) => {
+      blocks.push({
+        id: `s3-${i}`,
+        group: 'S3',
+        node: (
+          <tr key={i}>
+            <td className="border p-1">
+              <Field
+                value={row.infoName}
+                onChange={(v) => setFavorable(i, 'infoName', v)}
+                placeholder={i === 0 ? s3.table.example.infoName : ''}
+                className="w-full"
+              />
+            </td>
+            <td className="border p-1">
+              <Field
+                value={row.detail}
+                onChange={(v) => setFavorable(i, 'detail', v)}
+                placeholder={i === 0 ? s3.table.example.detail : ''}
+                className="w-full"
+              />
+            </td>
+          </tr>
+        ),
+      })
+    })
+  }
 
-      {/* s4 는 s2 에 의존한다. 정정할 내용이 없으면 재산출 요구도 성립하지 않는다. */}
-      {enabled.s4 && !s4Blocked && (
+  // s4 는 s2 에 의존한다. 정정할 내용이 없으면 재산출 요구도 성립하지 않는다.
+  if (enabled.s4 && !s4Blocked) {
+    blocks.push({
+      id: 's4',
+      node: (
         <section>
           <h3 className="font-semibold">
             4. {s4.title} <span className="text-xs font-normal">({s4.basis})</span>
           </h3>
           <p className="mt-1 text-sm">{s4.fixedText}</p>
         </section>
-      )}
+      ),
+    })
+  }
 
+  blocks.push({
+    id: 'attachment',
+    keepWithNext: true,
+    node: (
       <section className="text-sm">
         <p>※ {FORM_CORRECTION_REQUEST.attachment.label}</p>
       </section>
+    ),
+  })
 
-      <SignatureBlock />
-    </Sheet>
-  )
+  // 서명란은 마지막 블록이므로 언제나 마지막 페이지에 놓인다.
+  // keepWithPrev 로 앞 블록과 묶어 서명란만 홀로 넘어가는 것도 막는다.
+  blocks.push({
+    id: 'signature',
+    keepWithPrev: true,
+    node: <SignatureBlock paged />,
+  })
+
+  return { blocks, groups }
 }
 
 /* ── 화면 ────────────────────────────────────────────────────── */
@@ -440,8 +533,26 @@ export default function Document() {
   const s4 = FORM_CORRECTION_REQUEST.sections[3]
   const isForm1 = tab === FORM_EXPLANATION_REQUEST.id
 
+  /** 서식 2 의 예상 인쇄 페이지 수. PagedSheet 가 측정해서 알려준다. */
+  const [pageCount, setPageCount] = useState(1)
+
+  // 서식 2는 내용에 따라 여러 장이 된다. 블록으로 만들어 PagedSheet 가 나눈다.
+  const form2 = form2Blocks({
+    enabled,
+    personal,
+    rows,
+    setRow,
+    favorable,
+    setFavorable: setFavorableCell,
+    recipient,
+    setRecipient,
+    needsRecipient: Boolean(branch?.requiresRecipientInput),
+    institutionShortLabel,
+    s2HasContent,
+  })
+
   return (
-    <div className="space-y-5 py-6">
+    <div className="print-root space-y-5 py-6">
       <PageHeader
         kicker="서식 생성"
         title="고시 서식을 채워 인쇄하세요"
@@ -579,19 +690,13 @@ export default function Document() {
           setHopeResult={setHopeResult}
         />
       ) : (
-        <Form2
-          enabled={enabled}
-          personal={personal}
-          setPersonal={setPersonal}
-          rows={rows}
-          setRow={setRow}
-          favorable={favorable}
-          setFavorable={setFavorableCell}
-          recipient={recipient}
-          setRecipient={setRecipient}
-          needsRecipient={Boolean(branch?.requiresRecipientInput)}
-          institutionShortLabel={institutionShortLabel}
-          s2HasContent={s2HasContent}
+        <PagedSheet
+          title={FORM_CORRECTION_REQUEST.title}
+          subtitle={FORM_CORRECTION_REQUEST.subtitle}
+          applicantName={personal.name}
+          blocks={form2.blocks}
+          groups={form2.groups}
+          onPageCount={setPageCount}
         />
       )}
       </div>
@@ -605,6 +710,16 @@ export default function Document() {
             출력했다면, 이후 절차 보기
           </Link>
         </div>
+        <p role="status" aria-live="polite" className="text-gray-800">
+          {isForm1 ? (
+            <>현재 내용은 <b>1페이지</b>로 출력됩니다.</>
+          ) : (
+            <>
+              현재 내용은 <b>{pageCount}페이지</b>로 출력됩니다.
+              {pageCount > 1 && ' 법정 서식은 여러 장으로 제출해도 됩니다. 각 장 하단에 쪽 번호가, 둘째 장부터는 상단에 문서명과 신청인 성명이 인쇄됩니다.'}
+            </>
+          )}
+        </p>
         <p className="text-sm text-gray-600">
           인쇄 대화상자에서 용지를 A4, 배율 100%로 두세요. 지금 보고 있는 서식만 인쇄됩니다.
         </p>

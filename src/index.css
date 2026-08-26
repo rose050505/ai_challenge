@@ -77,21 +77,33 @@
  *   한국어에서 단어 중간 줄바꿈을 막는다. "자동화평 / 가" 같은 끊김을 방지한다.
  *   대신 긴 조문 문자열이 375px 을 넘칠 수 있으므로 overflow-wrap 을 함께 준다.
  * ────────────────────────────────────────────────────────────── */
+/*
+ * ★ 글꼴과 줄바꿈 규칙은 화면 전용이 아니다.
+ *
+ *   서식 2의 페이지 분할은 화면에서 잰 높이로 계산한다(components/PagedSheet.jsx).
+ *   글꼴이 화면과 인쇄에서 다르면 같은 문장이 인쇄에서 한 줄 더 접혀 계산이 어긋난다.
+ *   실제로 이 값들을 @media screen 에 두었을 때 표의 행마다 20px(한 줄)씩
+ *   어긋나 페이지가 밀렸다. 그래서 미디어와 무관하게 같은 값을 쓴다.
+ */
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard',
+    'Noto Sans KR', 'Malgun Gothic', 'Segoe UI', system-ui, sans-serif;
+  /* 한국어에서 단어 중간 줄바꿈을 막는다. 긴 조문 문자열은 아래 규칙으로 흘린다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 @media screen {
   html {
     -webkit-text-size-adjust: 100%;
   }
 
   body {
-    font-family:
-      -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard',
-      'Noto Sans KR', 'Malgun Gothic', 'Segoe UI', system-ui, sans-serif;
     font-size: var(--app-font-size, 1.0625rem);
     line-height: 1.75;
     color: var(--color-gray-800);
     background: var(--color-gray-50);
-    word-break: keep-all;
-    overflow-wrap: break-word;
   }
 
   /* 글자 크기 조절 — 인쇄에는 영향을 주지 않는다(이 블록이 screen 전용이므로) */
@@ -307,11 +319,15 @@
     background: #fff;
   }
 
-  /* A4 1페이지 기준. 서식은 이 크기로 조판한다. */
+  /* A4 기준 조판. 이 값은 .print-metrics(측정 영역)와 반드시 같아야 한다. */
   .print-sheet {
     font-size: 8.8pt;
     line-height: 1.32;
     color: #000;
+  }
+
+  /* 서식 1은 선택 항목뿐이라 길어질 수 없다. 지금까지처럼 한 장에 붙인다. */
+  .print-sheet:not(.print-paged) {
     break-inside: avoid;
   }
 
@@ -345,5 +361,223 @@
     background: transparent;
     color: #000;
     padding: 0;
+  }
+
+  /* ── 다중 페이지 서식 (서식 2) ──────────────────────────────
+   * 페이지를 브라우저에 맡기지 않고 우리가 나눈다.
+   * 총 페이지 수 M 을 알아야 "- N / M -" 을 찍을 수 있기 때문이다.
+   * (Chrome 은 @page 여백 상자와 counter(pages) 를 지원하지 않는다)
+   * 분할 계산은 src/lib/paginate.js, 측정은 .print-metrics 영역이 한다.
+   * ────────────────────────────────────────────────────────── */
+  /* ★ 페이지 상자가 인쇄 영역과 정확히 같은 높이이므로, 그 위에 붙는 여백이
+     1px 라도 있으면 통째로 다음 장으로 밀린다. 서식 주변 여백을 전부 죽인다. */
+  .print-root,
+  .print-root .sheet-scroll {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .print-root > * {
+    margin-top: 0 !important;
+  }
+
+  .paged-page {
+    /*
+     * 본문 높이 = A4 297mm - 위아래 여백 12mm×2 = 273mm.
+     * height 가 아니라 min-height 를 쓴다.
+     *   height + overflow:hidden 이면 계산이 어긋났을 때 내용이 **말없이 잘린다**.
+     *   법적 요구서에서 내용이 사라지는 것보다는 페이지가 한 장 늘어나는 편이 낫다.
+     *   min-height 면 넘칠 때 브라우저가 나눠서라도 전부 인쇄한다.
+     * 273 이 아니라 271 인 이유: 인쇄 영역과 정확히 같으면 반올림 한 픽셀에
+     *   빈 페이지가 끼어들 수 있다.
+     */
+    min-height: 271mm;
+    display: flex;
+    flex-direction: column;
+    break-inside: avoid;
+  }
+
+  .paged-page + .paged-page {
+    break-before: page;
+  }
+
+  .paged-head {
+    flex: none;
+  }
+
+  .paged-body {
+    flex: 1 1 auto;
+  }
+
+  .paged-foot {
+    flex: none;
+    padding-top: 3pt;
+  }
+
+  /* 섹션 제목이 페이지 하단에 홀로 남지 않게 한다.
+     블록 단위 분할이 1차 방어이고, 이건 브라우저 쪽 2차 방어다. */
+  .print-sheet h3 {
+    break-after: avoid;
+  }
+
+  .print-sheet thead {
+    break-inside: avoid;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+ * 인쇄 조판 사본 — 페이지 분할용 측정 영역
+ *
+ * ★ 위 @media print 의 .print-sheet 규칙과 **같은 값**이어야 한다.
+ *   한쪽만 고치면 화면이 계산한 페이지 분할과 실제 인쇄가 어긋난다.
+ *
+ * 화면 밖(left:-10000px)에 그려지고 사용자에게 보이지 않는다.
+ * 인쇄에도 나가지 않는다(.no-print).
+ * ══════════════════════════════════════════════════════════════ */
+.print-metrics {
+  font-size: 8.8pt;
+  line-height: 1.32;
+  color: #000;
+  letter-spacing: normal;
+}
+
+/* 화면 전용 제목 규칙(letter-spacing / line-height)도 인쇄 값으로 되돌린다 */
+.print-metrics :is(h1, h2, h3) {
+  letter-spacing: normal;
+  line-height: inherit;
+}
+
+.print-metrics table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.print-metrics th,
+.print-metrics td {
+  border: 1px solid #000;
+  padding: 2.5pt 4pt;
+  vertical-align: top;
+}
+
+.print-metrics tbody td {
+  height: 20pt;
+}
+
+/* 화면 전용 UI(예: 표 안의 "무엇을 적나요?" 펼침)는 인쇄에 없으므로 측정에서도 뺀다 */
+.print-metrics .no-print {
+  display: none !important;
+}
+
+.print-metrics input:not([type='checkbox']),
+.print-metrics textarea {
+  border: none;
+  background: transparent;
+  color: #000;
+  padding: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * 다중 페이지 서식의 머리·꼬리 — 인쇄와 측정에서 같은 치수여야 한다
+ * ────────────────────────────────────────────────────────────── */
+.paged-title {
+  text-align: center;
+  font-weight: 700;
+}
+
+.paged-subtitle {
+  text-align: center;
+}
+
+.paged-runhead {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  border-bottom: 1px solid #000;
+  padding-bottom: 2pt;
+}
+
+.paged-foot {
+  text-align: center;
+}
+
+@media print {
+  .print-sheet .paged-title {
+    font-size: 11pt;
+    margin-bottom: 2pt;
+  }
+  .print-sheet .paged-subtitle {
+    font-size: 8.8pt;
+    margin-bottom: 4pt;
+  }
+  .print-sheet .paged-runhead,
+  .print-sheet .paged-foot {
+    font-size: 8pt;
+  }
+  .print-sheet .paged-runhead {
+    margin-bottom: 4pt;
+  }
+  /* ★ paginate 의 gap 값(BLOCK_GAP_PT)과 같아야 한다 */
+  .print-sheet .paged-block + .paged-block {
+    margin-top: 6pt;
+  }
+}
+
+.print-metrics .paged-title {
+  font-size: 11pt;
+  margin-bottom: 2pt;
+}
+.print-metrics .paged-subtitle {
+  font-size: 8.8pt;
+  margin-bottom: 4pt;
+}
+.print-metrics .paged-runhead,
+.print-metrics .paged-foot {
+  font-size: 8pt;
+}
+.print-metrics .paged-runhead {
+  margin-bottom: 4pt;
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * 화면에서의 다중 페이지 표시.
+ *
+ * 화면은 인쇄보다 글자가 크므로 페이지 상자를 실제 A4 비율로 보여주지 않는다.
+ * 대신 **끊기는 자리**를 점선과 "- N / M -" 으로 그대로 드러낸다.
+ * 사용자가 인쇄 대화상자에서 페이지 수에 놀라지 않게 하는 것이 목적이다.
+ * (측정 영역 .print-metrics 는 .print-sheet 클래스를 갖지 않으므로 여기 걸리지 않는다)
+ * ────────────────────────────────────────────────────────────── */
+@media screen {
+  .print-sheet .paged-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .print-sheet .paged-subtitle {
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .print-sheet .paged-runhead {
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-gray-600);
+    border-bottom-color: var(--color-gray-300);
+  }
+
+  .print-sheet .paged-foot {
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--color-gray-500);
+  }
+
+  .print-sheet .paged-block + .paged-block {
+    margin-top: 1rem;
+  }
+
+  /* 페이지가 갈리는 자리를 눈에 보이게 */
+  .print-sheet .paged-page + .paged-page {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px dashed var(--color-ink-300);
   }
 }
