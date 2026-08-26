@@ -271,10 +271,25 @@ export function formatWhen(iso, now = new Date()) {
   return sameDay ? `오늘 ${time}` : `${d.getMonth() + 1}월 ${d.getDate()}일 ${time}`
 }
 
+/**
+ * 날짜 문자열을 **그 지역의 그 날**로 읽는다.
+ *
+ * new Date('2026-08-24') 는 표준상 UTC 자정으로 해석된다. 한국(UTC+9)에서는
+ * 같은 날이지만 서쪽 시간대에서는 하루 전으로 표시된다.
+ * 제출일은 사용자가 달력에서 고른 그 날짜여야 하므로 직접 쪼갠다.
+ */
+function parseDay(value) {
+  if (typeof value === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  }
+  return new Date(value)
+}
+
 /** "8월 26일" */
 export function formatDate(value) {
   if (!value) return null
-  const d = new Date(value)
+  const d = parseDay(value)
   if (Number.isNaN(d.getTime())) return null
   return `${d.getMonth() + 1}월 ${d.getDate()}일`
 }
@@ -287,7 +302,7 @@ export function formatDate(value) {
  */
 export function daysSince(value, now = new Date()) {
   if (!value) return null
-  const d = new Date(value)
+  const d = parseDay(value)
   if (Number.isNaN(d.getTime())) return null
   const a = new Date(d.getFullYear(), d.getMonth(), d.getDate())
   const b = new Date(now.getFullYear(), now.getMonth(), now.getDate())

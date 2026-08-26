@@ -67,6 +67,28 @@ export function HeaderFooterSteps() {
   )
 }
 
+/**
+ * Safari 는 18.2 부터 `@page` (paged media) 를 지원한다. 그 이전 버전에서는
+ * 우리가 지정한 A4·여백이 무시되고 브라우저 기본 여백이 쓰인다.
+ * 내용이 잘리지는 않지만(.paged-page 는 height 가 아니라 min-height 다)
+ * 화면이 예고한 쪽 수와 실제 인쇄가 다를 수 있다.
+ *   근거: caniuse `css-paged-media` — safari 18.1 이하 n, 18.2 이상 y
+ *
+ * 감지 실패 시에는 아무 말도 하지 않는다. 없는 문제를 경고하지 않기 위해서다.
+ */
+export function isOldSafariPrint(nav = typeof navigator === 'undefined' ? null : navigator) {
+  if (!nav) return false
+  // Chrome·Edge 도 UA 에 Safari 를 넣는다. vendor 로 애플 계열만 먼저 거른다.
+  if (nav.vendor !== 'Apple Computer, Inc.') return false
+  const ua = nav.userAgent || ''
+  if (/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua)) return false
+  const m = /Version\/(\d+)(?:\.(\d+))?/.exec(ua)
+  if (!m) return false
+  const major = Number(m[1])
+  const minor = Number(m[2] ?? 0)
+  return major < 18 || (major === 18 && minor < 2)
+}
+
 /** 인쇄 버튼 위에 놓는 안내. 버튼보다 먼저 눈에 들어와야 한다. */
 export function PrintSetupNotice() {
   return (
@@ -83,6 +105,13 @@ export function PrintSetupNotice() {
       <p className="mt-2 text-sm">
         쪽 번호는 이 서비스가 서식 안에 직접 넣습니다. 브라우저 것을 꺼도 쪽 번호는 남습니다.
       </p>
+      {isOldSafariPrint() && (
+        <p className="mt-2 text-sm">
+          <b>이 Safari 버전은 서식이 지정한 A4 여백을 적용하지 않습니다.</b> 내용이 잘리지는
+          않지만 화면이 예고한 쪽 수와 실제 인쇄가 다를 수 있습니다. 미리보기에서 쪽 수를
+          확인하시거나 Safari 18.2 이상 · Chrome · Firefox 를 쓰시면 정확합니다.
+        </p>
+      )}
     </Notice>
   )
 }

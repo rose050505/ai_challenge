@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Link, NavLink } from 'react-router-dom'
+import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom'
 import { DiagnosisProvider, useJourney } from './lib/diagnosis-context.jsx'
 import { SaveStatus, JourneyFlash, STORAGE_SCOPE_TEXT } from './components/Journey.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { LAW_META } from './data/law.js'
 import Landing from './pages/Landing.jsx'
 import Diagnose from './pages/Diagnose.jsx'
@@ -100,7 +101,11 @@ function FontScale() {
  */
 function AppRoutes() {
   const { generation } = useJourney()
+  const { pathname } = useLocation()
   return (
+    /* 경계는 경로마다 새로 만든다 — 한 화면이 죽어도 다른 화면으로 옮기면 정상으로 돌아온다.
+       머리말·네비게이션·푸터는 이 경계 바깥이므로 함께 죽지 않는다. */
+    <ErrorBoundary key={`${generation}:${pathname}`}>
     <Routes key={generation}>
       <Route path="/" element={<Landing />} />
       <Route path="/diagnose" element={<Diagnose />} />
@@ -120,6 +125,7 @@ function AppRoutes() {
         }
       />
     </Routes>
+    </ErrorBoundary>
   )
 }
 

@@ -19,7 +19,7 @@ import {
 import { RESPONSE_SAMPLES } from '../data/response-samples.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { interpretResponse } from '../lib/interpret-client.js'
-import { PageHeader, Basis, Notice, Status } from '../components/ui.jsx'
+import { PageHeader, Basis, Notice, Status, SlowHint } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 
 /**
@@ -299,6 +299,7 @@ export default function Response() {
         <section className="card text-center">
           <Status className="font-bold text-gray-900">회신을 읽고 있습니다…</Status>
           <p className="mt-1 text-gray-600">몇 초 걸릴 수 있습니다.</p>
+          <SlowHint />
           <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded bg-gray-200">
             <div className="h-full w-1/3 animate-pulse bg-ink-500" />
           </div>

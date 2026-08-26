@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 /**
  * 표현 계층 공용 조각.
  *
@@ -127,6 +129,28 @@ export function Status({ children, className = '' }) {
   return (
     <p role="status" aria-live="polite" className={className}>
       {children}
+    </p>
+  )
+}
+
+/**
+ * 응답이 느릴 때 무엇을 기다리는지 알려준다.
+ *
+ * API 클라이언트는 25초에서 끊고 폴백으로 넘어간다(analyze-client / interpret-client).
+ * 그 사실을 화면에서도 같은 값으로 말해 준다. 사용자가 새로고침해 버리면
+ * 입력이 아니라 흐름이 끊긴다.
+ */
+export function SlowHint({ afterMs = 8000, timeoutSec = 25 }) {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), afterMs)
+    return () => clearTimeout(t)
+  }, [afterMs])
+  if (!slow) return null
+  return (
+    <p role="status" aria-live="polite" className="mt-2 text-gray-700">
+      조금 더 걸리고 있습니다. {timeoutSec}초 안에 응답이 없으면 기본 목록으로 넘어가니
+      새로고침하지 말고 기다려 주세요.
     </p>
   )
 }
