@@ -3,6 +3,7 @@ import { LAW_META, RIGHTS, DEFINITION_AUTOMATED_EVALUATION } from '../data/law.j
 import { SAMPLE_SCENARIOS } from '../data/samples.js'
 import { Basis, Card } from '../components/ui.jsx'
 import { Term, GlossaryList } from '../components/Term.jsx'
+import SelfCheck from '../components/SelfCheck.jsx'
 import {
   ResumeCard,
   BackupPanel,
@@ -11,7 +12,44 @@ import {
   STORAGE_SCOPE_TEXT,
 } from '../components/Journey.jsx'
 
-// 법조문 텍스트는 전부 src/data/law.js 에서만 읽는다. 이 파일에 하드코딩하지 않는다.
+/**
+ * 첫 화면.
+ *
+ * ── 순서를 정한 기준 ────────────────────────────────────────────
+ * 처음 온 사람이 15초 안에 "나에게 필요한지" 판단할 수 있어야 한다.
+ * 권리 5종을 나열하는 것은 이미 제도를 이해한 사람에게 유용하고,
+ * 처음 온 사람에게는 읽어야 할 목록이 하나 더 생긴 것일 뿐이다.
+ *
+ *   1) 무슨 서비스인가 (한 문장)
+ *   2) 바로 해 볼 수 있는 두 갈래 — 심사자는 여기서 샘플로 들어간다
+ *   3) 자가진단 "혹시 이런 일이 있으셨나요?"  ← 나에게 필요한지 여기서 판단된다
+ *   4) 자동화평가란 무엇이고 왜 그걸 먼저 물어야 하는가
+ *   5) 무엇을 해 주는 서비스인가 (3단계)
+ *   6) 그제서야 권리 5종
+ * ────────────────────────────────────────────────────────────────
+ *
+ * 법조문 텍스트는 전부 src/data/law.js 에서만 읽는다. 이 파일에 하드코딩하지 않는다.
+ */
+
+/** 우리가 하는 일 — 법령 주장이 아니므로 근거 배지를 붙이지 않는다 */
+const STEPS = [
+  {
+    n: '1',
+    title: '어떤 권리를 쓸 수 있는지 가려 드립니다',
+    text: '겪으신 일과 상대 기관을 고르면, 행사할 수 있는 권리를 근거 조문과 함께 보여줍니다.',
+  },
+  {
+    n: '2',
+    title: '고시 서식을 채워 인쇄해 드립니다',
+    text: '금융위원회 고시 서식 그대로입니다. 인쇄해서 서명하고 내시면 됩니다.',
+  },
+  {
+    n: '3',
+    title: '회신이 오면 읽어 드립니다',
+    text: '설명이 빠진 항목이 무엇인지 가려내고, 다음에 무엇을 요구할지 이어 드립니다.',
+  },
+]
+
 export default function Landing() {
   const byParagraph = (n) => RIGHTS.filter((r) => r.paragraph === n)
 
@@ -21,7 +59,7 @@ export default function Landing() {
       <ResumeCard />
       <SubmissionRecord />
 
-      {/* ── 도입 ─────────────────────────────────────────────── */}
+      {/* ── 1. 무슨 서비스인가 ───────────────────────────────── */}
       <section className="space-y-5">
         <p className="text-sm font-semibold tracking-wide text-ink-600">
           자동화평가 설명·이의제기 도우미
@@ -37,10 +75,11 @@ export default function Landing() {
           그게 이 서비스의 이름입니다.
         </p>
         <p className="max-w-prose text-gray-700">
-          사람이 아니라 컴퓨터가 자동으로 심사했다면, 그 결과와 기준을 설명하라고 요구할 수
-          있습니다. <Term id="favorableInfo">유리한 정보</Term>를 내고, 틀린 정보를{' '}
+          컴퓨터가 자동으로 심사했다면 그 결과와 기준을 설명하라고 요구할 수 있습니다.{' '}
+          <Term id="favorableInfo">유리한 정보</Term>를 내고, 틀린 정보를{' '}
           <Term id="correction">고치고</Term>, 다시 계산해 달라고(
-          <Term id="recompute">재산출</Term>) 요구할 수도 있습니다.
+          <Term id="recompute">재산출</Term>) 요구할 수도 있습니다.{' '}
+          <b>이 서비스는 그 요구서를 대신 만들어 드립니다.</b>
         </p>
         <p>
           <Basis chain prefix="근거">
@@ -50,7 +89,7 @@ export default function Landing() {
         </p>
       </section>
 
-      {/* ── CTA ──────────────────────────────────────────────── */}
+      {/* ── 2. 바로 해 보기 ──────────────────────────────────── */}
       <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Link to="/diagnose" className="btn btn-primary">
           내 상황으로 시작하기
@@ -60,7 +99,10 @@ export default function Landing() {
         </Link>
       </section>
 
-      {/* ── 자동화평가란 ──────────────────────────────────────── */}
+      {/* ── 3. 자가진단 — 나에게 필요한지 여기서 판단된다 ────── */}
+      <SelfCheck />
+
+      {/* ── 4. 자동화평가란 ──────────────────────────────────── */}
       <section className="panel">
         <h2 className="text-lg font-bold text-gray-900">
           <Term id="automatedEvaluation">{DEFINITION_AUTOMATED_EVALUATION.term}</Term>란
@@ -76,11 +118,33 @@ export default function Landing() {
         </p>
       </section>
 
-      {/* ── 권리 목록 ─────────────────────────────────────────── */}
+      {/* ── 5. 무엇을 해 주는가 ──────────────────────────────── */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-gray-900">무엇을 해 드리나요</h2>
+        <ol className="space-y-3">
+          {STEPS.map((s) => (
+            <Card as="li" key={s.n}>
+              <div className="flex items-baseline gap-2">
+                <span className="tabular shrink-0 rounded bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
+                  {s.n}
+                </span>
+                <span className="font-bold text-gray-900">{s.title}</span>
+              </div>
+              <p className="mt-2 text-gray-700">{s.text}</p>
+            </Card>
+          ))}
+        </ol>
+      </section>
+
+      {/* ── 6. 권리 목록 — 제도를 이해한 뒤에 읽는 자리 ───────── */}
       <section className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-900">
           행사할 수 있는 권리 {RIGHTS.length}가지
         </h2>
+        <p className="max-w-prose text-gray-700">
+          아래는 법 조문을 그대로 나눈 목록입니다. 지금 다 읽지 않으셔도 됩니다 — 진단을 하시면
+          그중 어느 것이 해당되는지 골라 드립니다.
+        </p>
         {[1, 2].map((p) => (
           <div key={p}>
             <h3 className="mb-3 border-l-4 border-ink-600 pl-3 text-base font-bold text-ink-800">
