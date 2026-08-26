@@ -4,6 +4,7 @@ import { buildReminderDraft, REPEAT_LIMIT } from '../lib/reminder-draft.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { daysSince, formatDate } from '../lib/journey-storage.js'
 import { Basis, Notice } from './ui.jsx'
+import { Plain } from '../lib/plain.jsx'
 
 /**
  * 회신을 받지 못한 경우.
@@ -91,7 +92,9 @@ export default function NoReply() {
           )}
 
           <Notice title="며칠까지 기다려야 하는지는 법에 없습니다" mark="!">
-            <p>{PROCESSING_DEADLINE.uiNotice}</p>
+            <p>
+              <Plain id="next.noDeadline">{PROCESSING_DEADLINE.uiNotice}</Plain>
+            </p>
             <p className="mt-2 text-sm">
               그래서 이 서비스는 &ldquo;○일이 지나면 위법&rdquo; 같은 말을 하지 않습니다. 지어낸
               기한으로 잘못된 주장을 하시게 만들 수는 없습니다.

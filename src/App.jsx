@@ -3,6 +3,8 @@ import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom'
 import { DiagnosisProvider, useJourney } from './lib/diagnosis-context.jsx'
 import { SaveStatus, JourneyFlash, STORAGE_SCOPE_TEXT } from './components/Journey.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { PlainProvider, usePlain } from './lib/plain.jsx'
+import { PLAIN_NOTICE } from './data/plain.js'
 import LawVersions from './components/LawVersions.jsx'
 import Landing from './pages/Landing.jsx'
 import Diagnose from './pages/Diagnose.jsx'
@@ -95,6 +97,42 @@ function FontScale() {
 }
 
 /**
+ * 쉬운 말 보기 토글.
+ * 색만으로 상태를 알리지 않도록 aria-pressed 와 체크 글리프를 함께 준다.
+ */
+function PlainToggle() {
+  const { plain, setPlain } = usePlain()
+  return (
+    <button
+      type="button"
+      onClick={() => setPlain(!plain)}
+      aria-pressed={plain}
+      className={`rounded-md border px-3 py-1 text-sm ${
+        plain
+          ? 'border-ink-700 bg-ink-700 text-white'
+          : 'border-gray-300 bg-white text-gray-700 hover:bg-ink-50'
+      }`}
+    >
+      {plain && <span aria-hidden="true">✓ </span>}
+      쉬운 말
+    </button>
+  )
+}
+
+/** 무엇이 바뀌고 무엇이 안 바뀌는지를 화면에서 밝힌다 */
+function PlainNotice() {
+  const { plain } = usePlain()
+  if (!plain) return null
+  return (
+    <div className="no-print border-b border-ink-200 bg-ink-50">
+      <p className="mx-auto max-w-3xl px-4 py-2 text-sm text-ink-900">
+        <b>{PLAIN_NOTICE.title}</b> — {PLAIN_NOTICE.body}
+      </p>
+    </div>
+  )
+}
+
+/**
  * 파일을 불러오거나 기록을 지우면 세대 번호가 올라간다.
  * 각 화면이 useState 초기값으로 저장된 내용을 읽으므로, 그때 화면을 새로 마운트해야
  * 불러온 내용이 실제로 반영된다.
@@ -132,6 +170,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <DiagnosisProvider>
+      <PlainProvider>
       <div className="app-shell">
         {/* 키보드 사용자가 네비게이션 다섯 개를 매번 지나치지 않게 한다 */}
         <a
@@ -155,6 +194,7 @@ export default function App() {
             </Link>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <SaveStatus />
+              <PlainToggle />
               <FontScale />
             </div>
           </div>
@@ -182,6 +222,7 @@ export default function App() {
           </nav>
         </header>
 
+        <PlainNotice />
         <JourneyFlash />
 
         <main id="main" className="app-main mx-auto w-full max-w-3xl px-4 print:max-w-none print:p-0">
@@ -201,6 +242,7 @@ export default function App() {
           </div>
         </footer>
       </div>
+      </PlainProvider>
     </DiagnosisProvider>
   )
 }

@@ -24,10 +24,12 @@ import { Term } from '../components/Term.jsx'
 import EmailDraft from '../components/EmailDraft.jsx'
 import { PrintSetupNotice, PrePrintPanel, usePrintAck } from '../components/PrintSetup.jsx'
 import { preflightIssues } from '../lib/preflight.js'
+import { usePrintScale, PRINT_SCALES } from '../lib/print-scale.js'
 import PagedSheet from '../components/PagedSheet.jsx'
 import { useSheetMode } from '../lib/sheet-mode.js'
 import { BackupPanel, STORAGE_SCOPE_TEXT } from '../components/Journey.jsx'
 import CaseSwitcher from '../components/CaseSwitcher.jsx'
+import { Plain } from '../lib/plain.jsx'
 import { formatWhen, formatDate, todayInputValue } from '../lib/journey-storage.js'
 
 /* ── 공용 조각 ───────────────────────────────────────────────── */
@@ -70,7 +72,12 @@ function Checkbox({ checked, onChange, disabled, children }) {
  *
  * 포커스 링을 지우지 않는다. index.css 의 :focus-visible 이 표시한다.
  */
-function Field({ value, onChange, placeholder, className = '' }) {
+/**
+ * ★ label 은 필수다.
+ *   서식의 칸은 표의 행·열 제목으로만 뜻이 정해져 있어, 눈으로 보면 알 수 있지만
+ *   스크린리더로는 "편집 창"이라고만 읽힌다. 어느 칸인지 함께 읽히게 한다.
+ */
+function Field({ value, onChange, placeholder, label, className = '' }) {
   const measuring = useSheetMode() === 'measure'
   // 측정 영역에는 인쇄에 실제로 나가는 모양(줄바꿈되는 span)만 그린다.
   // 입력칸을 그대로 두면 여러 줄로 접히는 긴 값의 높이를 놓친다.
@@ -83,6 +90,7 @@ function Field({ value, onChange, placeholder, className = '' }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={label}
         className={`${className} placeholder:text-gray-500 print:hidden`}
       />
       <span className="hidden whitespace-pre-wrap break-words print:inline">{value}</span>
@@ -165,6 +173,7 @@ function Form1({ selectedItems, toggleItem, personal, setPersonal, consent, setC
                     value={hopeResult}
                     onChange={setHopeResult}
                     placeholder={it.annotationHint}
+                    label={it.annotationLabel}
                     className="w-64 border-b border-gray-400 px-1"
                   />
                   )
@@ -187,6 +196,7 @@ function Form1({ selectedItems, toggleItem, personal, setPersonal, consent, setC
                     <Field
                       value={personal[f.id] ?? ''}
                       onChange={(v) => setPersonal(f.id, v)}
+                      label={f.label}
                       className="w-full"
                     />
                   ) : (
@@ -273,6 +283,7 @@ function form2Blocks({
             value={recipient}
             onChange={setRecipient}
             placeholder="정정 대상 정보가 발생한 금융회사명"
+            label="수신 기관"
             className="w-72 border-b border-gray-500 px-1"
           />
         </section>
@@ -349,6 +360,7 @@ function form2Blocks({
               <Field
                 value={rows[cat.id]?.current ?? ''}
                 onChange={(v) => setRow(cat.id, 'current', v)}
+                label={`${cat.label} — ${s2.table.columns[1].label}`}
                 className="w-full"
               />
             </td>
@@ -356,6 +368,7 @@ function form2Blocks({
               <Field
                 value={rows[cat.id]?.correction ?? ''}
                 onChange={(v) => setRow(cat.id, 'correction', v)}
+                label={`${cat.label} — ${s2.table.columns[2].label}`}
                 className="w-full"
               />
             </td>
@@ -402,6 +415,7 @@ function form2Blocks({
                 value={row.infoName}
                 onChange={(v) => setFavorable(i, 'infoName', v)}
                 placeholder={i === 0 ? s3.table.example.infoName : ''}
+                label={`${i + 1}번째 ${s3.table.columns[0].label}`}
                 className="w-full"
               />
             </td>
@@ -410,6 +424,7 @@ function form2Blocks({
                 value={row.detail}
                 onChange={(v) => setFavorable(i, 'detail', v)}
                 placeholder={i === 0 ? s3.table.example.detail : ''}
+                label={`${i + 1}번째 ${s3.table.columns[1].label}`}
                 className="w-full"
               />
             </td>
@@ -667,6 +682,7 @@ function DocumentSheet({ activeCase }) {
   const [stage, setStage] = useState('form') // form | afterPrint
   const [confirming, setConfirming] = useState(false)
   const printAck = usePrintAck()
+  const printScale = usePrintScale()
   const [emailOpen, setEmailOpen] = useState(false)
   const [checked, setChecked] = useState({})
   const printing = useRef(false)
@@ -776,7 +792,12 @@ function DocumentSheet({ activeCase }) {
       <PageHeader
         kicker="서식 생성"
         title="고시 서식을 채워 인쇄하세요"
-        description="화면에서 채운 내용이 그대로 인쇄됩니다. 서버로 전송하지 않으며 새로고침하면 사라집니다."
+        description={
+          <Plain id="document.intro">
+            화면에서 채운 내용이 그대로 인쇄됩니다. 서버로 전송하지 않으며 새로고침하면
+            사라집니다.
+          </Plain>
+        }
       />
 
       {/* ── 인쇄 후 — 제출까지 이어 붙인다 ─────────────────── */}
@@ -938,8 +959,10 @@ function DocumentSheet({ activeCase }) {
       </div>
 
       <p className="no-print text-gray-600">
-        두 서식 모두 <Term id="noticedForm">고시 서식</Term>입니다. 직접 만든 편지로는 요건을
-        채우지 못합니다.
+        <Plain id="document.formRequired">
+          두 서식 모두 <Term id="noticedForm">고시 서식</Term>입니다. 직접 만든 편지로는 요건을
+          채우지 못합니다.
+        </Plain>
       </p>
 
       {/*
@@ -1070,6 +1093,47 @@ function DocumentSheet({ activeCase }) {
             onRemember={printAck.remember}
           />
         ) : null}
+        {/* 인쇄 글자 크기 — 고령층이 자기가 낸 서류를 읽을 수 있어야 한다 */}
+        <div className="rounded-md border border-gray-300 bg-white p-3">
+          <p className="font-bold text-gray-900" id="print-scale-label">
+            인쇄 글자 크기
+          </p>
+          <div
+            className="mt-2 flex flex-col gap-2 sm:flex-row"
+            role="group"
+            aria-labelledby="print-scale-label"
+          >
+            {PRINT_SCALES.map((sc) => (
+              <button
+                key={sc.id}
+                type="button"
+                onClick={() => printScale.setScale(sc.id)}
+                aria-pressed={printScale.scale === sc.id}
+                className={`flex-1 rounded-md border px-3 py-2 text-left ${
+                  printScale.scale === sc.id
+                    ? 'border-ink-700 bg-ink-700 text-white'
+                    : 'border-gray-300 bg-white hover:border-ink-400'
+                }`}
+              >
+                <span className="block font-bold">
+                  {printScale.scale === sc.id && <span aria-hidden="true">✓ </span>}
+                  {sc.label}
+                </span>
+                <span
+                  className={`mt-0.5 block text-sm ${
+                    printScale.scale === sc.id ? 'text-ink-100' : 'text-gray-600'
+                  }`}
+                >
+                  {sc.hint}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-sm text-gray-600">
+            서식의 항목과 순서는 그대로이고 크기만 바뀝니다. 화면 글자 크기와는 별개입니다.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <button type="button" onClick={handlePrint} className="btn btn-primary">
             인쇄 / PDF로 저장

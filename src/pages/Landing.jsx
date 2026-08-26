@@ -4,6 +4,7 @@ import { SAMPLE_SCENARIOS } from '../data/samples.js'
 import { Basis, Card } from '../components/ui.jsx'
 import { Term, GlossaryList } from '../components/Term.jsx'
 import SelfCheck from '../components/SelfCheck.jsx'
+import { Plain } from '../lib/plain.jsx'
 import {
   ResumeCard,
   BackupPanel,
@@ -75,11 +76,13 @@ export default function Landing() {
           그게 이 서비스의 이름입니다.
         </p>
         <p className="max-w-prose text-gray-700">
+          <Plain id="landing.lead">
           컴퓨터가 자동으로 심사했다면 그 결과와 기준을 설명하라고 요구할 수 있습니다.{' '}
           <Term id="favorableInfo">유리한 정보</Term>를 내고, 틀린 정보를{' '}
           <Term id="correction">고치고</Term>, 다시 계산해 달라고(
           <Term id="recompute">재산출</Term>) 요구할 수도 있습니다.{' '}
           <b>이 서비스는 그 요구서를 대신 만들어 드립니다.</b>
+          </Plain>
         </p>
         <p>
           <Basis chain prefix="근거">
@@ -111,7 +114,7 @@ export default function Landing() {
         {/* 핵심 요건은 "종사자가 관여하지 아니하고". R1 이 첫 단계인 이유다. */}
         <p className="mt-3 text-gray-800">
           핵심은 <b>&ldquo;{DEFINITION_AUTOMATED_EVALUATION.keyRequirement}&rdquo;</b> 입니다.{' '}
-          {DEFINITION_AUTOMATED_EVALUATION.whyR1First}
+          <Plain id="landing.autoEvalWhy">{DEFINITION_AUTOMATED_EVALUATION.whyR1First}</Plain>
         </p>
         <p className="mt-3">
           <Basis prefix="근거">{DEFINITION_AUTOMATED_EVALUATION.basis}</Basis>
@@ -142,8 +145,10 @@ export default function Landing() {
           행사할 수 있는 권리 {RIGHTS.length}가지
         </h2>
         <p className="max-w-prose text-gray-700">
-          아래는 법 조문을 그대로 나눈 목록입니다. 지금 다 읽지 않으셔도 됩니다 — 진단을 하시면
-          그중 어느 것이 해당되는지 골라 드립니다.
+          <Plain id="landing.rightsIntro">
+            아래는 법 조문을 그대로 나눈 목록입니다. 지금 다 읽지 않으셔도 됩니다 — 진단을
+            하시면 그중 어느 것이 해당되는지 골라 드립니다.
+          </Plain>
         </p>
         {[1, 2].map((p) => (
           <div key={p}>
@@ -159,7 +164,9 @@ export default function Landing() {
                     </span>
                     <span className="font-bold text-gray-900">{r.label}</span>
                   </div>
-                  <p className="mt-2 text-gray-700">{r.summary}</p>
+                  <p className="mt-2 text-gray-700">
+                    <Plain id={`right.${r.id}`}>{r.summary}</Plain>
+                  </p>
                   <p className="mt-2">
                     <Basis prefix="근거">{r.basis}</Basis>
                   </p>

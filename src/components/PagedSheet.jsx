@@ -173,7 +173,11 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
         className="no-print pointer-events-none fixed top-0 left-[-10000px] invisible"
       >
         <SheetModeContext.Provider value="measure">
-          <div className="print-metrics" style={{ width: `${PAGE_CONTENT_WIDTH_MM}mm` }}>
+          {/* ★ zoom 이 걸리므로 너비를 배율로 나눠야 실제 인쇄 폭과 같아진다 */}
+          <div
+            className="print-metrics"
+            style={{ width: `calc(${PAGE_CONTENT_WIDTH_MM}mm / var(--sheet-zoom))` }}
+          >
             <div data-mhead="first">
               <h2 className="paged-title">{title}</h2>
               {subtitle && <p className="paged-subtitle">{subtitle}</p>}

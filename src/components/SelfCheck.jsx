@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { SELF_CHECK_ITEMS, SELF_CHECK_NONE } from '../data/self-check.js'
 import { DEFINITION_AUTOMATED_EVALUATION, RIGHTS_BY_ID } from '../data/law.js'
 import { Basis } from './ui.jsx'
+import { Plain } from '../lib/plain.jsx'
 
 /**
  * 자가진단.
@@ -30,7 +31,9 @@ export default function SelfCheck() {
         혹시 이런 일이 있으셨나요?
       </h2>
       <p className="mt-2 text-gray-700">
-        해당하는 것을 눌러 보세요. 아무것도 입력하지 않아도 되고, 어디에도 전송되지 않습니다.
+        <Plain id="selfcheck.lead">
+          해당하는 것을 눌러 보세요. 아무것도 입력하지 않아도 되고, 어디에도 전송되지 않습니다.
+        </Plain>
       </p>
 
       <ul className="mt-4 space-y-2">

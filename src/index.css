@@ -319,6 +319,37 @@ body {
  * 화면용 컴포넌트와 인쇄용 레이아웃을 두 벌로 관리하지 않는다.
  * 같은 DOM 에 인쇄 규칙만 다르게 준다. (docs/law/form-spec.md §구현 시 주의 3)
  * ────────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────
+ * 서식 조판 치수 — 인쇄(@media print .print-sheet)와 측정(.print-metrics)이
+ * **같은 변수**를 본다. 한쪽만 고쳐 어긋나는 사고를 구조적으로 막는다.
+ *
+ * 큰 글씨 인쇄: 고령층이 자기가 낸 서류를 읽을 수 있어야 한다.
+ *   크기만 바뀌고 조판 구조(표·칸·순서)는 그대로다.
+ *   페이지 수가 늘어나는 것은 감수한다 — 이미 다중 페이지를 지원한다.
+ * ────────────────────────────────────────────────────────────── */
+:root {
+  --sheet-font-size: 8.8pt;
+  --sheet-row-height: 20pt;
+  /*
+   * 큰 글씨 인쇄 배율.
+   *
+   * ★ 왜 font-size 가 아니라 zoom 인가.
+   *   서식 본문은 표·라벨·부기까지 Tailwind 의 rem 기반 크기(text-sm 0.875rem,
+   *   text-xs 0.75rem …)로 짜여 있다. 컨테이너의 font-size 만 키우면 그 값들이
+   *   따라오지 않아 표는 그대로이고 몇 줄만 커진다.
+   *   zoom 은 조판 구조를 그대로 둔 채 전체를 같은 비율로 키운다. 크기만 바뀐다.
+   *
+   * ★ zoom 은 길이도 함께 키우므로 페이지 상자 높이·측정 영역 너비는
+   *   반드시 이 값으로 나눠 준다. 아래 두 곳을 함께 보라.
+   */
+  --sheet-zoom: 1;
+}
+
+:root[data-print-scale='lg'] {
+  /* 8.8pt × 1.25 = 11pt. 표 글자(14px)는 17.5px ≈ 13pt 가 된다. */
+  --sheet-zoom: 1.25;
+}
+
 @page {
   size: A4;
   /*
@@ -348,11 +379,14 @@ body {
     background: #fff;
   }
 
-  /* A4 기준 조판. 이 값은 .print-metrics(측정 영역)와 반드시 같아야 한다. */
+  /* A4 기준 조판. 이 값은 .print-metrics(측정 영역)와 반드시 같아야 한다.
+     → 같은 CSS 변수를 보게 해서 어긋날 수 없게 만들었다. */
   .print-sheet {
-    font-size: 8.8pt;
+    font-size: var(--sheet-font-size);
     line-height: 1.32;
     color: #000;
+    /* 큰 글씨 인쇄 — 측정 영역(.print-metrics)에도 같은 배율이 걸린다 */
+    zoom: var(--sheet-zoom);
   }
 
   /* 서식 1은 선택 항목뿐이라 길어질 수 없다. 지금까지처럼 한 장에 붙인다. */
@@ -374,7 +408,7 @@ body {
 
   /* 빈 칸은 출력 후 손으로 채운다. 쓸 수 있는 높이를 확보한다. */
   .print-sheet tbody td {
-    height: 20pt;
+    height: var(--sheet-row-height);
   }
 
   /* 서식은 페이지 중간에서 잘리지 않게 한다 */
@@ -419,7 +453,8 @@ body {
      * 257 이 아니라 255 인 이유: 인쇄 영역과 정확히 같으면 반올림 한 픽셀에
      *   빈 페이지가 끼어들 수 있다.
      */
-    min-height: 255mm;
+    /* ★ zoom 안쪽의 길이이므로 배율로 나눠야 실제 255mm 가 된다 */
+    min-height: calc(255mm / var(--sheet-zoom));
     display: flex;
     flex-direction: column;
     break-inside: avoid;
@@ -464,7 +499,9 @@ body {
  * 인쇄에도 나가지 않는다(.no-print).
  * ══════════════════════════════════════════════════════════════ */
 .print-metrics {
-  font-size: 8.8pt;
+  /* 인쇄(.print-sheet)와 같은 배율. 여기서 잰 높이로 페이지를 나눈다. */
+  zoom: var(--sheet-zoom);
+  font-size: var(--sheet-font-size);
   line-height: 1.32;
   color: #000;
   letter-spacing: normal;
@@ -489,7 +526,7 @@ body {
 }
 
 .print-metrics tbody td {
-  height: 20pt;
+  height: var(--sheet-row-height);
 }
 
 /* 화면 전용 UI(예: 표 안의 "무엇을 적나요?" 펼침)는 인쇄에 없으므로 측정에서도 뺀다 */
