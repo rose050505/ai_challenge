@@ -68,6 +68,54 @@ export function HeaderFooterSteps() {
 }
 
 /**
+ * `@page` (paged media) 를 이 브라우저가 실제로 지원하는지 **직접 확인한다.**
+ *
+ * UA 문자열보다 기능 자체를 보는 편이 정확하다. 스타일 시트에 `@page` 규칙을 하나 넣고
+ * 브라우저가 그것을 CSSPageRule 로 파싱했는지, size·margin 을 살려 뒀는지 본다.
+ * 지원하지 않는 브라우저는 규칙을 통째로 버리거나 선언을 지운다.
+ *
+ * @returns {boolean|null} true 지원 / false 미지원 / null 판단 불가
+ */
+export function detectPagedMedia(doc = typeof document === 'undefined' ? null : document) {
+  if (!doc) return null
+  let style
+  try {
+    style = doc.createElement('style')
+    style.textContent = '@page { size: A4; margin: 20mm 14mm; }'
+    doc.head.appendChild(style)
+    const rules = style.sheet?.cssRules
+    if (!rules) return null
+    for (const r of rules) {
+      const isPageRule = r.constructor?.name === 'CSSPageRule' || r.type === 6
+      if (!isPageRule) continue
+      const text = r.cssText || ''
+      return /size\s*:/i.test(text) && /margin\s*:/i.test(text)
+    }
+    // @page 규칙 자체가 목록에 없다 = 파싱 단계에서 버려졌다
+    return false
+  } catch {
+    return null
+  } finally {
+    style?.remove()
+  }
+}
+
+/**
+ * 예상 페이지 수를 믿을 수 있는가.
+ *
+ * `@page` 를 지원하지 않으면 우리가 지정한 A4·여백이 무시되고 브라우저 기본 여백이 쓰인다.
+ * 그러면 인쇄 영역 높이가 우리 계산과 달라져 **쪽 수 예고가 어긋날 수 있다.**
+ * (내용이 잘리지는 않는다. `.paged-page` 는 height 가 아니라 min-height 다.)
+ *
+ * 기능 감지가 안 되면 UA 로 판별한다 — Safari 는 18.2 부터 지원한다.
+ */
+export function pageCountUncertain() {
+  const detected = detectPagedMedia()
+  if (detected !== null) return !detected
+  return isOldSafariPrint()
+}
+
+/**
  * Safari 는 18.2 부터 `@page` (paged media) 를 지원한다. 그 이전 버전에서는
  * 우리가 지정한 A4·여백이 무시되고 브라우저 기본 여백이 쓰인다.
  * 내용이 잘리지는 않지만(.paged-page 는 height 가 아니라 min-height 다)
@@ -105,11 +153,11 @@ export function PrintSetupNotice() {
       <p className="mt-2 text-sm">
         쪽 번호는 이 서비스가 서식 안에 직접 넣습니다. 브라우저 것을 꺼도 쪽 번호는 남습니다.
       </p>
-      {isOldSafariPrint() && (
+      {pageCountUncertain() && (
         <p className="mt-2 text-sm">
-          <b>이 Safari 버전은 서식이 지정한 A4 여백을 적용하지 않습니다.</b> 내용이 잘리지는
-          않지만 화면이 예고한 쪽 수와 실제 인쇄가 다를 수 있습니다. 미리보기에서 쪽 수를
-          확인하시거나 Safari 18.2 이상 · Chrome · Firefox 를 쓰시면 정확합니다.
+          <b>이 브라우저에서는 예상 페이지 수가 실제와 다를 수 있습니다.</b> 서식이 지정한 A4
+          여백이 적용되지 않기 때문입니다. 내용이 잘리지는 않으니 인쇄 미리보기에서 쪽 수를
+          확인해 주세요. Safari 는 18.2 이상, Chrome·Firefox 는 최신 버전이면 정확합니다.
         </p>
       )}
     </Notice>

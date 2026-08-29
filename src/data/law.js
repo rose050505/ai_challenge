@@ -44,6 +44,14 @@ export const LAW_META = {
     effectiveDate: '2026-01-02',
     revision: '법률 제21065호, 2025. 10. 1., 타법개정',
   },
+  /**
+   * 거절 이후의 구제 경로에서 인용한다 (docs/law/remedies-research.md §2-3).
+   * 이 서비스의 판정에는 쓰이지 않는다.
+   */
+  consumerAct: {
+    name: '금융소비자 보호에 관한 법률',
+    article: '제36조',
+  },
   /** 서식이 실린 금융위원회 고시 */
   supervisionRule: {
     name: '신용정보업감독규정',
@@ -84,6 +92,11 @@ export const LAW_SOURCES = {
     url: `${LAW_GO_KR}/법령/금융위원회의설치등에관한법률`,
     articleLink: true,
   },
+  consumerAct: {
+    label: LAW_META.consumerAct.name,
+    url: `${LAW_GO_KR}/법령/금융소비자보호에관한법률`,
+    articleLink: true,
+  },
   supervisionRule: {
     label: LAW_META.supervisionRule.name,
     url: `${LAW_GO_KR}/행정규칙/신용정보업감독규정`,
@@ -96,6 +109,7 @@ export const LAW_SOURCES = {
 const SOURCE_MATCHERS = [
   { id: 'decree', keys: ['시행령'] },
   { id: 'fscAct', keys: ['금융위원회의 설치 등에 관한 법률'] },
+  { id: 'consumerAct', keys: ['금융소비자 보호에 관한 법률'] },
   { id: 'supervisionRule', keys: ['신용정보업감독규정'] },
   { id: 'act', keys: ['법 제', '신용정보법 제'] },
 ]
@@ -536,6 +550,82 @@ export const CREDIT_RISK_TRANSACTIONS_BY_CODE = Object.fromEntries(
 )
 
 /**
+ * 가목 4)가 위임한 거래 — **시행령 제2조 제6항**.
+ * TODO-5 해소 (원문 확인 2026-08-27, docs/law/remedies-research.md §1).
+ *
+ * ★ sectorIds 는 **우리 업권 선택지(INSTITUTION_SECTORS)와 직접 대응하는 것만** 채운다.
+ *   대응하는 선택지가 없는 호는 상수로만 기록하고 판정에 쓰지 않는다.
+ *   제7호는 기관 40개 목이라 범위가 넓고 검증 비용이 커서 매핑하지 않는다.
+ *   → 매핑하지 않은 호를 판정에 끌어들이면, 확인하지 않은 것을 확인한 것처럼 표시하게 된다.
+ */
+export const DELEGATED_CREDIT_TRANSACTIONS = {
+  parentBasis: '법 제2조 제1호의3 가목 4)',
+  basis: '시행령 제2조 제6항',
+  items: [
+    {
+      no: 1,
+      basis: '시행령 제2조 제6항 제1호',
+      text: '「상호저축은행법」 제2조제6호에 따른 신용공여',
+      short: '신용공여',
+      sectorIds: ['savingsBank'],
+    },
+    {
+      no: 2,
+      basis: '시행령 제2조 제6항 제2호',
+      text: '「신용협동조합법」 제2조제5호에 따른 대출등',
+      short: '대출등',
+      sectorIds: ['mutualCredit'],
+    },
+    {
+      no: 3,
+      basis: '시행령 제2조 제6항 제3호',
+      text: '「새마을금고법」 제28조제1항제1호나목에 따른 대출',
+      short: '대출',
+      // 새마을금고는 금융위원회법 제38조 각 호 해당 여부가 확인되지 않아 업권 선택지에 없다
+      sectorIds: [],
+    },
+    {
+      no: 4,
+      basis: '시행령 제2조 제6항 제4호',
+      text: '「대부업 등의 등록 및 금융이용자 보호에 관한 법률」 제6조에 따른 대부계약',
+      short: '대부계약',
+      sectorIds: [],
+    },
+    {
+      no: 5,
+      basis: '시행령 제2조 제6항 제5호',
+      text:
+        '「보험업법」 제2조제13호에 따른 신용공여 및 같은 법 제100조제1항제1호에 따른 대출등',
+      short: '신용공여·대출등',
+      sectorIds: ['insurance'],
+    },
+    {
+      no: 6,
+      basis: '시행령 제2조 제6항 제6호',
+      text:
+        '「온라인투자연계금융업 및 이용자 보호에 관한 법률」 제2조제1호에 따른 연계대출',
+      short: '연계대출',
+      sectorIds: [],
+    },
+    {
+      no: 7,
+      basis: '시행령 제2조 제6항 제7호',
+      text:
+        '그 밖에 제1호부터 제6호까지의 규정에 따른 거래와 유사한 거래로서 ' +
+        '각 목 및 제21조제2항 각 호의 기관이 수행하는 거래',
+      short: '유사 거래',
+      sectorIds: [],
+      note: '기관 40개 목을 열거한다. 범위가 넓어 업권 매핑 대상에서 제외했다.',
+    },
+  ],
+}
+
+/** 업권 id → 시행령 제2조 제6항의 호. 매핑된 것만 들어 있다. */
+export const DELEGATED_TRANSACTION_BY_SECTOR = Object.fromEntries(
+  DELEGATED_CREDIT_TRANSACTIONS.items.flatMap((i) => i.sectorIds.map((sid) => [sid, i])),
+)
+
+/**
  * 사건 유형 × 업권 조합 → 법 제2조 제1호의3 가목의 어느 호인지 판정한다.
  *
  * ★ 단순 매핑이 아니다. 같은 "대출 거절"도 은행이면 1), 증권사면 3)이다.
@@ -591,6 +681,24 @@ export function resolveTransactionBasis(eventId, sectorId, limitKind = null) {
     label: CREDIT_RISK_TRANSACTIONS_BY_CODE[code].short,
     caveat,
   })
+  /**
+   * 가목 4) → 시행령 제2조 제6항 제N호 로 특정한다 (TODO-5 해소).
+   * 매핑된 업권(저축은행·신협·보험)에만 쓰인다. 그 밖은 여전히 상위 문구만 표시한다.
+   */
+  const pickDelegated = (sid) => {
+    const d = DELEGATED_TRANSACTION_BY_SECTOR[sid]
+    if (!d) return null
+    const parent = CREDIT_RISK_TRANSACTIONS_BY_CODE[4]
+    return {
+      resolved: true,
+      item: parent,
+      delegated: d,
+      basis: d.basis,
+      basisChain: `${parent.basis} → ${d.basis}`,
+      label: d.short,
+      caveat: null,
+    }
+  }
 
   if (!eventId) return ambiguous()
 
@@ -605,18 +713,21 @@ export function resolveTransactionBasis(eventId, sectorId, limitKind = null) {
     if (BANK_LIKE.includes(sectorId)) return pick(1)
     if (SECURITIES_LIKE.includes(sectorId)) return pick(3)
     if (CARD_LIKE.includes(sectorId)) return pick(2)
+    // 저축은행·신협·보험은 가목 4)의 위임 목록(시행령 제2조 제6항)으로 특정된다
+    const delegated = pickDelegated(sectorId)
+    if (delegated) return delegated
     /**
      * 저축은행·신협·보험 등.
      * 가목 1)의 신용공여는 「은행법」 제2조제7호에 따른 것이므로 은행법상 은행에 적용되고,
      * 가목 3)은 자본시장법상 금융투자업자에 적용된다.
      * 따라서 이 업권의 대출은 가목 1)~3) 어디에도 직접 해당하지 않는다.
-     * 근거는 가목 4)의 "대통령령으로 정하는 거래"에 있을 가능성이 높으나 목록 미확인(TODO-5).
-     * → 회피가 아니라 정확한 판단이다. 상위 문구만 표시한다.
+     * 가목 4)의 위임 목록(시행령 제2조 제6항)은 확인했으나, 여기까지 내려온 업권은
+     * 그 목록에도 대응하는 호가 없다. → 회피가 아니라 정확한 판단이다. 상위 문구만 표시한다.
      */
     return ambiguous(
       '「은행법」상 신용공여(가목 1))나 자본시장법상 신용공여(가목 3))에 직접 해당하지 ' +
-        '않는 업권입니다. 가목 4)의 위임 거래 목록이 확인되지 않아 하위 호를 특정하지 ' +
-        '않고 상위 문구만 표시합니다.',
+        '않는 업권입니다. 가목 4)가 위임한 시행령 제2조 제6항의 목록에도 이 업권에 ' +
+        '대응하는 호가 없어, 하위 호를 특정하지 않고 상위 문구만 표시합니다.',
     )
   }
 
@@ -630,6 +741,13 @@ export function resolveTransactionBasis(eventId, sectorId, limitKind = null) {
       if (opt) return pick(opt.transactionCode)
       return { ...ambiguous(), needsMoreInfo: true }
     }
+    /**
+     * 저축은행·신협·보험의 한도 축소.
+     * 축소된 것은 그 거래(신용공여·대출등)의 "한도"이므로 같은 호로 특정된다.
+     * 가목의 상위 문구가 "거래의 종류, 기간, 금액, 금리, **한도** 등에 관한 정보"이기 때문이다.
+     */
+    const delegated = pickDelegated(sectorId)
+    if (delegated) return delegated
     return ambiguous()
   }
 
@@ -692,6 +810,74 @@ export const REFUSAL_GROUNDS = [
       '화면에서 "3회까지만 가능"이라고 단정적으로 표기하지 말 것. "정당한 사유 없이"가 요건이다.',
   },
 ]
+
+/**
+ * 거절당한 뒤에 남은 경로.
+ *
+ * ★ 조사에서 **조문으로 확인한 것만** 담는다 (docs/law/remedies-research.md §2).
+ *   확인하지 못한 것은 담지 않고, 확인하지 못했다는 사실만 남긴다.
+ *
+ * ★ 가장 조심할 지점 — 과태료는 **제1항(설명 요구) 위반에만** 있다.
+ *   제2항(유리한 정보 제출·정정·삭제·재산출) 위반에는 과태료도 벌칙도 없다.
+ *   제52조·제50조 전문을 조문 단위로 확인한 결과다.
+ *   이걸 뭉뚱그리면 사용자가 헛된 기대를 갖는다.
+ *
+ * ★ 이 서비스는 법률자문을 하지 않는다. 각 항목은 조문의 존재를 알릴 뿐,
+ *   개별 사안에 적용되는지는 판단하지 않는다.
+ */
+export const POST_REFUSAL_PATHS = {
+  /** 섹션 전체에 붙는 고지. 이 선을 넘지 않는다. */
+  disclaimer:
+    '이 안내는 법령 조문에 근거한 것이며, 개별 사안의 법적 판단이 아닙니다. ' +
+    '실제 대응은 전문가와 상의하시기 바랍니다.',
+  items: [
+    {
+      id: 'fine',
+      title: '과태료 — 설명 요구를 무시한 경우에 한합니다',
+      basis: '법 제52조 제3항 제7호의2',
+      text: '제36조의2제1항을 위반하여 설명을 하지 아니한 자',
+      amount: '3천만원 이하의 과태료',
+      /** ★ 반드시 함께 표시한다. 빼면 거짓이 된다. */
+      scopeWarning:
+        '이 과태료는 제1항(설명 요구)을 무시한 경우에만 적용됩니다. ' +
+        '제2항(유리한 정보 제출·정정·삭제·재산출 요구)을 들어주지 않은 것에 대해서는 ' +
+        '법률에도 시행령에도 과태료나 벌칙 규정이 없습니다.',
+      note: '과태료는 국가가 사업자에게 부과하는 것이며, 신고인에게 지급되지 않습니다.',
+    },
+    {
+      id: 'damages',
+      title: '손해배상 — 손해를 증명하지 못해도 청구할 수 있습니다',
+      basis: '법 제43조, 법 제43조의2',
+      text:
+        '신용정보회사등이 이 법을 위반하여 손해를 가한 경우 배상 책임이 있고, ' +
+        '손해액을 증명하는 대신 300만원 이하의 범위에서 법정손해배상을 청구할 수도 있습니다.',
+      highlight:
+        '두 조문 모두 고의 또는 과실이 없음을 회사가 증명하지 못하면 책임을 면할 수 없다고 ' +
+        '정하고 있습니다. 입증 책임이 회사 쪽에 있습니다.',
+      note: '"이 법을 위반"이 전제입니다. 위반에 해당하는지는 이 서비스가 판단하지 않습니다.',
+    },
+    {
+      id: 'mediation',
+      title: '금융감독원 분쟁조정 — 금융회사를 상대로 할 때',
+      basis: '「금융소비자 보호에 관한 법률」 제36조 제1항',
+      text:
+        '금융소비자 및 그 밖의 이해관계인은 금융과 관련하여 분쟁이 있을 때에는 ' +
+        '금융감독원장에게 분쟁조정을 신청할 수 있습니다.',
+      scopeBasis: '「금융소비자 보호에 관한 법률」 제33조',
+      scopeText:
+        '조정 대상이 되는 기관은 「금융위원회의 설치 등에 관한 법률」 제38조 각 호의 기관입니다. ' +
+        '이 서비스가 앞에서 판정한 그 목록과 같습니다.',
+      /** ★ CB사 포함 여부는 조문으로 단정할 수 없다 */
+      unconfirmed:
+        '개인신용평가회사(CB사)가 이 목록에 포함되는지는 조문만으로 확인되지 않았습니다. ' +
+        '이 서비스는 확인하지 못한 것을 확인한 것처럼 적지 않습니다.',
+    },
+  ],
+  /** 우리가 확인하지 못한 것 — 있는 그대로 남긴다 */
+  unexplored:
+    '이 밖에 다른 경로가 있을 수 있으나 이 서비스는 확인하지 못했습니다. ' +
+    '조문만으로 관할이나 적용 여부를 단정할 수 없는 경로는 적지 않았습니다.',
+}
 
 /**
  * 거절 시 사업자의 안내 의무 — 시행령 제31조의2 제9항

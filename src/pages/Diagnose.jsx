@@ -466,7 +466,18 @@ function Result({ counterparty, transaction }) {
         <p className="mt-2">
           <Basis prefix="근거">{transaction.basis}</Basis>
         </p>
+        {/* 가목 4)처럼 시행령으로 위임된 경우 그 경로를 그대로 드러낸다 */}
+        {transaction.basisChain && (
+          <p className="mt-2">
+            <Basis chain prefix="위임 경로" link={false}>
+              {transaction.basisChain}
+            </Basis>
+          </p>
+        )}
         {transaction.item && <p className="mt-2 text-sm text-gray-700">{transaction.item.text}</p>}
+        {transaction.delegated && (
+          <p className="mt-1 text-sm text-gray-700">{transaction.delegated.text}</p>
+        )}
         {transaction.needsMoreInfo && (
           <p className="mt-3 rounded bg-amber-50 p-2 text-sm text-amber-900">
             위 &ldquo;{LIMIT_KIND_QUESTION.question}&rdquo;에 답하면 근거 조문을 특정할 수

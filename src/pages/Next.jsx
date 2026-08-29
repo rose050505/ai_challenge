@@ -7,6 +7,7 @@ import {
   EXPLANATION_METHODS,
   REFUSAL_GROUNDS,
   REFUSAL_NOTICE_DUTY,
+  POST_REFUSAL_PATHS,
   CORRECTION_ROUTING,
   CORRECTION_ROUTING_BY_ID,
   FORMS_BY_ID,
@@ -18,6 +19,82 @@ import { PageHeader, Basis, Card, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import { SubmissionRecord } from '../components/Journey.jsx'
 import NoReply from '../components/NoReply.jsx'
+
+/**
+ * 거절당한 뒤에 남은 경로.
+ *
+ * ★ 단정 범위를 넘지 않는다.
+ *   - 과태료는 **제1항 위반에만** 있다. 제2항에는 없다는 사실을 함께 적는다.
+ *   - 분쟁조정은 조정대상기관이 금융위원회법 제38조 각 호이므로 **금융회사에 한정**된다.
+ *     CB사 포함 여부는 조문으로 확인되지 않았으므로 "확인되지 않음"으로 적는다.
+ *   - 개인정보 분쟁조정 관할은 조문만으로 단정할 수 없어 넣지 않았다.
+ *     대신 "확인하지 못했다"는 사실만 남긴다.
+ *
+ * ★ 우리는 법률자문을 하지 않는다. 섹션 전체에 그 고지를 단다.
+ */
+function PostRefusal() {
+  const p = POST_REFUSAL_PATHS
+  return (
+    <Section
+      n="6."
+      title="거절당했다면, 남은 경로"
+      note="아래는 법령 조문에 있는 것만 정리한 것입니다. 어느 것이 내 사안에 맞는지는 이 서비스가 판단하지 않습니다."
+    >
+      <ul className="space-y-4">
+        {p.items.map((it) => (
+          <li key={it.id} className="rounded-md border border-gray-200 p-4">
+            <p className="font-bold text-gray-900">{it.title}</p>
+            <p className="mt-2 text-gray-700">{it.text}</p>
+            {it.amount && <p className="mt-2 font-bold text-ink-800">{it.amount}</p>}
+            <p className="mt-2">
+              <Basis prefix="근거">{it.basis}</Basis>
+            </p>
+
+            {it.highlight && <p className="mt-3 text-gray-800">{it.highlight}</p>}
+
+            {/* ★ 과태료의 적용 범위 — 빼면 거짓이 된다 */}
+            {it.scopeWarning && (
+              <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+                <p className="text-amber-900">
+                  <span aria-hidden="true">※ </span>
+                  {it.scopeWarning}
+                </p>
+              </div>
+            )}
+
+            {it.scopeText && (
+              <div className="mt-3 rounded-md bg-ink-50 p-3">
+                <p className="text-ink-900">{it.scopeText}</p>
+                <p className="mt-2">
+                  <Basis prefix="근거">{it.scopeBasis}</Basis>
+                </p>
+              </div>
+            )}
+
+            {/* 확인하지 못한 것은 확인하지 못했다고 적는다 */}
+            {it.unconfirmed && (
+              <p className="mt-3 rounded-md border border-dashed border-gray-400 p-3 text-sm text-gray-700">
+                <span aria-hidden="true">? </span>
+                {it.unconfirmed}
+              </p>
+            )}
+
+            {it.note && <p className="mt-3 text-sm text-gray-600">{it.note}</p>}
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-4 rounded-md border border-dashed border-gray-400 p-3 text-gray-700">
+        {p.unexplored}
+      </p>
+
+      {/* ★ 이 선을 넘지 않는다 */}
+      <Notice title="법률자문이 아닙니다" mark="!" className="mt-4">
+        <p>{p.disclaimer}</p>
+      </Notice>
+    </Section>
+  )
+}
 
 /**
  * 마지막 화면. 서류를 출력한 사용자가 "이제 뭘 하지"에서 막히지 않게 한다.
@@ -217,6 +294,9 @@ export default function Next() {
           </p>
         </div>
       </Section>
+
+      {/* 6. 거절당한 뒤에 남은 경로 — 조문으로 확인한 것만 */}
+      <PostRefusal />
 
       <div className="rounded-lg border-2 border-ink-700 bg-white p-5">
         <h2 className="text-lg font-bold text-gray-900">답변서를 받으셨나요?</h2>

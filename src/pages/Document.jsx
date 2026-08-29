@@ -22,13 +22,19 @@ import { neutralizeInstitution } from '../lib/neutralize.js'
 import { PageHeader, Basis, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import EmailDraft from '../components/EmailDraft.jsx'
-import { PrintSetupNotice, PrePrintPanel, usePrintAck } from '../components/PrintSetup.jsx'
+import {
+  PrintSetupNotice,
+  PrePrintPanel,
+  usePrintAck,
+  pageCountUncertain,
+} from '../components/PrintSetup.jsx'
 import { preflightIssues } from '../lib/preflight.js'
 import { usePrintScale, PRINT_SCALES } from '../lib/print-scale.js'
 import PagedSheet from '../components/PagedSheet.jsx'
+import SheetHeightProbe from '../components/SheetHeightProbe.jsx'
 import { useSheetMode } from '../lib/sheet-mode.js'
 import { BackupPanel, STORAGE_SCOPE_TEXT } from '../components/Journey.jsx'
-import CaseSwitcher from '../components/CaseSwitcher.jsx'
+import CaseSwitcher, { Form2CaseSwitcher, TwoFormsNote } from '../components/CaseSwitcher.jsx'
 import { Plain } from '../lib/plain.jsx'
 import { formatWhen, formatDate, todayInputValue } from '../lib/journey-storage.js'
 
@@ -98,13 +104,35 @@ function Field({ value, onChange, placeholder, label, className = '' }) {
   )
 }
 
-/** 인쇄되는 서식 본문 껍데기 */
+/**
+ * 인쇄되는 서식 본문 껍데기.
+ *
+ * ★ 측정 모드에서는 `print:` 변형과 **같은 값**을 직접 쓴다.
+ *   측정 영역은 화면 미디어에서 그려지므로 print: 변형이 걸리지 않는다.
+ *   화면용 여백(p-6, mt-5, space-y-4)이 그대로 재이면 쪽 수를 과대평가한다.
+ *   실제로 그 때문에 큰 글씨에서 1쪽짜리를 2쪽으로 예고했다.
+ */
 function Sheet({ title, subtitle, children }) {
+  const measuring = useSheetMode() === 'measure'
   return (
-    <article className="print-sheet rounded border bg-white p-6 print:rounded-none print:border-0 print:p-0">
-      <h2 className="text-center text-lg font-bold print:text-base">{title}</h2>
+    <article
+      className={`print-sheet bg-white ${
+        measuring ? 'rounded-none border-0 p-0' : 'rounded border p-6'
+      } print:rounded-none print:border-0 print:p-0`}
+    >
+      <h2
+        data-sheet-head
+        className={`text-center font-bold ${measuring ? 'text-base' : 'text-lg'} print:text-base`}
+      >
+        {title}
+      </h2>
       {subtitle && <p className="text-center text-sm">{subtitle}</p>}
-      <div className="mt-5 space-y-4 print:mt-2 print:space-y-2">{children}</div>
+      <div
+        data-sheet-body
+        className={`${measuring ? 'mt-2 space-y-2' : 'mt-5 space-y-4'} print:mt-2 print:space-y-2`}
+      >
+        {children}
+      </div>
     </article>
   )
 }
@@ -114,8 +142,13 @@ function Sheet({ title, subtitle, children }) {
  * paged=true 면 위 여백을 블록 간격에 맡긴다 (측정과 인쇄가 어긋나지 않게).
  */
 function SignatureBlock({ paged = false }) {
+  const measuring = useSheetMode() === 'measure'
   return (
-    <div className={`text-right text-sm ${paged ? '' : 'pt-6 print:pt-2'}`}>
+    <div
+      className={`text-right text-sm ${
+        paged ? '' : measuring ? 'pt-2' : 'pt-6 print:pt-2'
+      }`}
+    >
       <p>{FORM_SIGNATURE_TEXTS.dateMark}</p>
       <p className="mt-2 whitespace-nowrap">
         {FORM_SIGNATURE_TEXTS.applicantLabel}
@@ -500,16 +533,24 @@ export default function Document() {
     (d.selectedCandidates ?? []).length > 0
   const stored = journey.form?.second ? (journey.form?.activeCase ?? 'base') : 'base'
   const active = wantsForm2 ? 'base' : stored
+  /** 서식 2를 여러 벌 만든 경우 지금 보고 있는 건 (0 = 기본) */
+  const form2Index = journey.form?.form2Index ?? 0
 
   useEffect(() => {
     if (active !== stored) setSection('form', { activeCase: active }, { immediate: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, stored])
 
-  return <DocumentSheet key={active} activeCase={active} />
+  return (
+    <DocumentSheet
+      key={`${active}:${form2Index}`}
+      activeCase={active}
+      form2Index={form2Index}
+    />
+  )
 }
 
-function DocumentSheet({ activeCase }) {
+function DocumentSheet({ activeCase, form2Index }) {
   const { journey, setSection, storageAvailable } = useJourney()
   const diagnosis = journey.diagnosis
   /** 저장된 서식 작성 내용. 없으면 각 항목의 기본값을 쓴다. */
@@ -521,7 +562,9 @@ function DocumentSheet({ activeCase }) {
    * 서식 2의 제출처는 정보의 출처에 따라 라우팅이 판정하므로 임의로 두 벌 만들지 않는다.
    */
   const savedF1 = (isSecond ? secondCase?.form1 : savedForm.form1) ?? {}
-  const savedF2 = savedForm.form2 ?? {}
+  /** 서식 2 건 — 0 이면 기본, 1 이상이면 추가 건 (라우팅이 other 일 때만 생긴다) */
+  const savedF2 =
+    (form2Index > 0 ? savedForm.form2Extras?.[form2Index - 1] : savedForm.form2) ?? {}
   /** 이 건의 상대방 (기본 건은 진단이 정한 상대방) */
   const caseCounterpartyId = isSecond
     ? (secondCase?.counterpartyId ?? null)
@@ -654,12 +697,17 @@ function DocumentSheet({ activeCase }) {
    */
   useEffect(() => {
     const f1 = { selectedItems, hopeResult, consent }
-    setSection('form', (prev) =>
-      isSecond
-        ? // 두 번째 건은 자기 칸에만 쓴다. 기본 건의 작성 내용을 건드리지 않는다.
-          { ...prev, tab, personal, second: { ...prev.second, form1: f1 } }
-        : { ...prev, tab, personal, form1: f1, form2: { enabled, rows, favorable, recipient } },
-    )
+    const f2 = { enabled, rows, favorable, recipient }
+    setSection('form', (prev) => {
+      // 두 번째 건은 자기 칸에만 쓴다. 기본 건의 작성 내용을 건드리지 않는다.
+      if (isSecond) return { ...prev, tab, personal, second: { ...prev.second, form1: f1 } }
+      if (form2Index > 0) {
+        const extras = [...(prev.form2Extras ?? [])]
+        extras[form2Index - 1] = f2
+        return { ...prev, tab, personal, form1: f1, form2Extras: extras }
+      }
+      return { ...prev, tab, personal, form1: f1, form2: f2 }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, personal, selectedItems, hopeResult, consent, enabled, rows, favorable, recipient])
 
@@ -678,7 +726,7 @@ function DocumentSheet({ activeCase }) {
   const isForm1 = tab === FORM_EXPLANATION_REQUEST.id
   const currentForm = isForm1 ? FORM_EXPLANATION_REQUEST : FORM_CORRECTION_REQUEST
   /** 여정 기록 키 — 두 번째 건은 별도로 센다 */
-  const milestoneKey = `${tab}${caseKey}`
+  const milestoneKey = `${tab}${caseKey}${!isForm1 && form2Index > 0 ? `:r${form2Index}` : ''}`
   const milestone = journey.milestones?.[milestoneKey] ?? { printedAt: null, submittedAt: null }
 
   const setMilestone = (formId, patch) =>
@@ -787,8 +835,9 @@ function DocumentSheet({ activeCase }) {
   ].filter(Boolean)
   const doneCount = checklist.filter((c) => checked[c.id]).length
 
-  /** 서식 2 의 예상 인쇄 페이지 수. PagedSheet 가 측정해서 알려준다. */
+  /** 예상 인쇄 페이지 수. 서식 2는 PagedSheet 가, 서식 1은 SheetHeightProbe 가 잰다. */
   const [pageCount, setPageCount] = useState(1)
+  const [form1PageCount, setForm1PageCount] = useState(1)
 
   // 서식 2는 내용에 따라 여러 장이 된다. 블록으로 만들어 PagedSheet 가 나눈다.
   const form2 = form2Blocks({
@@ -951,6 +1000,12 @@ function DocumentSheet({ activeCase }) {
       {/* 복수 기관 동시 행사 — 기본은 한 건, 필요할 때 추가한다 */}
       <CaseSwitcher activeCase={activeCase} isForm1={isForm1} />
 
+      {/* 두 서식은 제출처를 정하는 방식이 다르다. 그 차이를 늘 밝힌다. */}
+      <TwoFormsNote />
+
+      {/* 정정 요청서는 제출처가 라우팅으로 정해진다. 회사가 여럿이면 회사마다 한 벌. */}
+      {!isForm1 && <Form2CaseSwitcher />}
+
       <div className="no-print flex flex-col gap-2 sm:flex-row sm:flex-wrap" role="group" aria-label="서식 선택">
         {/* 두 번째 건은 설명요구서만 갖는다 (CaseSwitcher 주석 참조) */}
         {(isSecond ? [FORM_EXPLANATION_REQUEST] : [FORM_EXPLANATION_REQUEST, FORM_CORRECTION_REQUEST]).map((f, i) => (
@@ -1071,16 +1126,31 @@ function DocumentSheet({ activeCase }) {
       {/* .sheet-scroll 은 @media screen 에서만 동작한다. 인쇄에는 영향이 없다. */}
       <div className="sheet-scroll">
       {isForm1 ? (
-        <Form1
-          selectedItems={selectedItems}
-          toggleItem={toggleItem}
-          personal={personal}
-          setPersonal={setPersonal}
-          consent={consent}
-          setConsent={setConsent}
-          hopeResult={hopeResult}
-          setHopeResult={setHopeResult}
-        />
+        <>
+          <Form1
+            selectedItems={selectedItems}
+            toggleItem={toggleItem}
+            personal={personal}
+            setPersonal={setPersonal}
+            consent={consent}
+            setConsent={setConsent}
+            hopeResult={hopeResult}
+            setHopeResult={setHopeResult}
+          />
+          {/* 서식 1의 쪽 수도 가정이 아니라 측정으로 표시한다 */}
+          <SheetHeightProbe onPageCount={setForm1PageCount}>
+            <Form1
+              selectedItems={selectedItems}
+              toggleItem={toggleItem}
+              personal={personal}
+              setPersonal={setPersonal}
+              consent={consent}
+              setConsent={setConsent}
+              hopeResult={hopeResult}
+              setHopeResult={setHopeResult}
+            />
+          </SheetHeightProbe>
+        </>
       ) : (
         <PagedSheet
           title={FORM_CORRECTION_REQUEST.title}
@@ -1162,12 +1232,23 @@ function DocumentSheet({ activeCase }) {
         </div>
         <p role="status" aria-live="polite" className="text-gray-800">
           {isForm1 ? (
-            <>현재 내용은 <b>1페이지</b>로 출력됩니다.</>
+            <>
+              현재 내용은 <b>{form1PageCount}페이지</b>로 출력됩니다.
+              {form1PageCount > 1 &&
+                ' 서식 1은 짧아서 보통 한 장에 들어갑니다. 두 장이 되면 인쇄 미리보기에서 한 번 확인해 주세요.'}
+            </>
           ) : (
             <>
               현재 내용은 <b>{pageCount}페이지</b>로 출력됩니다.
               {pageCount > 1 && ' 법정 서식은 여러 장으로 제출해도 됩니다. 각 장 하단에 쪽 번호가, 둘째 장부터는 상단에 문서명과 신청인 성명이 인쇄됩니다.'}
             </>
+          )}
+          {/* 예고를 숨기지 않는다. 참고값으로 두되 불확실성을 밝힌다. */}
+          {pageCountUncertain() && (
+            <span className="block text-sm text-gray-700">
+              이 브라우저에서는 이 값이 실제와 다를 수 있습니다. 인쇄 미리보기에서 확인해
+              주세요.
+            </span>
           )}
         </p>
         {/* 다시 들어왔을 때 "이거 냈던가" 를 여기서 바로 알 수 있게 한다 */}

@@ -67,6 +67,17 @@ export const EMPTY_JOURNEY = {
      */
     activeCase: null,
     second: null,
+    /**
+     * 서식 2를 여러 벌 만들어야 하는 경우.
+     *
+     * ★ 상대방을 고르는 것이 아니다. 라우팅이 other(타 금융회사)로 판정됐을 때,
+     *   **정정할 정보가 발생한 회사가 여럿일 수 있어서** 생기는 목록이다.
+     *   제출처는 여전히 라우팅이 정한다. 사용자가 바꾸는 것이 아니다.
+     *
+     *   form2Index 0 = 기본(위 form2), 1..n = form2Extras[n-1]
+     */
+    form2Index: 0,
+    form2Extras: [],
   },
   /** /response 해석 결과. 붙여넣은 원문은 담지 않는다. */
   response: { interpretation: null, errors: [], catOverrides: {} },
@@ -134,6 +145,8 @@ export function normalizeJourney(raw) {
       },
       activeCase: f.activeCase === 'second' ? 'second' : f.activeCase === 'base' ? 'base' : null,
       second: normalizeSecondCase(f.second),
+      form2Extras: normalizeForm2Extras(f.form2Extras),
+      form2Index: normalizeForm2Index(f.form2Index, normalizeForm2Extras(f.form2Extras).length),
     },
     response: {
       interpretation: isObj(r.interpretation) ? r.interpretation : null,
@@ -172,6 +185,28 @@ function normalizeSecondCase(raw) {
       consent: f1.consent === 'agree' || f1.consent === 'disagree' ? f1.consent : null,
     },
   }
+}
+
+/** 추가 서식 2 건. 넘치는 값은 버린다. */
+export const MAX_FORM2_EXTRAS = 4
+
+function normalizeForm2Extras(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter(isObj)
+    .slice(0, MAX_FORM2_EXTRAS)
+    .map((e) => ({
+      recipient: str(e.recipient),
+      enabled: isObj(e.enabled) ? e.enabled : null,
+      rows: isObj(e.rows) ? e.rows : null,
+      favorable: Array.isArray(e.favorable) ? e.favorable.filter(isObj) : null,
+    }))
+}
+
+function normalizeForm2Index(raw, extraCount) {
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 0 || n > extraCount) return 0
+  return n
 }
 
 /** 옛 형식을 현재 형식으로 올린다. 지금은 v1 뿐이다. */

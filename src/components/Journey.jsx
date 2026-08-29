@@ -23,10 +23,20 @@ import { Notice, Card } from './ui.jsx'
 export function milestoneLabel(key, journey) {
   const [formId, tag] = String(key).split(':')
   const title = FORMS_BY_ID[formId]?.title ?? ''
-  if (tag !== 'second') return title
-  const cpId = journey?.form?.second?.counterpartyId
-  const cp = COUNTERPARTY_TYPES_BY_ID[cpId]
-  return cp ? `${title} (${cp.label})` : title
+  if (!tag) return title
+  // 설명요구서의 두 번째 건 — 상대방으로 구분한다
+  if (tag === 'second') {
+    const cp = COUNTERPARTY_TYPES_BY_ID[journey?.form?.second?.counterpartyId]
+    return cp ? `${title} (${cp.label})` : title
+  }
+  // 정정 요청서의 추가 건 — 수신 기관으로 구분한다
+  const m = /^r(\d+)$/.exec(tag)
+  if (m) {
+    const extra = journey?.form?.form2Extras?.[Number(m[1]) - 1]
+    const who = (extra?.recipient ?? '').trim()
+    return who ? `${title} (${who})` : `${title} (${Number(m[1]) + 1}번째)`
+  }
+  return title
 }
 
 export const STORAGE_SCOPE_TEXT =
