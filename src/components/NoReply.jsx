@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { RESPONSE_DUTY, PROCESSING_DEADLINE } from '../data/law.js'
 import { buildReminderDraft, REPEAT_LIMIT } from '../lib/reminder-draft.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
@@ -20,9 +20,9 @@ import { Plain } from '../lib/plain.jsx'
  *   시행령 제31조의2 제5항 제2호의 요건이 "정당한 사유 없이"이므로,
  *   회신을 못 받았다는 사실을 문안에 남기게 한다. 단정은 하지 않는다.
  */
-export default function NoReply() {
+export default function NoReply({ defaultOpen = false }) {
   const { journey } = useJourney()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const [copied, setCopied] = useState('')
   const bodyRef = useRef(null)
 
@@ -47,6 +47,13 @@ export default function NoReply() {
   )
   const [edited, setEdited] = useState(null)
   const body = edited ?? draft.body
+
+  // 접힌 내용은 DOM 에 없어 CSS 로 되살릴 수 없다. Disclosure 와 같은 규칙을 쓴다.
+  useEffect(() => {
+    const expand = () => setOpen(true)
+    window.addEventListener('beforeprint', expand)
+    return () => window.removeEventListener('beforeprint', expand)
+  }, [])
 
   const copy = async () => {
     try {

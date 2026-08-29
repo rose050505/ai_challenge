@@ -14,11 +14,12 @@ import {
   FORM_CORRECTION_REQUEST,
   LAW_META,
 } from '../data/law.js'
-import { useDiagnosis } from '../lib/diagnosis-context.jsx'
-import { PageHeader, Basis, Card, Notice } from '../components/ui.jsx'
+import { useJourney } from '../lib/diagnosis-context.jsx'
+import { PageHeader, Basis, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import { SubmissionRecord } from '../components/Journey.jsx'
 import NoReply from '../components/NoReply.jsx'
+import Disclosure from '../components/Disclosure.jsx'
 
 /**
  * 거절당한 뒤에 남은 경로.
@@ -32,12 +33,14 @@ import NoReply from '../components/NoReply.jsx'
  *
  * ★ 우리는 법률자문을 하지 않는다. 섹션 전체에 그 고지를 단다.
  */
-function PostRefusal() {
+function PostRefusal({ defaultOpen }) {
   const p = POST_REFUSAL_PATHS
   return (
     <Section
       n="6."
       title="거절당했다면, 남은 경로"
+      summary="과태료 · 손해배상 · 분쟁조정 — 조문으로 확인한 것만 적었습니다."
+      defaultOpen={defaultOpen}
       note="아래는 법령 조문에 있는 것만 정리한 것입니다. 어느 것이 내 사안에 맞는지는 이 서비스가 판단하지 않습니다."
     >
       <ul className="space-y-4">
@@ -102,25 +105,50 @@ function PostRefusal() {
  * ★ 법령에 있는 것만 쓴다. 없는 것은 없다고 쓴다.
  *   특히 처리 기한은 법령에 규정이 없다. 그 사실을 숨기지 않는다.
  *   법령 텍스트는 전부 src/data/law.js 에서 읽는다. 여기에 하드코딩하지 않는다.
+ *
+ * ★ 여섯 섹션은 전부 접힌다. 지금 이 사람에게 필요한 것만 펼친 채로 시작한다(OPEN_RULE).
+ *   내용을 줄이지는 않았다. 확인한 사실을 버리는 것과 읽히게 만드는 것은 다른 문제다.
  */
-function Section({ n, title, children, note }) {
+function Section({ n, title, children, note, summary, defaultOpen }) {
   return (
-    <Card as="section">
-      <h2 className="flex items-baseline gap-2 text-lg font-bold text-gray-900">
-        <span className="tabular shrink-0 rounded bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
-          {n}
-        </span>
-        <span>{title}</span>
-      </h2>
-      {note && <p className="mt-2 text-gray-600">{note}</p>}
-      <div className="mt-4">{children}</div>
-    </Card>
+    <Disclosure n={n} title={title} summary={summary} defaultOpen={defaultOpen}>
+      {note && <p className="mb-4 text-gray-600">{note}</p>}
+      {children}
+    </Disclosure>
   )
 }
 
+/**
+ * 처음에 어느 섹션을 펼쳐 둘지.
+ *
+ * ★ 상황에 따라 다르다. 여섯 개를 다 펼치면 접기 전과 같아지고,
+ *   여섯 개를 다 접으면 아무것도 읽히지 않는다.
+ *     아직 안 냈다        → "어디로 내나요"
+ *     냈다               → "언제 답이 오나요" + "회신이 오지 않으면"
+ *     거절 회신을 해석했다 → "거절당하면"
+ *   (겹치면 겹치는 대로 둘 다 펼친다. 접힌 것도 제목과 한 줄 요약으로 무슨 내용인지 보인다.)
+ */
+function openRule({ submitted, refused }) {
+  return {
+    channels: !submitted,
+    contact: false,
+    deadline: submitted,
+    noReply: submitted,
+    methods: false,
+    refusal: refused,
+    postRefusal: false,
+  }
+}
+
 export default function Next() {
-  const { diagnosis } = useDiagnosis()
+  const { journey } = useJourney()
+  const diagnosis = journey.diagnosis
   const branch = CORRECTION_ROUTING_BY_ID[diagnosis.routingBranchId]
+
+  const submitted = Object.values(journey.milestones ?? {}).some((m) => m?.submittedAt)
+  // /response 에서 거절로 판정된 회신을 해석하고 왔는가
+  const refused = journey.response?.interpretation?.refused === true
+  const open = openRule({ submitted, refused })
 
   return (
     <div className="space-y-6 py-8">
@@ -162,6 +190,8 @@ export default function Next() {
       <Section
         n="1."
         title="어디로 내나요"
+        summary="법령이 정한 제출 채널 네 가지. 온라인 제출도 허용됩니다."
+        defaultOpen={open.channels}
         note="법령이 정한 제출 채널은 아래 네 가지입니다. 온라인 제출도 법적으로 허용됩니다."
       >
         <ul className="grid gap-2 sm:grid-cols-2">
@@ -187,7 +217,12 @@ export default function Next() {
       </Section>
 
       {/* 2. 회신 연락처 */}
-      <Section n="2." title="회신받을 연락처를 함께 적으세요">
+      <Section
+        n="2."
+        title="회신받을 연락처를 함께 적으세요"
+        summary="고시 서식에 연락처 칸이 없습니다. 여백에 직접 적으셔야 합니다."
+        defaultOpen={open.contact}
+      >
         <p className="text-gray-700">
           <b>{FORM_CORRECTION_REQUEST.title}</b>에는 연락처 칸이 없습니다. 이 서비스는 고시
           서식에 없는 칸을 임의로 추가하지 않습니다.
@@ -203,7 +238,12 @@ export default function Next() {
       </Section>
 
       {/* 3. 처리 기한 — 법령에 없다는 사실을 그대로 밝힌다 */}
-      <Section n="3." title="언제 답이 오나요">
+      <Section
+        n="3."
+        title="언제 답이 오나요"
+        summary="처리 기한 규정이 법령에 없습니다. 지어내지 않고 그 사실을 알려드립니다."
+        defaultOpen={open.deadline}
+      >
         <Notice title="법령에 기한 규정이 없습니다" mark="!">
           <p>{PROCESSING_DEADLINE.uiNotice}</p>
         </Notice>
@@ -219,12 +259,14 @@ export default function Next() {
       </Section>
 
       {/* 3-2. 회신이 오지 않을 때 — 기한이 없으므로 실제 문제가 된다 */}
-      <NoReply />
+      <NoReply defaultOpen={open.noReply} />
 
       {/* 4. 어떤 답을 받게 되나 — 기대치 조정 */}
       <Section
         n="4."
         title="어떤 답을 받게 되나요"
+        summary="설명 방법이 법령에 정해져 있습니다. 평가 모델의 내부 로직은 받지 못할 수 있습니다."
+        defaultOpen={open.methods}
         note="받게 될 답변의 형태가 법령에 정해져 있습니다. 미리 알고 있으면 실망이 줄어듭니다."
       >
         <ul className="space-y-3">
@@ -263,6 +305,8 @@ export default function Next() {
       <Section
         n="5."
         title="거절당하면"
+        summary="법령이 정한 거절 사유 네 가지. 이 외의 이유로는 거절할 수 없습니다."
+        defaultOpen={open.refusal}
         note="법령이 정한 거절 사유는 아래 네 가지입니다. 이 외의 이유로는 거절할 수 없습니다."
       >
         <ul className="space-y-3">
@@ -296,7 +340,7 @@ export default function Next() {
       </Section>
 
       {/* 6. 거절당한 뒤에 남은 경로 — 조문으로 확인한 것만 */}
-      <PostRefusal />
+      <PostRefusal defaultOpen={open.postRefusal} />
 
       <div className="rounded-lg border-2 border-ink-700 bg-white p-5">
         <h2 className="text-lg font-bold text-gray-900">답변서를 받으셨나요?</h2>
