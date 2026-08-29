@@ -7,6 +7,73 @@ import { requestCandidates } from '../lib/analyze-client.js'
 import { PageHeader, Basis, Card, Notice, Status, SlowHint } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 
+/**
+ * 후보 목록에 붙는 "선정이유".
+ *
+ * ★ 이 한 줄이 이 화면의 존재 이유다.
+ *   목록만 있으면 검색으로 대체된다. "당신이 쓴 이 대목 때문에 이걸 골랐습니다"라야
+ *   사용자의 글을 읽었다는 뜻이 된다.
+ *
+ * ★ 그러므로 근거 없이 표시하지 않는다.
+ *   - AI 응답의 선정이유는 서버(api/analyze.js groundedReason)에서 인용을 대조해
+ *     사용자 서술에 없는 말을 인용했으면 버리고 온다.
+ *   - 폴백(일반 목록)에는 선정이유가 없다. 그 차이를 화면에서 그대로 말한다.
+ *   - 접어 두지 않는다. 부제 자리에 항상 보인다.
+ */
+function PickReason({ text }) {
+  if (!text) return null
+  return (
+    <span className="mt-2 block rounded-md border-l-4 border-ink-400 bg-ink-50 px-3 py-2 text-gray-900">
+      <span className="mr-1 font-bold text-ink-800">이걸 고른 이유</span>
+      <span className="block">{text}</span>
+    </span>
+  )
+}
+
+/**
+ * 이 목록이 어디서 왔는지.
+ *
+ * ★ 폴백을 AI 결과처럼 보이게 두면 그 자체가 거짓말이다.
+ *   'ai'      — 적어주신 상황을 읽고 고른 것
+ *   'cached'  — 샘플 시나리오의 준비된 예시 (result.notice 가 이미 말한다)
+ *   'fallback'— 상황과 무관한 일반 목록. 선정이유가 없다.
+ */
+function SourceBanner({ source, hasSituation }) {
+  if (source === 'ai') {
+    return (
+      <p className="rounded-md border-l-4 border-ink-600 bg-ink-50 p-3 text-ink-900">
+        <b>적어주신 상황을 읽고 고른 목록입니다.</b> 각 항목에 어느 대목 때문에 골랐는지
+        함께 적어 두었습니다.
+      </p>
+    )
+  }
+  if (source !== 'fallback') return null
+  return (
+    <div className="rounded-md border border-dashed border-gray-500 bg-gray-50 p-4">
+      <p className="font-bold text-gray-900">
+        <span aria-hidden="true">※ </span>일반 목록입니다
+      </p>
+      {hasSituation ? (
+        <p className="mt-2 text-gray-800">
+          이번에는 상황을 읽지 못해, 누구에게나 해당하는 항목만 보여드립니다. 그래서{' '}
+          <b>왜 이 항목인지는 설명해 드리지 못합니다.</b> 아래 [다시 만들기]를 누르면 다시
+          시도합니다.
+        </p>
+      ) : (
+        <>
+          <p className="mt-2 text-gray-800">
+            상황을 적지 않으셔서 누구에게나 해당하는 항목만 보여드립니다.{' '}
+            <b>상황을 적어주시면 왜 이 항목인지 설명해 드립니다.</b>
+          </p>
+          <Link to="/diagnose#reason" className="btn btn-secondary mt-3">
+            상황을 적으러 가기
+          </Link>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function Strategy() {
   const { journey, setSection } = useJourney()
   const diagnosis = journey.diagnosis
@@ -14,7 +81,9 @@ export default function Strategy() {
   const saved = journey.strategy
   const [state, setState] = useState(saved.candidates.length > 0 ? 'done' : 'idle')
   const [result, setResult] = useState(
-    saved.candidates.length > 0 ? { candidates: saved.candidates, notice: saved.notice } : null,
+    saved.candidates.length > 0
+      ? { candidates: saved.candidates, notice: saved.notice, source: saved.source }
+      : null,
   )
   const [picked, setPicked] = useState(saved.picked ?? [])
 
@@ -35,9 +104,11 @@ export default function Strategy() {
     setPicked(all)
     setState('done')
     // 단계 완료 — 바로 저장한다
-    setSection('strategy', { candidates: r.candidates, notice: r.notice ?? null, picked: all }, {
-      immediate: true,
-    })
+    setSection(
+      'strategy',
+      { candidates: r.candidates, notice: r.notice ?? null, picked: all, source: r.source ?? null },
+      { immediate: true },
+    )
   }
 
   const toggle = (i) =>
@@ -123,6 +194,8 @@ export default function Strategy() {
             </Notice>
           )}
 
+          <SourceBanner source={result.source} hasSituation={Boolean(diagnosis.reason?.trim())} />
+
           <p className="rounded-md border border-gray-300 bg-white p-3 text-gray-700">
             이 제안은 참고용이며, 실제 제출 여부는 본인이 판단합니다. 법률 자문이 아닙니다.
           </p>
@@ -146,7 +219,9 @@ export default function Strategy() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block font-bold text-gray-900">{c['정보명']}</span>
-                      <span className="mt-1 block text-gray-700">{c['세부내용']}</span>
+                      {/* 부제 자리 — 접지 않는다 */}
+                      <PickReason text={c['선정이유']} />
+                      <span className="mt-2 block text-gray-700">{c['세부내용']}</span>
                       {c['증빙서류'] && (
                         <span className="mt-1 block text-sm text-gray-600">
                           발급처: {c['증빙서류']}

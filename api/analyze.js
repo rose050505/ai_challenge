@@ -30,7 +30,8 @@ const capacity = BASE_INFO_CATEGORIES_BY_ID[R3_SCOPE.categoryId]
  * 시스템 프롬프트.
  * 법 조문 원문을 직접 박아 넣는다. LLM이 조문을 기억해서 쓰게 하지 않는다.
  */
-const SYSTEM_PROMPT = `당신은 대한민국 신용정보법에 따른 서류 작성을 돕는 보조 도구입니다.
+/** 테스트에서 프롬프트에 법령 원문이 들어갔는지 확인할 수 있게 export 한다 */
+export const SYSTEM_PROMPT = `당신은 대한민국 신용정보법에 따른 서류 작성을 돕는 보조 도구입니다.
 
 [역할의 한계 — 반드시 지킬 것]
 - 당신은 법률 자문을 하지 않습니다. 서류에 적을 항목을 정리해 주는 서류 작성 보조입니다.
@@ -49,6 +50,17 @@ const SYSTEM_PROMPT = `당신은 대한민국 신용정보법에 따른 서류 �
 [범주 밖 — 절대 제안 금지]
 ${R3_SCOPE.outOfScopeNote}
 다음은 어떤 경우에도 제안하지 마십시오: ${R3_SCOPE.deniedTerms.join(', ')}.
+
+[선정이유 — 왜 하필 이 사람에게 이 항목인가]
+각 후보마다 "선정이유"를 한 문장으로 적으십시오.
+- 사용자가 쓴 서술에 **실제로 있는 표현**을 작은따옴표로 인용하고, 그 대목 때문에 이 항목을
+  골랐다고 쓰십시오. 인용은 사용자 문장에 그대로 있는 말이어야 합니다.
+- 서술에 없는 사실을 지어내지 마십시오. 나이·소득·직장명을 추측해 쓰지 마십시오.
+- 인용할 대목이 없으면 "선정이유"를 빈 문자열("")로 두십시오. 억지로 만들지 마십시오.
+- 사람됨에 대한 판단(성실해 보인다, 안타깝다 등)을 근거로 들지 마십시오.
+  위 법정 범주(직업·재산·채무·소득의 총액·납세실적) 안의 사실만 근거가 됩니다.
+- 예: "'프리랜서로 3년'이라고 하셨는데, 고용 형태와 무관하게 소득의 지속성을 보여주는
+  자료가 필요합니다."
 
 [출력 형식 — 고시 서식의 예시를 따를 것]
 공식 서식에 실린 예시:
@@ -70,6 +82,7 @@ ${R3_SCOPE.outOfScopeNote}
       "정보명": "짧은 명사구",
       "세부내용": "기간·실적을 구체적 수치로",
       "증빙서류": "어디서 발급받는지",
+      "선정이유": "사용자 표현을 인용한 한 문장. 인용할 것이 없으면 빈 문자열",
       "근거범주": "${R3_SCOPE.categoryLabel}"
     }
   ]
@@ -96,12 +109,50 @@ export function parseCandidates(raw) {
   }
 }
 
+/** 인용 부호 안의 말. 작은따옴표·큰따옴표(전각 포함)를 모두 본다. */
+const QUOTE_RE = /['\u2018"\u201c]([^'\u2019"\u201d]{2,80})['\u2019"\u201d]/g
+const squash = (s) => String(s ?? '').replace(/\s+/g, '')
+
+/**
+ * 선정이유 가드.
+ *
+ * ★ 이 필드는 "AI가 사용자 글을 읽었다"는 주장이다. 근거 없이 표시하면 그 주장이 거짓이 된다.
+ *   그래서 두 종류로 나눠 버린다.
+ *     반환 null → 근거 자체가 법정 범주 밖이다. **항목째 버린다.**
+ *                (예: "성실해 보이셔서" — 직업·재산·채무·소득·납세실적이 아니다)
+ *     반환 ''   → 항목은 유효하나 이유를 확인할 수 없다. **이유만 버린다.**
+ *                (인용이 없거나, 인용한 말이 사용자 서술에 없다 = 지어낸 인용)
+ *
+ * (테스트용으로 export)
+ */
+export function groundedReason(reason, situation) {
+  const text = String(reason ?? '').trim()
+  if (!text) return ''
+  // 근거가 범주 밖이면 항목째 버린다
+  if (R3_SCOPE.deniedTerms.some((t) => text.includes(t))) return null
+  if (R3_SCOPE.reasonDeniedTerms.some((t) => text.includes(t))) return null
+
+  const hay = squash(situation)
+  if (!hay) return ''
+  let quoted = 0
+  for (const m of text.matchAll(QUOTE_RE)) {
+    quoted += 1
+    // 사용자가 쓰지 않은 말을 인용했다 → 환각. 이유를 버린다.
+    if (!hay.includes(squash(m[1]))) return ''
+  }
+  // 인용이 하나도 없으면 사용자 글에서 왔는지 확인할 방법이 없다
+  return quoted > 0 ? text : ''
+}
+
 /**
  * 서버 측 가드. 클라이언트를 믿지 않는다.
  * R3_SCOPE 밖 제안을 버리고, 최대 개수를 강제한다.
  * (테스트용으로 export)
+ *
+ * @param {object[]} candidates
+ * @param {string} [situation] 선정이유의 인용을 대조할 사용자 서술
  */
-export function applyGuards(candidates) {
+export function applyGuards(candidates, situation = '') {
   const cleaned = []
   for (const c of candidates ?? []) {
     if (!c || typeof c !== 'object') continue
@@ -112,10 +163,14 @@ export function applyGuards(candidates) {
     const haystack = `${name} ${detail} ${c['증빙서류'] ?? ''}`
     if (R3_SCOPE.deniedTerms.some((t) => haystack.includes(t))) continue
 
+    const reason = groundedReason(c['선정이유'], situation)
+    if (reason === null) continue
+
     cleaned.push({
       정보명: name,
       세부내용: detail,
       증빙서류: String(c['증빙서류'] ?? '').trim(),
+      선정이유: reason,
       // 근거범주는 LLM이 정하게 두지 않는다. 법정 범주로 고정한다.
       근거범주: R3_SCOPE.categoryLabel,
     })
@@ -182,7 +237,7 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: 'unparsable_response' })
     }
 
-    const candidates = applyGuards(parsed)
+    const candidates = applyGuards(parsed, situation)
     if (candidates.length === 0) {
       return res.status(502).json({ error: 'no_valid_candidates' })
     }

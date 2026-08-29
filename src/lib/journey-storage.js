@@ -49,7 +49,7 @@ export const EMPTY_JOURNEY = {
   updatedAt: null,
   diagnosis: EMPTY_DIAGNOSIS,
   /** /strategy 결과. 다시 들어와도 후보를 새로 만들지 않아도 되게 한다. */
-  strategy: { notice: null, candidates: [], picked: [] },
+  strategy: { notice: null, candidates: [], picked: [], source: null },
   /** 서식 작성 내용. 주민등록번호는 여기에도 없다. */
   form: {
     tab: null,
@@ -86,6 +86,9 @@ export const EMPTY_JOURNEY = {
 }
 
 /* ── 정규화 ──────────────────────────────────────────────────── */
+
+/** /strategy 후보의 출처. 'ai' 만 사용자 서술을 읽고 고른 것이다. */
+const STRATEGY_SOURCES = ['ai', 'cached', 'fallback']
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const str = (v, d = '') => (typeof v === 'string' ? v : d)
@@ -125,6 +128,8 @@ export function normalizeJourney(raw) {
       notice: typeof s.notice === 'string' ? s.notice : null,
       candidates: arr(s.candidates).filter(isObj),
       picked: arr(s.picked).filter((x) => Number.isInteger(x)),
+      /** 후보가 어디서 왔는지. 화면이 'AI가 고른 것'과 '일반 목록'을 구분해 말한다. */
+      source: STRATEGY_SOURCES.includes(s.source) ? s.source : null,
     },
     form: {
       tab: typeof f.tab === 'string' ? f.tab : null,
