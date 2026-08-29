@@ -16,7 +16,7 @@ import {
   isAmbiguousCategoryItem,
   BASE_INFO_CATEGORIES_BY_ID,
 } from '../data/law.js'
-import { RESPONSE_SAMPLES } from '../data/response-samples.js'
+import { RESPONSE_SAMPLES, RESPONSE_SAMPLES_NOTICE } from '../data/response-samples.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { interpretResponse } from '../lib/interpret-client.js'
 import { PageHeader, Basis, Notice, Status, SlowHint } from '../components/ui.jsx'
@@ -234,8 +234,13 @@ export default function Response() {
       {state === 'idle' && (
         <>
           <section className="panel" aria-labelledby="response-sample-heading">
-            <p id="response-sample-heading" className="mb-3 font-bold text-gray-900">
+            <p id="response-sample-heading" className="font-bold text-gray-900">
               회신문이 없다면 샘플로 체험해 보세요
+            </p>
+            {/* ★ 우리가 지어낸 문서를 실물처럼 두지 않는다 */}
+            <p className="mb-3 mt-1 text-sm text-gray-700">
+              <span aria-hidden="true">※ </span>
+              {RESPONSE_SAMPLES_NOTICE}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {RESPONSE_SAMPLES.map((s) => (

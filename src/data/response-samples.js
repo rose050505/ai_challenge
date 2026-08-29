@@ -9,6 +9,17 @@
  * cached 의 covered/missing 값은 RESPONSE_TYPE_IDS(result/criteria/baseInfo)와 맞춘다.
  * 분류 라벨은 BASE_INFO_CATEGORIES 의 라벨과 맞춘다.
  */
+/**
+ * ★ 이 두 회신문은 **우리가 작성한 예시**다. 실제 금융회사가 보낸 문서가 아니다.
+ *   법이 정한 3유형(결과·주요 기준·기초정보의 개요)과 시행령의 제외 단서가 어떻게
+ *   문서에 나타나는지를 보이기 위해 조문 구조에 맞춰 쓴 것이다.
+ *   화면에도 그 사실을 밝힌다(RESPONSE_SAMPLES_NOTICE). 실물처럼 보이게 두면
+ *   "이게 실제 회신이냐"는 물음에 서비스가 거짓을 말하게 된다.
+ */
+export const RESPONSE_SAMPLES_NOTICE =
+  '아래 두 회신문은 이 서비스가 작성한 예시입니다. 실제 금융회사가 보낸 문서가 아니며, ' +
+  '법이 정한 설명 유형이 문서에서 어떻게 나타나는지를 보이기 위해 만든 것입니다.'
+
 export const RESPONSE_SAMPLES = [
   {
     id: 'full',
