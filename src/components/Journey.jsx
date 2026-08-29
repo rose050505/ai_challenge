@@ -128,13 +128,68 @@ export function JourneyFlash() {
 
 /* ── 이어서 하기 카드 ─────────────────────────────────────────── */
 
-export function ResumeCard() {
+/**
+ * @param {boolean} [compact] 첫 화면용 얇은 형태.
+ *
+ * ★ compact 를 만든 이유는 순전히 세로 길이다.
+ *   375×667에서 이 카드가 484px를 먹으면 그 아래 [내 상황으로 시작하기]가
+ *   첫 화면 밖(1285px)으로 밀려난다. 되돌아온 사람이 새 진행을 시작할 수 없게 된다.
+ *   빼는 것은 두 가지뿐이다 — 마지막 수정 시각(제목 줄에 합친다)과
+ *   저장 범위 안내(같은 화면 아래 "기록은 어디에 남나요"와 바닥글에 이미 있다).
+ *   이어서 할 곳과 지우는 길은 그대로 둔다.
+ */
+export function ResumeCard({ compact = false }) {
   const { journey, reset } = useJourney()
   const step = lastStep(journey)
   const [confirming, setConfirming] = useState(false)
   if (!step) return null
 
   const when = formatWhen(journey.updatedAt)
+
+  if (compact) {
+    return (
+      <section
+        className="rounded-lg border-2 border-ink-700 bg-white p-4"
+        aria-labelledby="resume-heading"
+      >
+        <h2 id="resume-heading" className="font-bold text-gray-900">
+          진행 중인 기록이 있습니다
+          {when && <span className="font-normal text-gray-600"> · {when}</span>}
+        </h2>
+        <p className="mt-1 text-gray-700">
+          마지막 단계 — {step.label}
+          {step.detail && <span className="text-gray-600"> · {step.detail}</span>}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Link to={step.to} className="btn btn-primary">
+            이어서 하기
+          </Link>
+          {confirming ? (
+            <span className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-2">
+              <span className="text-sm text-amber-900">저장된 기록을 모두 지울까요?</span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  reset()
+                  setConfirming(false)
+                }}
+              >
+                지우고 처음부터
+              </button>
+              <button type="button" className="btn btn-quiet" onClick={() => setConfirming(false)}>
+                그대로 두기
+              </button>
+            </span>
+          ) : (
+            <button type="button" className="btn btn-quiet" onClick={() => setConfirming(true)}>
+              처음부터
+            </button>
+          )}
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="rounded-lg border-2 border-ink-700 bg-white p-5" aria-labelledby="resume-heading">

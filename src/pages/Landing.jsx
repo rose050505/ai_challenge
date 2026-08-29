@@ -21,12 +21,19 @@ import {
  * 권리 5종을 나열하는 것은 이미 제도를 이해한 사람에게 유용하고,
  * 처음 온 사람에게는 읽어야 할 목록이 하나 더 생긴 것일 뿐이다.
  *
- *   1) 무슨 서비스인가 (한 문장)
+ *   1) 무슨 서비스인가 (제목 + 한 줄)
  *   2) 바로 해 볼 수 있는 두 갈래 — 심사자는 여기서 샘플로 들어간다
  *   3) 자가진단 "혹시 이런 일이 있으셨나요?"  ← 나에게 필요한지 여기서 판단된다
- *   4) 자동화평가란 무엇이고 왜 그걸 먼저 물어야 하는가
- *   5) 무엇을 해 주는 서비스인가 (3단계)
- *   6) 그제서야 권리 5종
+ *   4) 왜 물어볼 수 있는가 (근거 조문 + 설명)
+ *   5) 자동화평가란 무엇이고 왜 그걸 먼저 물어야 하는가
+ *   6) 무엇을 해 주는 서비스인가 (3단계)
+ *   7) 그제서야 권리 5종
+ *
+ * ★ 375×667(가장 흔한 소형 화면)에서 **버튼이 첫 화면 안에 있어야 한다.**
+ *   측정해 보니 설명 문단과 근거 배지를 먼저 두었을 때 버튼이 801px에 있었다.
+ *   읽히지 않는 설명은 없는 것과 같고, 눌리지 않는 버튼은 더 그렇다.
+ *   그래서 제목 → 한 줄 → 버튼 → 자가진단 을 먼저 두고,
+ *   긴 설명과 근거 배지는 그 아래로 내렸다. (내용은 하나도 빼지 않았다)
  * ────────────────────────────────────────────────────────────────
  *
  * 법조문 텍스트는 전부 src/data/law.js 에서만 읽는다. 이 파일에 하드코딩하지 않는다.
@@ -55,26 +62,49 @@ export default function Landing() {
   const byParagraph = (n) => RIGHTS.filter((r) => r.paragraph === n)
 
   return (
-    <div className="space-y-12 py-8 sm:py-12">
-      {/* ── 이어서 하기 — 기록이 있을 때만 맨 위에 뜬다 ────────── */}
-      <ResumeCard />
-      <SubmissionRecord />
+    <div className="space-y-12 pb-8 pt-5 sm:py-12">
+      {/* ── 이어서 하기 — 기록이 있을 때만 맨 위에 뜬다 ──────────
+          ★ 여기서는 얇은 형태로 띄운다. 되돌아온 사람에게도 아래의
+            [내 상황으로 시작하기]가 첫 화면 밖으로 밀려나면 안 된다. */}
+      {/* 이어서 하기 카드와 히어로는 한 덩어리로 묶어 사이 여백을 줄인다.
+          기록이 있는 사람에게도 버튼이 첫 화면 안에 남아야 한다. */}
+      <div className="space-y-5">
+      <ResumeCard compact />
 
       {/* ── 1. 무슨 서비스인가 ───────────────────────────────── */}
-      <section className="space-y-5">
-        <p className="text-sm font-semibold tracking-wide text-ink-600">
-          자동화평가 설명·이의제기 도우미
-        </p>
+      <section className="space-y-4">
+        {/* 서비스 부제는 화면 맨 위 머리말에 이미 있다. 여기서 되풀이하지 않는다. */}
         <h1 className="text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">
           대출이 거절됐을 때,
           <br />
           이유를 물어볼 <span className="text-ink-700">법적 권리</span>가 있습니다.
         </h1>
-        {/* 서비스명의 의미를 여기서 드러낸다 */}
+        {/* 서비스명의 의미를 여기서 드러낸다 — 버튼 앞의 한 줄 */}
         <p className="max-w-prose text-lg text-gray-800 sm:text-xl">
           AI가 내린 결정에 <b className="text-ink-800">&ldquo;왜요?&rdquo;</b>라고 물을 권리.
-          그게 이 서비스의 이름입니다.
+          <b> 그 요구서를 대신 만들어 드립니다.</b>
         </p>
+
+        {/* ── 2. 바로 해 보기 — 제목 바로 아래 ───────────────── */}
+        <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap">
+          <Link to="/diagnose" className="btn btn-primary">
+            내 상황으로 시작하기
+          </Link>
+          <Link to={`/diagnose?sample=${SAMPLE_SCENARIOS[0].id}`} className="btn btn-secondary">
+            샘플 시나리오로 체험하기
+          </Link>
+        </div>
+      </section>
+      </div>
+
+      {/* ── 3. 자가진단 — 나에게 필요한지 여기서 판단된다 ────── */}
+      <SelfCheck />
+
+      {/* 제출한 기록이 있으면 여기서 회신 해석으로 이어 준다 */}
+      <SubmissionRecord />
+
+      {/* ── 4. 왜 물어볼 수 있는가 — 근거 조문은 여기서 밝힌다 ── */}
+      <section className="space-y-4">
         <p className="max-w-prose text-gray-700">
           <Plain id="landing.lead">
           컴퓨터가 자동으로 심사했다면 그 결과와 기준을 설명하라고 요구할 수 있습니다.{' '}
@@ -92,20 +122,7 @@ export default function Landing() {
         </p>
       </section>
 
-      {/* ── 2. 바로 해 보기 ──────────────────────────────────── */}
-      <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <Link to="/diagnose" className="btn btn-primary">
-          내 상황으로 시작하기
-        </Link>
-        <Link to={`/diagnose?sample=${SAMPLE_SCENARIOS[0].id}`} className="btn btn-secondary">
-          샘플 시나리오로 체험하기
-        </Link>
-      </section>
-
-      {/* ── 3. 자가진단 — 나에게 필요한지 여기서 판단된다 ────── */}
-      <SelfCheck />
-
-      {/* ── 4. 자동화평가란 ──────────────────────────────────── */}
+      {/* ── 5. 자동화평가란 ──────────────────────────────────── */}
       <section className="panel">
         <h2 className="text-lg font-bold text-gray-900">
           <Term id="automatedEvaluation">{DEFINITION_AUTOMATED_EVALUATION.term}</Term>란
@@ -121,7 +138,7 @@ export default function Landing() {
         </p>
       </section>
 
-      {/* ── 5. 무엇을 해 주는가 ──────────────────────────────── */}
+      {/* ── 6. 무엇을 해 주는가 ──────────────────────────────── */}
       <section className="space-y-4">
         <h2 className="text-2xl font-bold text-gray-900">무엇을 해 드리나요</h2>
         <ol className="space-y-3">
@@ -139,7 +156,7 @@ export default function Landing() {
         </ol>
       </section>
 
-      {/* ── 6. 권리 목록 — 제도를 이해한 뒤에 읽는 자리 ───────── */}
+      {/* ── 7. 권리 목록 — 제도를 이해한 뒤에 읽는 자리 ───────── */}
       <section className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-900">
           행사할 수 있는 권리 {RIGHTS.length}가지
