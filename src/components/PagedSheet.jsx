@@ -108,6 +108,8 @@ function renderBlocks(blocks, groups) {
 export default function PagedSheet({ title, subtitle, applicantName, blocks, groups, onPageCount }) {
   const measureRef = useRef(null)
   const [pages, setPages] = useState(null)
+  /** 한 행이 한 쪽보다 커서 쪽 수 예고가 실제보다 적을 수 있는 상태 */
+  const [oversize, setOversize] = useState(false)
   const signature = useRef('')
 
   const measure = useCallback(() => {
@@ -116,22 +118,44 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
     const h = (el) => (el ? el.getBoundingClientRect().height : 0)
 
     const heights = {}
+    let tallest = 0
     root.querySelectorAll('[data-mid]').forEach((el) => {
-      heights[el.getAttribute('data-mid')] = h(el)
+      const height = h(el)
+      heights[el.getAttribute('data-mid')] = height
+      if (height > tallest) tallest = height
     })
     const groupHeadHeights = {}
     root.querySelectorAll('[data-mghead]').forEach((el) => {
       groupHeadHeights[el.getAttribute('data-mghead')] = h(el)
     })
 
+    const pageHeight = (PAGE_CONTENT_HEIGHT_MM - PAGE_SAFETY_MM) * MM_TO_PX
+    const runHeadHeight = h(root.querySelector('[data-mhead="run"]'))
+    const footHeight = h(root.querySelector('[data-mfoot]'))
+
+    /**
+     * 한 덩어리가 한 쪽보다 큰가.
+     *
+     * ★ 표의 행은 절대 쪼개지 않는다(paginate.js). 행 하나가 한 쪽보다 크면
+     *   브라우저가 알아서 넘겨 인쇄하고, **우리 예고보다 실제 쪽 수가 많아진다.**
+     *   (내용이 잘리지는 않는다 — 확인함. 다만 숫자가 틀린다.)
+     *   틀릴 수 있다는 것을 아는데 가만히 있지 않는다. 화면에 그렇다고 적는다.
+     * ★ 여기서 함께 판정한다. 따로 한 번 더 훑으면 글자 하나 칠 때마다
+     *   레이아웃 읽기가 두 배가 된다 (2026-08-31 성능 점검에서 확인).
+     */
+    setOversize((prev) => {
+      const now = tallest > pageHeight - footHeight - runHeadHeight
+      return prev === now ? prev : now
+    })
+
     const next = paginate({
       blocks,
       heights,
       groupHeadHeights,
-      pageHeight: (PAGE_CONTENT_HEIGHT_MM - PAGE_SAFETY_MM) * MM_TO_PX,
+      pageHeight,
       firstHeadHeight: h(root.querySelector('[data-mhead="first"]')),
-      runHeadHeight: h(root.querySelector('[data-mhead="run"]')),
-      footHeight: h(root.querySelector('[data-mfoot]')),
+      runHeadHeight,
+      footHeight,
       gap: BLOCK_GAP_PT * PT_TO_PX,
     })
 
@@ -151,25 +175,6 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
     setPages(next.map((p) => p.blocks.map((b) => b.id)))
   }, [blocks])
 
-  /**
-   * 한 덩어리가 한 쪽보다 큰가.
-   *
-   * ★ 표의 행은 절대 쪼개지 않는다(paginate.js). 그래서 행 하나가 한 쪽보다 크면
-   *   브라우저가 알아서 넘겨 인쇄하고, **우리 예고보다 실제 쪽 수가 많아진다.**
-   *   (내용이 잘리지는 않는다 — 확인함. 다만 숫자가 틀린다.)
-   *   틀릴 수 있다는 것을 아는데 가만히 있지 않는다. 화면에 그렇다고 적는다.
-   */
-  const measureOversize = useCallback(() => {
-    const root = measureRef.current
-    if (!root) return false
-    const h = (el) => (el ? el.getBoundingClientRect().height : 0)
-    const capacity =
-      (PAGE_CONTENT_HEIGHT_MM - PAGE_SAFETY_MM) * MM_TO_PX -
-      h(root.querySelector('[data-mfoot]')) -
-      h(root.querySelector('[data-mhead="run"]'))
-    return [...root.querySelectorAll('[data-mid]')].some((el) => h(el) > capacity)
-  }, [])
-
   useLayoutEffect(measure)
 
   // 글꼴이 늦게 붙으면 높이가 달라진다. 붙은 뒤 한 번 더 잰다.
@@ -184,11 +189,6 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
   }, [measure])
 
   const total = pages?.length ?? 1
-  const [oversize, setOversize] = useState(false)
-  useLayoutEffect(() => {
-    const next = measureOversize()
-    setOversize((prev) => (prev === next ? prev : next))
-  })
   useEffect(() => {
     onPageCount?.(total, { oversize })
   }, [total, oversize, onPageCount])

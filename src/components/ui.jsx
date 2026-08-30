@@ -165,6 +165,30 @@ export function Status({ children, className = '' }) {
  * 그 사실을 화면에서도 같은 값으로 말해 준다. 사용자가 새로고침해 버리면
  * 입력이 아니라 흐름이 끊긴다.
  */
+/**
+ * 기다린 시간.
+ *
+ * ★ 남은 시간을 말하지 않는다. **지난 시간**만 말한다.
+ *   얼마나 걸릴지는 우리가 모른다(모델·네트워크에 달렸다). 모르는 것을 세지 않는다.
+ *   지난 시간은 사실이고, 화면이 멈춘 것이 아니라는 증거가 된다.
+ *
+ * ★ 스크린리더에는 읽히지 않게 한다. 1초마다 낭독되면 방해만 된다.
+ *   기다리는 중이라는 사실은 옆의 role="status" 문장이 이미 한 번 알린다.
+ */
+export function Elapsed({ className = '' }) {
+  const [sec, setSec] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setSec((n) => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [])
+  if (sec < 2) return null
+  return (
+    <p aria-hidden="true" className={`tabular text-sm text-gray-600 ${className}`}>
+      {sec}초째 기다리는 중
+    </p>
+  )
+}
+
 export function SlowHint({ afterMs = 8000, timeoutSec = 25 }) {
   const [slow, setSlow] = useState(false)
   useEffect(() => {

@@ -21,7 +21,7 @@ import { RESPONSE_SAMPLES, RESPONSE_SAMPLES_NOTICE } from '../data/response-samp
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { interpretResponse } from '../lib/interpret-client.js'
 import { buildCorrectionRows } from '../lib/correction-rows.js'
-import { PageHeader, Basis, Notice, Status, SlowHint } from '../components/ui.jsx'
+import { PageHeader, Basis, Notice, Status, SlowHint, Elapsed } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import { AI_PROCESSING, TRANSMIT_LIMITS } from '../data/privacy.js'
 
@@ -363,6 +363,7 @@ export default function Response() {
             회신이 길면 20초 가까이 걸립니다. 최대 25초까지 기다립니다. 이 화면을 닫지 마세요.
           </p>
           <SlowHint />
+          <Elapsed className="mt-2" />
           <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded bg-gray-200">
             <div className="h-full w-1/3 animate-pulse bg-ink-500" />
           </div>

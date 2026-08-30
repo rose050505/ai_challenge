@@ -4,7 +4,7 @@ import { R3_SCOPE, RIGHTS_BY_ID, INSTITUTION_OPTIONS } from '../data/law.js'
 import { EVENT_TYPES_BY_ID } from '../data/events.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { requestCandidates } from '../lib/analyze-client.js'
-import { PageHeader, Basis, Card, Notice, Status, SlowHint } from '../components/ui.jsx'
+import { PageHeader, Basis, Card, Notice, Status, SlowHint, Elapsed } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import { ArchitectureDiagram } from '../components/Diagrams.jsx'
 import { AI_PROCESSING } from '../data/privacy.js'
@@ -241,6 +241,7 @@ export default function Strategy() {
             보통 10초 안팎, 최대 25초까지 걸릴 수 있습니다. 이 화면을 닫지 마세요.
           </p>
           <SlowHint />
+          <Elapsed className="mt-2" />
           <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded bg-gray-200">
             <div className="h-full w-1/3 animate-pulse bg-ink-500" />
           </div>
