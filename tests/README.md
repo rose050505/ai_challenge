@@ -78,16 +78,26 @@ cd tests
   `pdftotext`·`pdfinfo`(poppler-utils)가 필요하다. **`run-print.sh` 는 `pdfinfo` 가 없으면
   맨 앞에서 통째로 멈춘다.** (`node tprintlong.mjs` 로 따로 돌리면 스스로 건너뛴다.)
 
-배포본을 상대로 도는 시험:
+배포본을 상대로 도는 시험 — **한 줄로 묶어 뒀다.**
 
 ```bash
-node dep1.mjs https://362.parkmiyeong.com          # 배포본 사실 확인 + 라이브 AI
-node private-dep.mjs https://362.parkmiyeong.com   # 저장 차단(시크릿) 환경
-node depshots.mjs https://362.parkmiyeong.com      # 375/768/1280 스크린샷
-node blocked-lead.mjs https://362.parkmiyeong.com  # 저장 차단 시 서식 안내문
+./run-deployed.sh                                  # 대표 URL 전부
+./run-deployed.sh https://362.parkmiyeong.com      # 주소를 직접
+./run-deployed.sh --quick                          # 실제 API 호출 없이 (비용 0)
 ```
 
-`dep1.mjs` 는 **실제 API 를 한 번 호출한다.** 비용이 든다(적다).
+심사 기간(2026-09-07 11:00 ~ 09-11 23:59)에 이 한 줄로 확인한다. 순서는
+
+1. 접속 200 — 안 열리면 여기서 멈춘다
+2. 보안 헤더 5종
+3. **배포된 번들에 API 키 흔적이 없는가** (있으면 즉시 중단)
+4. `dep1.mjs` — 화면 사실 확인 + **실제 API 한 번** (`--quick` 이면 건너뛴다)
+5. `private-dep.mjs` — 저장이 막힌 브라우저에서 전 경로
+6. `blocked-lead.mjs` — 저장 차단 시 서식 안내문
+7. `depshots.mjs` — 375/768/1280 스크린샷 (`tests/out/`)
+
+1~3 은 브라우저가 없어도 돈다. 크롬이 없으면 거기까지만 하고 정상 종료한다.
+낱개로 돌리려면 `node dep1.mjs <URL>` 처럼 그대로 부르면 된다.
 
 ---
 

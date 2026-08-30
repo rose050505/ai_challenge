@@ -165,5 +165,29 @@ for (const [formId, formName] of FORMS) {
   }
 }
 
+/**
+ * 체크 상태도 종이에 그대로 나가는가.
+ *
+ * ★ 화면의 체크박스와 인쇄물의 ✓ 는 **다른 요소**다.
+ *   인쇄에서는 브라우저 기본 체크박스가 표시를 빼먹거나 컬러로 나오므로,
+ *   테두리 + 글리프로 바꿔 출력한다(Document.jsx `Checkbox`). 값만 공유한다.
+ *   값이 안 넘어가면 **요청하지 않은 것으로 인쇄된다.** 글자 잘림만큼 나쁘다.
+ */
+for (const [formId, formName] of FORMS) {
+  await setup(formId, 'base')
+  const boxes = await ev(`(()=>{const cs=[...document.querySelectorAll('.print-sheet input[type=checkbox]')];
+    cs.forEach(c=>{if(!c.checked) c.click()}); return cs.length})()`)
+  await sleep(1500)
+  if (boxes === 0) { console.log(`  (건너뜀) ${formName}: 서식 안에 체크칸이 없다`); continue }
+  const checked = await ev(`[...document.querySelectorAll('.print-sheet input[type=checkbox]')].filter(c=>c.checked).length`)
+  const on = await printAndCount(`check-${formName}-on.pdf`, new Set('\u2713'))
+  t_(`${formName}: 켠 ${checked}개가 인쇄물에 ✓ 로 나온다 (실제 ${on.sum}개)`, on.sum === checked)
+
+  await ev(`(()=>{document.querySelectorAll('.print-sheet input[type=checkbox]').forEach(c=>{if(c.checked) c.click()}); return 1})()`)
+  await sleep(1500)
+  const off = await printAndCount(`check-${formName}-off.pdf`, new Set('\u2713'))
+  t_(`${formName}: 전부 끄면 인쇄물에 ✓ 가 없다 (실제 ${off.sum}개)`, off.sum === 0)
+}
+
 console.log(`\n통과 ${pass} / 실패 ${fail}`)
 ws.close(); process.exit(fail ? 1 : 0)

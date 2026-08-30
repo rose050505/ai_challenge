@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# 배포본 점검 — 심사 기간(2026-09-07 11:00 ~ 09-11 23:59)에 한 줄로 돌린다.
+#
+#   ./run-deployed.sh                       # 대표 URL
+#   ./run-deployed.sh https://... --quick   # 실제 API 호출 없이 (비용 0)
+#
+# ★ --quick 이 아니면 /api/analyze 를 **한 번 실제로 호출한다.** 비용이 든다(적다).
+#   심사 기간에는 그게 핵심이다 — 키가 살아 있는지 여기서 확인한다.
+set -u
+cd "$(dirname "$0")"
+
+URL="${1:-https://362.parkmiyeong.com}"
+case "${1:-}" in --quick) URL="https://362.parkmiyeong.com" ;; esac
+QUICK=0
+for a in "$@"; do [ "$a" = "--quick" ] && QUICK=1; done
+
+CDP="${CDP:-http://127.0.0.1:9444}"
+export CDP
+
+echo "대상: $URL"
+echo
+
+# ── 0. 살아 있는가 (브라우저 없이) ──────────────────────────────
+code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$URL/")
+printf '  %s 접속 %s\n' "$([ "$code" = 200 ] && echo ✔ || echo ✘)" "$code"
+[ "$code" = 200 ] || { echo; echo "✘ 열리지 않는다. 여기서 멈춘다."; exit 1; }
+
+# 보안 헤더 — 배포 설정이 살아 있는지
+hdr=$(curl -sI --max-time 20 "$URL/" | tr 'A-Z' 'a-z')
+for h in x-content-type-options x-frame-options referrer-policy permissions-policy strict-transport-security; do
+  printf '  %s %s\n' "$(printf '%s' "$hdr" | grep -q "^$h:" && echo ✔ || echo '·')" "$h"
+done
+
+# 번들에 키가 새지 않았는가 — 배포본에서 직접 확인한다
+js=$(curl -s --max-time 30 "$URL/" | grep -o '/assets/[^"]*\.js' | head -1)
+if [ -n "$js" ]; then
+  body=$(curl -s --max-time 60 "$URL$js")
+  if printf '%s' "$body" | grep -qE 'sk-ant|ANTHROPIC_API_KEY'; then
+    echo "  ✘ ★ 번들에 API 키 흔적이 있다 — 즉시 중단하고 확인할 것"; exit 1
+  else
+    echo "  ✔ 번들에 API 키 흔적 없음 ($js)"
+  fi
+fi
+
+# ── 1. 브라우저가 필요한 점검 ───────────────────────────────────
+curl -sf "$CDP/json/version" -o /dev/null || {
+  echo
+  echo "헤드리스 크롬이 없어 여기까지만 확인했다: $CDP"
+  echo "  chrome-headless-shell --remote-debugging-port=9444 --user-data-dir=/tmp/cdp-profile about:blank"
+  exit 0; }
+
+fail=0
+run() {  # run <이름> <파일> [인자...]
+  echo
+  echo "── $1 ──"
+  if timeout 400 node "$2" "${@:3}"; then :; else fail=$((fail+1)); echo "  ✘ $1 실패"; fi
+}
+
+if [ "$QUICK" = 1 ]; then
+  echo
+  echo "(--quick: 실제 API 를 호출하는 dep1 은 건너뛴다)"
+else
+  run "화면 사실 확인 + 라이브 AI 한 번" dep1.mjs "$URL"
+fi
+run "저장이 막힌 브라우저(시크릿)" private-dep.mjs "$URL"
+run "저장 차단 시 서식 안내문" blocked-lead.mjs "$URL"
+run "375 / 768 / 1280 스크린샷" depshots.mjs "$URL"
+
+echo
+echo "────────────────────────"
+if [ "$fail" -eq 0 ]; then echo "배포본 점검 통과"; else echo "실패 $fail 건"; fi
+[ "$fail" -eq 0 ]

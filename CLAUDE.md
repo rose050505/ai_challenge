@@ -255,8 +255,9 @@ cd tests && ./run.sh                                     # 단위 + 브라우저
 cd tests && ./run-print.sh                               # 인쇄 쪽수 예고=실제
 ```
 
-배포본을 상대로: `node tests/dep1.mjs https://362.parkmiyeong.com`
-(**실제 API 를 한 번 호출한다.**)
+배포본을 상대로: `cd tests && ./run-deployed.sh`
+접속·보안 헤더·**번들에 키가 없는지**·라이브 AI·시크릿 모드·스크린샷을 한 줄로 확인한다.
+(**실제 API 를 한 번 호출한다.** 비용 없이 돌리려면 `./run-deployed.sh --quick`)
 
 ## 작업 원칙
 
