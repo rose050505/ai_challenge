@@ -1099,7 +1099,7 @@ function DocumentSheet({ activeCase, form2Index }) {
               )
             })}
           {handoff.correctionRows.length > 0 && (
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-gray-700" data-tour="handoff">
               회신 해석에서 표시하신 {handoff.correctionRows.length}건이 섹션 2의 &ldquo;현행
               정보&rdquo; 칸에 채워졌습니다. &ldquo;정정 또는 삭제 내용&rdquo;은 직접 적어
               주세요.
@@ -1230,7 +1230,7 @@ function DocumentSheet({ activeCase, form2Index }) {
             출력했다면, 이후 절차 보기
           </Link>
         </div>
-        <p role="status" aria-live="polite" className="text-gray-800">
+        <p role="status" aria-live="polite" className="text-gray-800" data-tour="pagecount">
           {isForm1 ? (
             <>
               현재 내용은 <b>{form1PageCount}페이지</b>로 출력됩니다.

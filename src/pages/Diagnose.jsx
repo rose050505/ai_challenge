@@ -458,7 +458,7 @@ function Result({ counterparty, transaction }) {
       <h2 className="text-2xl font-bold text-gray-900">행사할 수 있는 권리</h2>
 
       {/* 사건 유형 × 업권 조합 판정. 애매하면 하위 호를 특정하지 않는다. */}
-      <div className="panel">
+      <div className="panel" data-tour="basis">
         <p className="text-gray-800">
           <span className="font-bold">해당 거래 </span>
           {transaction.label}

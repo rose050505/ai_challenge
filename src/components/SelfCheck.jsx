@@ -26,7 +26,7 @@ export default function SelfCheck() {
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
 
   return (
-    <section aria-labelledby="self-check-heading" className="panel">
+    <section aria-labelledby="self-check-heading" className="panel" data-tour="selfcheck">
       <h2 id="self-check-heading" className="text-xl font-bold text-gray-900">
         혹시 이런 일이 있으셨나요?
       </h2>

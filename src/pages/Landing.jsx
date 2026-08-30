@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { LAW_META, RIGHTS, DEFINITION_AUTOMATED_EVALUATION } from '../data/law.js'
 import { SAMPLE_SCENARIOS } from '../data/samples.js'
@@ -5,6 +6,8 @@ import { Basis, Card } from '../components/ui.jsx'
 import { Term, GlossaryList } from '../components/Term.jsx'
 import SelfCheck from '../components/SelfCheck.jsx'
 import { Plain } from '../lib/plain.jsx'
+import { useTour } from '../lib/tour.jsx'
+import { TOUR_TITLE } from '../data/tour.js'
 import {
   ResumeCard,
   BackupPanel,
@@ -60,6 +63,20 @@ const STEPS = [
 
 export default function Landing() {
   const byParagraph = (n) => RIGHTS.filter((r) => r.paragraph === n)
+  const { start, shouldAutoOpen } = useTour()
+
+  /**
+   * 처음 온 사람에게는 한 번만 저절로 열린다.
+   * ★ 진행 중인 기록이 있으면 열지 않는다. 하던 일을 가로채지 않는다.
+   * ★ 저장이 막힌 환경(시크릿 모드)에서는 "봤다"를 기억할 수 없어 매번 열린다.
+   *   저장하지 않기로 한 대가이고, 버튼 하나로 닫힌다.
+   */
+  const autoTried = useRef(false)
+  useEffect(() => {
+    if (autoTried.current) return
+    autoTried.current = true
+    if (shouldAutoOpen()) start()
+  }, [shouldAutoOpen, start])
 
   return (
     <div className="space-y-12 pb-8 pt-5 sm:py-12">
@@ -93,6 +110,10 @@ export default function Landing() {
           <Link to={`/diagnose?sample=${SAMPLE_SCENARIOS[0].id}`} className="btn btn-secondary">
             샘플 시나리오로 체험하기
           </Link>
+          {/* 서식 생성기로 오해받는 지점을 여기서 막는다 */}
+          <button type="button" onClick={start} className="btn btn-quiet">
+            {TOUR_TITLE}
+          </button>
         </div>
       </section>
       </div>

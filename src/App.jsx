@@ -4,6 +4,8 @@ import { DiagnosisProvider, useJourney } from './lib/diagnosis-context.jsx'
 import { SaveStatus, JourneyFlash, STORAGE_SCOPE_TEXT } from './components/Journey.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { PlainProvider, usePlain } from './lib/plain.jsx'
+import { TourProvider } from './lib/tour.jsx'
+import Tour from './components/Tour.jsx'
 import { PLAIN_NOTICE } from './data/plain.js'
 import LawVersions from './components/LawVersions.jsx'
 import Landing from './pages/Landing.jsx'
@@ -171,6 +173,8 @@ export default function App() {
   return (
     <DiagnosisProvider>
       <PlainProvider>
+      {/* 투어는 네 화면을 건너다닌다. 라우터 안, 화면 바깥에 둔다. */}
+      <TourProvider>
       <div className="app-shell">
         {/* 키보드 사용자가 네비게이션 다섯 개를 매번 지나치지 않게 한다 */}
         <a
@@ -241,7 +245,10 @@ export default function App() {
             <p className="mt-1">{STORAGE_SCOPE_TEXT}</p>
           </div>
         </footer>
+
+        <Tour />
       </div>
+      </TourProvider>
       </PlainProvider>
     </DiagnosisProvider>
   )

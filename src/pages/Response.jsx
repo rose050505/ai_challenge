@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   RESPONSE_TYPES,
   RESPONSE_TYPE_IDS,
@@ -19,6 +19,7 @@ import {
 import { RESPONSE_SAMPLES, RESPONSE_SAMPLES_NOTICE } from '../data/response-samples.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { interpretResponse } from '../lib/interpret-client.js'
+import { buildCorrectionRows } from '../lib/correction-rows.js'
 import { PageHeader, Basis, Notice, Status, SlowHint } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 
@@ -121,6 +122,7 @@ function TypeRow({ type, got }) {
 
 export default function Response() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const { journey, setSection } = useJourney()
   /**
    * 저장된 해석 결과가 있으면 그대로 이어서 보여준다.
@@ -145,9 +147,16 @@ export default function Response() {
     { 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label },
   ])
 
-  const run = async () => {
+  /**
+   * @param {{sampleId: string, text: string}} [preset]
+   *   딥링크(?sample=…&run=1)로 들어온 경우. state 반영을 기다리지 않고 바로 돌린다.
+   */
+  const run = async (preset) => {
     setState('loading')
-    const r = await interpretResponse({ sampleId, responseText: text })
+    const r = await interpretResponse({
+      sampleId: preset?.sampleId ?? sampleId,
+      responseText: preset?.text ?? text,
+    })
     setResult(r)
     setErrors([])
     setCatOverrides({})
@@ -171,6 +180,22 @@ export default function Response() {
     setResult(null)
     setCatOverrides({})
   }
+
+  /**
+   * 딥링크로 샘플을 미리 고르고, run=1 이면 해석까지 돌린다.
+   * 둘러보기가 쓰는 경로다. 샘플 해석은 캐시된 결과이므로 API 를 타지 않는다.
+   * ★ 새 판정 로직이 아니다. 화면의 샘플 버튼이 하던 일을 주소로 부를 수 있게 한 것뿐이다.
+   */
+  const autoRan = useRef(false)
+  useEffect(() => {
+    if (autoRan.current) return
+    const s = RESPONSE_SAMPLES.find((x) => x.id === params.get('sample'))
+    if (!s) return
+    autoRan.current = true
+    pickSample(s)
+    if (params.get('run') === '1') run({ sampleId: s.id, text: s.text })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params])
 
   // 수동 모드에서 만든 해석 결과를 AI 결과와 같은 모양으로 맞춘다
   const manualInterpretation = {
@@ -203,11 +228,8 @@ export default function Response() {
 
   const goNext = (action) => {
     // 회신에서 읽은 값을 서식으로 넘긴다. 정정 내용은 사용자가 채운다.
-    const rows = errors.map((i) => {
-      const item = items[i]
-      const cat = BASE_INFO_CATEGORIES.find((c) => c.label === item.분류) ?? BASE_INFO_CATEGORIES[4]
-      return { categoryId: cat.id, current: `${item.항목}: ${item.내용}` }
-    })
+    // ★ 둘러보기도 같은 함수를 쓴다. 변환이 두 곳으로 갈라지면 언젠가 어긋난다.
+    const rows = buildCorrectionRows(items, errors)
     setSection(
       'diagnosis',
       {
@@ -454,7 +476,7 @@ export default function Response() {
           )}
 
           {/* (1) 무엇을 받았고 무엇을 못 받았나 */}
-          <div>
+          <div data-tour="coverage">
             <h2 className="mb-3 text-xl font-bold text-gray-900">무엇을 받았나요</h2>
             <ul className="space-y-2">
               {RESPONSE_TYPES.map((t) => (
@@ -472,6 +494,7 @@ export default function Response() {
 
           {/* (2) 제도의 한계 — 반드시 표시. 실제 적용된 회신이면 강조한다. */}
           <div
+            data-tour="proviso"
             className={
               excluded
                 ? 'rounded-lg border-2 border-amber-600 bg-amber-50 p-5'
