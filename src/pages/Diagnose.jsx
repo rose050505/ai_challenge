@@ -339,7 +339,8 @@ export default function Diagnose() {
  * 결과 화면의 필수 단계가 아니라 R4·R5 카드 안의 펼침으로 둔다.
  * 정정 의사가 없는 사용자는 이 질문을 아예 보지 않는다.
  */
-function RoutingDisclosure() {
+/** @param {boolean} withDiagram 그림은 한 화면에 한 번만. R4·R5 두 카드에 다 넣으면 같은 그림이 둘이 된다. */
+function RoutingDisclosure({ withDiagram = false }) {
   const { diagnosis, update } = useDiagnosis()
   const branch = CORRECTION_ROUTING.branches.find((b) => b.id === diagnosis.routingBranchId)
 
@@ -355,7 +356,9 @@ function RoutingDisclosure() {
         <p className="font-bold text-gray-900">{CORRECTION_ROUTING.question}</p>
         <p className="mt-1 text-gray-700">상대를 잘못 고르면 요청이 반려됩니다.</p>
         {/* 고르기 전에 세 갈래가 어디로 가는지 한 장으로 보인다 */}
-        <RoutingDiagram className="mt-3 rounded-md border border-amber-200 bg-white p-3" />
+        {withDiagram && (
+          <RoutingDiagram className="mt-3 rounded-md border border-amber-200 bg-white p-3" />
+        )}
         <div className="mt-3 space-y-2">
           {CORRECTION_ROUTING.branches.map((b) => (
             <Choice
@@ -447,7 +450,7 @@ function RightCard({ right, counterparty }) {
           않습니다. ({a.basis})
         </p>
       ))}
-      {isCorrectionRelated && <RoutingDisclosure />}
+      {isCorrectionRelated && <RoutingDisclosure withDiagram={right.id === 'R4'} />}
     </Card>
   )
 }
