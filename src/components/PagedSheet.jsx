@@ -139,8 +139,36 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
     const sig = next.map((p) => p.blocks.map((b) => b.id).join(',')).join('|')
     if (sig === signature.current) return
     signature.current = sig
-    setPages(next)
+    /**
+     * ★ 블록 **덩어리**를 상태에 담지 않는다. id 만 담는다.
+     *
+     *   담았더니 이런 일이 생겼다: 사용자가 서식 2의 칸에 글자를 넣으면 blocks 의
+     *   node 는 새로 만들어지는데, 쪽 나눔이 그대로면 위 signature 검사에 걸려
+     *   setPages 를 건너뛴다. 그러면 화면과 **인쇄물**은 예전 node 를 계속 그린다.
+     *   → 방금 적은 값이 종이에서 빠진다. (2026-08-31 Phase 0 에서 PDF 로 확인)
+     *   id 만 담고 그릴 때 지금의 blocks 에서 찾으면 이 어긋남이 원천적으로 없다.
+     */
+    setPages(next.map((p) => p.blocks.map((b) => b.id)))
   }, [blocks])
+
+  /**
+   * 한 덩어리가 한 쪽보다 큰가.
+   *
+   * ★ 표의 행은 절대 쪼개지 않는다(paginate.js). 그래서 행 하나가 한 쪽보다 크면
+   *   브라우저가 알아서 넘겨 인쇄하고, **우리 예고보다 실제 쪽 수가 많아진다.**
+   *   (내용이 잘리지는 않는다 — 확인함. 다만 숫자가 틀린다.)
+   *   틀릴 수 있다는 것을 아는데 가만히 있지 않는다. 화면에 그렇다고 적는다.
+   */
+  const measureOversize = useCallback(() => {
+    const root = measureRef.current
+    if (!root) return false
+    const h = (el) => (el ? el.getBoundingClientRect().height : 0)
+    const capacity =
+      (PAGE_CONTENT_HEIGHT_MM - PAGE_SAFETY_MM) * MM_TO_PX -
+      h(root.querySelector('[data-mfoot]')) -
+      h(root.querySelector('[data-mhead="run"]'))
+    return [...root.querySelectorAll('[data-mid]')].some((el) => h(el) > capacity)
+  }, [])
 
   useLayoutEffect(measure)
 
@@ -156,11 +184,21 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
   }, [measure])
 
   const total = pages?.length ?? 1
+  const [oversize, setOversize] = useState(false)
+  useLayoutEffect(() => {
+    const next = measureOversize()
+    setOversize((prev) => (prev === next ? prev : next))
+  })
   useEffect(() => {
-    onPageCount?.(total)
-  }, [total, onPageCount])
+    onPageCount?.(total, { oversize })
+  }, [total, oversize, onPageCount])
 
   const flowBlocks = blocks.filter((b) => !b.group)
+
+  /** 쪽 나눔은 id 로만 기억한다. 그릴 때 **지금의** blocks 에서 찾는다 (위 setPages 주석). */
+  const byId = new Map(blocks.map((b) => [b.id, b]))
+  const resolve = (ids) => ids.map((id) => byId.get(id)).filter(Boolean)
+  const pageIdLists = pages ?? [blocks.map((b) => b.id)]
 
   return (
     <>
@@ -217,7 +255,7 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
 
       {/* ── 실제로 보이고 인쇄되는 서식 ────────────────────────── */}
       <article className="print-sheet print-paged rounded border bg-white p-6 print:rounded-none print:border-0 print:p-0">
-        {(pages ?? [{ blocks }]).map((page, i) => (
+        {pageIdLists.map((ids, i) => (
           <section key={i} className="paged-page">
             {i === 0 ? (
               <div className="paged-head">
@@ -229,7 +267,7 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
                 <RunHead title={title} name={applicantName} />
               </div>
             )}
-            <div className="paged-body">{renderBlocks(page.blocks, groups)}</div>
+            <div className="paged-body">{renderBlocks(resolve(ids), groups)}</div>
             <PageFoot n={i + 1} total={total} />
           </section>
         ))}

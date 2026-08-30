@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
   FORM_EXPLANATION_REQUEST,
@@ -846,6 +846,12 @@ function DocumentSheet({ activeCase, form2Index }) {
   /** 예상 인쇄 페이지 수. 서식 2는 PagedSheet 가, 서식 1은 SheetHeightProbe 가 잰다. */
   const [pageCount, setPageCount] = useState(1)
   const [form1PageCount, setForm1PageCount] = useState(1)
+  /** 표의 행 하나가 한 쪽보다 커서 쪽 수 예고가 실제보다 적을 수 있는 상태 (PagedSheet 가 알려준다) */
+  const [pageCountOversize, setPageCountOversize] = useState(false)
+  const handlePageCount = useCallback((n, info) => {
+    setPageCount(n)
+    setPageCountOversize(Boolean(info?.oversize))
+  }, [])
 
   // 서식 2는 내용에 따라 여러 장이 된다. 블록으로 만들어 PagedSheet 가 나눈다.
   const form2 = form2Blocks({
@@ -1160,7 +1166,7 @@ function DocumentSheet({ activeCase, form2Index }) {
           applicantName={personal.name}
           blocks={form2.blocks}
           groups={form2.groups}
-          onPageCount={setPageCount}
+          onPageCount={handlePageCount}
         />
       )}
       </div>
@@ -1250,6 +1256,13 @@ function DocumentSheet({ activeCase, form2Index }) {
             <span className="block text-sm text-gray-700">
               이 브라우저에서는 이 값이 실제와 다를 수 있습니다. 인쇄 미리보기에서 확인해
               주세요.
+            </span>
+          )}
+          {/* 한 칸의 내용이 한 쪽을 넘으면 표의 행을 쪼갤 수 없어 실제가 더 늘어난다 */}
+          {!isForm1 && pageCountOversize && (
+            <span className="block text-sm text-gray-700">
+              한 칸에 적으신 내용이 한 쪽보다 깁니다. 표의 행은 쪽을 나눠 인쇄할 수 없어
+              <b> 실제로는 이보다 더 나올 수 있습니다.</b> 내용이 빠지지는 않습니다.
             </span>
           )}
         </p>

@@ -69,6 +69,12 @@ cd tests
 ./run-print.sh
 ```
 
+`run-print.sh` 는 두 가지를 돈다.
+- `paged.mjs` — 서식 2의 쪽 수 예고 = 실제 (10가지 조합)
+- `tprintlong.mjs` — **긴 값이 잘리지 않고 전부 인쇄되는가**.
+  인쇄된 PDF 에서 글자를 뽑아 넣은 글자 수와 대조한다. `pdftotext`·`pdfinfo`(poppler-utils)가 필요하고,
+  없으면 스스로 건너뛴다.
+
 배포본을 상대로 도는 시험:
 
 ```bash
@@ -116,6 +122,7 @@ node blocked-lead.mjs https://362.parkmiyeong.com  # 저장 차단 시 서식 �
 | `mail.mjs` | 푸터 문의처 mailto·복사 가능 |
 | `samplenote.mjs` | 샘플이 예시임을 화면이 밝히는가 |
 | `paged.mjs` | 인쇄 쪽수 예고 = 실제 (`run-print.sh` 가 돌린다) |
+| `tprintlong.mjs` | **PDF 에서 글자를 뽑아** 입력값이 전부 인쇄됐는지 센다 (`run-print.sh`) |
 
 ---
 

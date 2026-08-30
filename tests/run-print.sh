@@ -16,4 +16,10 @@ for c in base worst huge split mega; do
 done
 echo "────────────────────────"
 echo "일치 $ok / 불일치 $bad"
-[ "$bad" -eq 0 ]
+
+# 긴 값이 잘리지 않고 전부 인쇄되는가 — PDF 에서 글자를 뽑아 센다
+echo
+echo "── 값 잘림 (tprintlong) ──"
+if timeout 900 node tprintlong.mjs; then long=0; else long=1; fi
+
+[ "$bad" -eq 0 ] && [ "$long" -eq 0 ]
