@@ -105,6 +105,7 @@ node blocked-lead.mjs https://362.parkmiyeong.com  # 저장 차단 시 서식 �
 | `private.mjs` | 저장이 막힌 브라우저에서 기능이 죽지 않는가 |
 | `rename.mjs` | 서비스명 표기, 옛 파일명 호환, 저장소 네임스페이스 불변 |
 | `tform2.mjs` | 서식 2 원문 대조 교정 5건이 인쇄물에 그대로 나가는가 |
+| `trform.mjs` | 회신 법정 서식(별지 제15호의4) 고지 — 원문·미확인 고지·단정 금지 |
 | `tfacts.mjs` | 개인정보·전송 고지가 실제 동작과 일치하는가, 샘플 캐시 해제 |
 | `tnext.mjs` | `/next` 접기·펼치기 기본 상태 |
 | `tstrategy.mjs` | `/strategy` 선정이유·출처 표시 |
