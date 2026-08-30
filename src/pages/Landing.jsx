@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { LAW_META, RIGHTS, DEFINITION_AUTOMATED_EVALUATION } from '../data/law.js'
 import { SAMPLE_SCENARIOS } from '../data/samples.js'
+import { SERVICE_FACTS } from '../data/privacy.js'
 import { Basis, Card } from '../components/ui.jsx'
 import { Term, GlossaryList } from '../components/Term.jsx'
 import SelfCheck from '../components/SelfCheck.jsx'
@@ -259,14 +260,14 @@ export default function Landing() {
       </section>
 
       {/* ── 서비스 고지 ───────────────────────────────────────── */}
+      {/* ★ 문구를 여기 적지 않는다. SERVICE_FACTS 한 곳에서만 고친다.
+             (감사 지적: "서버로 전송되지 않습니다"가 사실과 달랐다 — 저장과 전송은 다른 말이다) */}
       <section className="card">
         <h2 className="font-bold text-gray-900">이 서비스에 대해</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-gray-700">
-          <li>회원가입과 로그인이 없습니다. 바로 사용할 수 있습니다.</li>
-          <li>주민등록번호는 입력받지 않습니다. 서식에서는 공란으로 출력됩니다.</li>
-          <li>입력한 내용은 서버로 전송되지 않습니다.</li>
-          <li>진행 상황은 이 브라우저에만 저장되고, 파일로 내보내 보관할 수 있습니다.</li>
-          <li>법률 자문이 아닙니다. 법령과 고시 서식의 내용을 정리해 보여줄 뿐입니다.</li>
+          {SERVICE_FACTS.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
         </ul>
       </section>
     </div>

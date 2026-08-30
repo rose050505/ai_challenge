@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom'
 import { DiagnosisProvider, useJourney } from './lib/diagnosis-context.jsx'
 import { SaveStatus, JourneyFlash, STORAGE_SCOPE_TEXT } from './components/Journey.jsx'
+import { OPERATOR } from './data/privacy.js'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { PlainProvider, usePlain } from './lib/plain.jsx'
 import { TourProvider } from './lib/tour.jsx'
@@ -73,7 +74,7 @@ function FontScale() {
 
   return (
     <div className="flex items-center gap-1">
-      <span className="mr-1 text-sm text-gray-500" id="font-scale-label">
+      <span className="sr-only text-sm text-gray-500 sm:not-sr-only sm:mr-1" id="font-scale-label">
         글자 크기
       </span>
       <div className="flex overflow-hidden rounded-md border border-gray-300" role="group" aria-labelledby="font-scale-label">
@@ -196,14 +197,17 @@ export default function App() {
         </a>
 
         <header className="no-print border-b border-gray-200 bg-white">
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+          {/* ★ 375×667 에서 헤더가 첫 화면의 절반을 먹고 있었다(감사 지적).
+                 데스크톱은 그대로 두고 작은 화면에서만 여백·부제·라벨을 줄인다.
+                 기능은 하나도 빼지 않는다 — 자리만 줄인다. */}
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 sm:gap-y-2 sm:py-3">
             <Link
               to="/"
               className="flex items-baseline gap-2 text-xl font-bold text-ink-800"
               aria-label="삼육이 — 처음으로"
             >
               삼육이
-              <span className="text-xs font-normal text-gray-500">
+              <span className="hidden text-xs font-normal text-gray-500 sm:inline">
                 자동화평가 설명·이의제기 지원 서비스
               </span>
             </Link>
@@ -213,14 +217,14 @@ export default function App() {
               <FontScale />
             </div>
           </div>
-          <nav aria-label="주요 화면" className="mx-auto max-w-3xl px-4 pb-2">
+          <nav aria-label="주요 화면" className="mx-auto max-w-3xl px-4 pb-1.5 sm:pb-2">
             <ul className="flex flex-wrap gap-x-1 gap-y-1">
               {NAV.map((n) => (
                 <li key={n.to}>
                   <NavLink
                     to={n.to}
                     className={({ isActive }) =>
-                      `block rounded-md px-3 py-2 text-base ${
+                      `block rounded-md px-2.5 py-1.5 text-base sm:px-3 sm:py-2 ${
                         isActive
                           ? 'bg-ink-50 font-bold text-ink-800 underline decoration-2 underline-offset-4'
                           : 'text-gray-700 hover:bg-gray-100'
@@ -255,9 +259,22 @@ export default function App() {
               삼육이 — 자동화평가 설명·이의제기 지원 서비스
             </p>
             <p className="mt-1">
-              법률 자문이 아닙니다. 회원가입이 없고, 입력한 내용은 서버에 저장되지 않습니다.
+              법률 자문이 아닙니다. 회원가입이 없고, 작성하신 내용을 서버에 저장하지 않습니다.
             </p>
             <p className="mt-1">{STORAGE_SCOPE_TEXT}</p>
+            {/* ★ 운영 주체와 연락 경로. 없으면 "만든 사람을 알 수 없는 서비스"가 된다. */}
+            <p className="mt-3 border-t border-gray-200 pt-3">
+              만든 곳 <b className="text-gray-800">{OPERATOR.team}</b>
+              {OPERATOR.contact && (
+                <>
+                  {' · '}
+                  {OPERATOR.contactLabel}{' '}
+                  <a className="underline" href={`mailto:${OPERATOR.contact}`}>
+                    {OPERATOR.contact}
+                  </a>
+                </>
+              )}
+            </p>
           </div>
         </footer>
 

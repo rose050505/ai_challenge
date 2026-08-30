@@ -18,6 +18,7 @@ import {
   COUNTERPARTY_TYPES_BY_ID,
 } from '../data/law.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
+import { STORAGE_FACTS } from '../data/privacy.js'
 import { neutralizeInstitution } from '../lib/neutralize.js'
 import { PageHeader, Basis, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
@@ -865,9 +866,11 @@ function DocumentSheet({ activeCase, form2Index }) {
         kicker="서식 생성"
         title="고시 서식을 채워 인쇄하세요"
         description={
-          <Plain id="document.intro">
-            화면에서 채운 내용이 그대로 인쇄됩니다. 서버로 전송하지 않으며 새로고침하면
-            사라집니다.
+          /* ★ "새로고침하면 사라집니다"는 여정 저장을 넣으면서 사실이 아니게 됐다(감사 지적).
+                저장이 되는 환경과 막힌 환경은 실제 동작이 다르므로 문구도 나눈다. */
+          <Plain id={storageAvailable ? 'document.intro' : 'document.introBlocked'}>
+            화면에서 채운 내용이 그대로 인쇄됩니다. 서버로 보내지 않습니다.{' '}
+            {storageAvailable ? STORAGE_FACTS.normal : STORAGE_FACTS.blocked}
           </Plain>
         }
       />

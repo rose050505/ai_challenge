@@ -7,6 +7,7 @@ import { requestCandidates } from '../lib/analyze-client.js'
 import { PageHeader, Basis, Card, Notice, Status, SlowHint } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import { ArchitectureDiagram } from '../components/Diagrams.jsx'
+import { AI_PROCESSING } from '../data/privacy.js'
 
 /**
  * 후보 목록에 붙는 "선정이유".
@@ -176,16 +177,28 @@ export default function Strategy() {
           <button type="button" onClick={run} className="btn btn-primary">
             제출할 정보 후보 만들기
           </button>
-          <p className="text-sm text-gray-600">
-            이름·주민등록번호·연락처는 전송하지 않습니다. 상황 서술만 보냅니다.
-          </p>
+          {/* ★ 무엇이 어디로 나가는지 입력란 옆에서 밝힌다. 링크 뒤에 숨기지 않는다.
+                 (감사 지적: 어느 AI 인지, 어디로 가는지가 화면 어디에도 없었다) */}
+          <div className="rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-700">
+            <p>
+              <b>보내는 것</b> — {AI_PROCESSING.sent.strategy}
+            </p>
+            <p className="mt-1">
+              <b>보내지 않는 것</b> — {AI_PROCESSING.notSent}
+            </p>
+            <p className="mt-2">{AI_PROCESSING.short}</p>
+            <p className="mt-1 text-gray-600">{AI_PROCESSING.vendorCaveat}</p>
+          </div>
         </section>
       )}
 
       {state === 'loading' && (
         <section className="card text-center">
           <Status className="font-bold text-gray-900">후보를 만들고 있습니다…</Status>
-          <p className="mt-1 text-gray-600">몇 초 걸릴 수 있습니다. 이 화면을 닫지 마세요.</p>
+          {/* 실측 8초. 예상 시간을 미리 말해 두지 않으면 기다리다 새로고침한다. */}
+          <p className="mt-1 text-gray-600">
+            보통 10초 안팎, 최대 25초까지 걸릴 수 있습니다. 이 화면을 닫지 마세요.
+          </p>
           <SlowHint />
           <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded bg-gray-200">
             <div className="h-full w-1/3 animate-pulse bg-ink-500" />

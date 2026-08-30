@@ -138,14 +138,14 @@ export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
               메일 앱 열기
             </a>
             <button type="button" className="btn btn-secondary" onClick={() => copy(body, '본문')}>
-              본문 복사
+              본문 복사하기
             </button>
             <button
               type="button"
               className="btn btn-quiet"
               onClick={() => copy(draft.subject, '제목')}
             >
-              제목 복사
+              제목 복사하기
             </button>
             {edited !== null && (
               <button type="button" className="btn btn-quiet" onClick={() => setEdited(null)}>
@@ -159,7 +159,7 @@ export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
           </p>
 
           <p className="text-sm text-gray-600">
-            메일 앱이 열리지 않으면 [본문 복사]를 눌러 쓰시던 메일에 붙여 넣으세요. 본문이 길면
+            메일 앱이 열리지 않으면 [본문 복사하기]를 눌러 쓰시던 메일에 붙여 넣으세요. 본문이 길면
             일부 메일 앱이 링크로 여는 것을 막습니다.
           </p>
         </div>

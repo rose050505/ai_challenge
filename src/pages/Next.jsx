@@ -100,7 +100,7 @@ function PostRefusal({ defaultOpen }) {
 }
 
 /**
- * 마지막 화면. 서류를 출력한 사용자가 "이제 뭘 하지"에서 막히지 않게 한다.
+ * 마지막 화면. 서식을 출력한 사용자가 "이제 뭘 하지"에서 막히지 않게 한다.
  *
  * ★ 법령에 있는 것만 쓴다. 없는 것은 없다고 쓴다.
  *   특히 처리 기한은 법령에 규정이 없다. 그 사실을 숨기지 않는다.
@@ -155,7 +155,7 @@ export default function Next() {
     <div className="space-y-6 py-8">
       <PageHeader
         kicker="이후 절차"
-        title="서류를 출력했다면 여기서부터"
+        title="서식을 출력했다면 여기서부터"
         description="법령에 정해진 것과 정해지지 않은 것을 그대로 구분해 알려드립니다."
       />
 
@@ -220,7 +220,7 @@ export default function Next() {
       {/* 2. 회신 연락처 */}
       <Section
         n="2."
-        title="회신받을 연락처를 함께 적으세요"
+        title="회신은 어디로 받나요"
         summary="고시 서식에 연락처 칸이 없습니다. 여백에 직접 적으셔야 합니다."
         defaultOpen={open.contact}
       >
@@ -344,7 +344,7 @@ export default function Next() {
       <PostRefusal defaultOpen={open.postRefusal} />
 
       <div className="rounded-lg border-2 border-ink-700 bg-white p-5">
-        <h2 className="text-lg font-bold text-gray-900">답변서를 받으셨나요?</h2>
+        <h2 className="text-lg font-bold text-gray-900">회신을 받으셨나요?</h2>
         <p className="mt-2 text-gray-700">
           금융회사가 보낸 회신을 붙여넣으면 무엇을 받았고 무엇이 빠졌는지 확인해 드립니다.
           틀린 <Term id="baseInfo">기초정보</Term>를 찾으면 정정·삭제 요구서로 바로 이어집니다.

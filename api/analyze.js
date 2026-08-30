@@ -15,14 +15,19 @@
  */
 import Anthropic from '@anthropic-ai/sdk'
 import { R3_SCOPE, BASE_INFO_CATEGORIES_BY_ID } from '../src/data/law.js'
+import { TRANSMIT_LIMITS } from '../src/data/privacy.js'
 
 const MODEL = 'claude-sonnet-5'
 const MAX_TOKENS = 2048
 /** Vercel 함수 maxDuration(30s)보다 짧게 잡아 함수가 죽기 전에 우리가 에러를 반환한다 */
 const TIMEOUT_MS = 22_000
 
-/** 사용자 서술 길이 상한. 프롬프트 폭주 방지. */
-const MAX_SITUATION_CHARS = 2000
+/**
+ * 사용자 서술 길이 상한. 프롬프트 폭주 방지.
+ * ★ 화면의 입력 제한(maxLength)과 같은 값을 써야 한다. 여기서 말없이 자르면
+ *   사용자는 뒷부분이 빠진 줄 모른다. 그래서 상수를 한 곳에서 읽는다.
+ */
+const MAX_SITUATION_CHARS = TRANSMIT_LIMITS.situation
 
 const capacity = BASE_INFO_CATEGORIES_BY_ID[R3_SCOPE.categoryId]
 

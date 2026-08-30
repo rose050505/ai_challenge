@@ -14,6 +14,10 @@ import {
 } from '../data/law.js'
 import { EVENT_TYPES } from '../data/events.js'
 import { SAMPLE_SCENARIOS, SAMPLE_SCENARIOS_BY_ID } from '../data/samples.js'
+import { AI_PROCESSING, TRANSMIT_LIMITS, DIAGNOSE_REASON_HINT } from '../data/privacy.js'
+
+/** 서버가 이 길이에서 잘라내므로(api/analyze.js) 화면에서 미리 막고 남은 글자 수를 보여 준다 */
+const REASON_MAX = TRANSMIT_LIMITS.situation
 import { useDiagnosis, useJourney } from '../lib/diagnosis-context.jsx'
 import { PageHeader, Basis, Card, Choice, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
@@ -91,9 +95,13 @@ export default function Diagnose() {
   const { diagnosis, update } = useDiagnosis()
   /** 이 화면에 들어온 뒤 진단을 실제로 고쳤는지 (고쳤을 때만 경고 톤으로 바꾼다) */
   const [changed, setChanged] = useState(false)
+  /**
+   * 사용자가 직접 고친 것. 샘플을 불러온 뒤 하나라도 고치면 더 이상 샘플이 아니므로
+   * sampleId 를 지운다 — 남겨 두면 /strategy 가 캐시된 샘플 답을 낸다.
+   */
   const edit = (patch) => {
     setChanged(true)
-    update(patch, { immediate: true })
+    update({ ...patch, sampleId: null }, { immediate: true })
   }
   const {
     eventId,
@@ -301,7 +309,10 @@ export default function Diagnose() {
       <Step
         n={needsSector ? 4 : 3}
         title="짐작되는 사유가 있나요? (선택)"
-        hint="지금은 저장만 합니다. 이 내용을 해석하는 기능은 아직 연결하지 않았습니다."
+        /* ★ 이 서술이 곧 AI 입력이다(/api/analyze). 예전 문구는 "아직 연결하지 않았습니다"였는데
+              사실이 아니었고, 무엇보다 사용자가 이 칸을 비우게 만들었다 — AI 가 동작할
+              유일한 입력을 화면이 막고 있었다. 그래서 반대로 적는다. */
+        hint={DIAGNOSE_REASON_HINT}
       >
         <label htmlFor="reason" className="sr-only">
           짐작되는 사유
@@ -309,15 +320,23 @@ export default function Diagnose() {
         <textarea
           id="reason"
           value={reason}
-          onChange={(e) => update({ reason: e.target.value })}
+          /* ★ 샘플을 불러온 뒤 직접 고쳐 쓰면 더 이상 샘플이 아니다.
+                sampleId 를 남겨 두면 캐시된 샘플 답이 나오고, 화면에는 사용자가 쓴 적 없는
+                인용문이 남는다(감사 지적). /response 는 이미 같은 처리를 하고 있다. */
+          onChange={(e) => update({ reason: e.target.value.slice(0, REASON_MAX), sampleId: null })}
           rows={5}
+          maxLength={REASON_MAX}
           aria-describedby="reason-help"
           placeholder="예: 이직한 지 얼마 안 됐고 카드 사용 이력이 거의 없습니다."
           className="w-full rounded-md border border-gray-300 p-3"
         />
+        <p className="mt-1 text-right text-sm tabular text-gray-600" aria-live="polite">
+          {reason.length.toLocaleString()} / {REASON_MAX.toLocaleString()}자
+        </p>
         <p id="reason-help" className="mt-2 text-sm text-gray-600">
           이름·주민등록번호·연락처 등 신원을 알 수 있는 내용은 쓰지 마세요.
         </p>
+        <p className="mt-2 text-sm text-gray-600">{AI_PROCESSING.short}</p>
       </Step>
 
       {ready ? (

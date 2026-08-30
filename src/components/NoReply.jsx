@@ -151,7 +151,7 @@ export default function NoReply({ defaultOpen = false }) {
 
           <div className="flex flex-wrap gap-3">
             <button type="button" className="btn btn-primary" onClick={copy}>
-              문안 복사
+              문안 복사하기
             </button>
             {edited !== null && (
               <button type="button" className="btn btn-quiet" onClick={() => setEdited(null)}>

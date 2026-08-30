@@ -7,6 +7,7 @@ import {
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { formatWhen, formatDate, daysSince } from '../lib/journey-storage.js'
 import { Notice, Card } from './ui.jsx'
+import { PRIVACY_TABLE } from '../data/privacy.js'
 
 /**
  * 여정 관리 UI.
@@ -390,9 +391,41 @@ export function WhyNoLogin() {
           대신 <b>파일로 내보내기</b>를 두었습니다. 다른 기기로 옮기거나 백업할 때 쓰시면 됩니다.
           어디에 둘지는 사용자가 정합니다.
         </p>
-        <p className="text-sm text-gray-600">
-          이것은 법이 요구하는 방식이 아니라 이 서비스가 택한 설계입니다.
-        </p>
+        {/* ★ 처리 내역을 별도 페이지로 빼지 않는다. 라우트를 늘리지 않고 이 자리를 넓힌다.
+               문구는 전부 privacy.js 한 곳에서 읽는다. */}
+        <div className="overflow-x-auto">
+          <h3 className="font-bold text-gray-900">{PRIVACY_TABLE.title}</h3>
+          {/* 375px 에서 가로 스크롤이 생기면 정작 읽어야 할 열이 잘린다.
+                 최소 너비를 두지 않고 좁은 화면에서는 줄바꿈으로 흘린다. */}
+          <table className="mt-2 w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                {PRIVACY_TABLE.columns.map((c, i) => (
+                  <th
+                    key={c}
+                    scope="col"
+                    className={`border border-gray-300 bg-gray-50 p-2 text-left font-bold ${
+                      i === 0 ? 'w-24 sm:w-40' : ''
+                    }`}
+                  >
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {PRIVACY_TABLE.rows.map(([k, v]) => (
+                <tr key={k}>
+                  <th scope="row" className="border border-gray-300 p-2 text-left align-top font-normal">
+                    {k}
+                  </th>
+                  <td className="border border-gray-300 p-2 align-top">{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-sm text-gray-600">{PRIVACY_TABLE.footnote}</p>
       </div>
     </details>
   )

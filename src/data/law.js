@@ -202,7 +202,7 @@ export const COUNTERPARTY_TYPES = [
     basisChain: '법 제36조의2 제1항 (조문에 직접 명시)',
     description:
       '개인신용평가를 수행하는 회사. 법 조문이 직접 명시하고 있으므로 ' +
-      '「금융위원회의 설치 등에 관한 법률」 제38조 각 호 목록과 무관하게 상대방이 된다.',
+      '「금융위원회의 설치 등에 관한 법률」 제38조 각 호 목록과 무관하게 상대방이 됩니다.',
     /** 기관 목록 조회가 필요 없다 (조문상 상대방이 확정) */
     requiresInstitutionLookup: false,
   },
@@ -216,7 +216,7 @@ export const COUNTERPARTY_TYPES = [
       '「금융위원회의 설치 등에 관한 법률」 제38조 각 호',
     description:
       '대출·카드 등 금융거래를 심사한 금융회사. 해당 기관이 금융위원회법 제38조 각 호에 ' +
-      '해당해야 상대방이 된다.',
+      '해당해야 상대방이 됩니다.',
     /** FSC_ACT_ARTICLE_38_CLAUSES / INSTITUTION_SECTORS 로 해당 여부를 확인해야 한다 */
     requiresInstitutionLookup: true,
   },
@@ -394,7 +394,7 @@ export const RIGHTS = [
     label: '자동화평가 실시 여부 설명 요구',
     basis: '법 제36조의2 제1항 제1호',
     paragraph: 1,
-    summary: '해당 행위에 자동화평가를 하는지 여부를 설명하도록 요구할 수 있다.',
+    summary: '해당 행위에 자동화평가를 하는지 여부를 설명하도록 요구할 수 있습니다.',
     /**
      * 행사 요건: 아래 대상 행위 중 하나에 해당해야 한다.
      * 가목·나목·다목은 법 제36조의2 제1항 제1호 각 목.
@@ -438,8 +438,8 @@ export const RIGHTS = [
     basis: '법 제36조의2 제1항 제2호',
     paragraph: 1,
     summary:
-      '자동화평가를 하는 경우, 그 결과·주요 기준·기초정보의 개요 등을 설명하도록 요구할 수 있다.',
-    requirement: '해당 행위에 자동화평가가 실시되었을 것.',
+      '자동화평가를 하는 경우, 그 결과·주요 기준·기초정보의 개요 등을 설명하도록 요구할 수 있습니다.',
+    requirement: '해당 행위에 자동화평가가 실시되었어야 합니다.',
     items: [
       // 법 제36조의2 제1항 제2호 가목
       { code: 'a', basis: '법 제36조의2 제1항 제2호 가목', text: '자동화평가의 결과' },
@@ -468,10 +468,10 @@ export const RIGHTS = [
     basis: '법 제36조의2 제2항 제1호',
     paragraph: 2,
     summary:
-      '해당 신용정보주체에게 자동화평가 결과의 산출에 유리하다고 판단되는 정보를 제출할 수 있다.',
+      '자동화평가 결과의 산출에 유리하다고 판단되는 정보를 제출할 수 있습니다.',
     requirement:
-      '제출하려는 정보가 자동화평가 결과의 산출에 유리하다고 판단되는 정보일 것. ' +
-      '(별도의 사실 부정확·최신성 요건은 없다.)',
+      '제출하려는 정보가 자동화평가 결과의 산출에 유리하다고 판단되는 정보여야 합니다. ' +
+      '(별도의 사실 부정확·최신성 요건은 없습니다.)',
   },
   {
     id: 'R4',
@@ -481,9 +481,9 @@ export const RIGHTS = [
     label: '기초정보의 정정·삭제 요구',
     basis: '법 제36조의2 제2항 제2호 가목',
     paragraph: 2,
-    summary: '기초정보를 정정하거나 삭제할 것을 요구할 수 있다.',
+    summary: '기초정보를 정정하거나 삭제할 것을 요구할 수 있습니다.',
     requirement:
-      '기초정보의 내용이 정확하지 아니하거나 최신의 정보가 아니라고 판단되는 경우일 것. ' +
+      '기초정보의 내용이 정확하지 아니하거나 최신의 정보가 아니라고 판단되는 경우여야 합니다. ' +
       '(법 제36조의2 제2항 제2호 본문)',
   },
   {
@@ -494,9 +494,9 @@ export const RIGHTS = [
     label: '자동화평가 결과의 재산출 요구',
     basis: '법 제36조의2 제2항 제2호 나목',
     paragraph: 2,
-    summary: '자동화평가 결과를 다시 산출할 것을 요구할 수 있다.',
+    summary: '자동화평가 결과를 다시 산출할 것을 요구할 수 있습니다.',
     requirement:
-      '기초정보의 내용이 정확하지 아니하거나 최신의 정보가 아니라고 판단되는 경우일 것. ' +
+      '기초정보의 내용이 정확하지 아니하거나 최신의 정보가 아니라고 판단되는 경우여야 합니다. ' +
       '(R4와 동일. 법 제36조의2 제2항 제2호 본문)',
   },
 ]
@@ -919,7 +919,7 @@ export const EXERCISE_FORM_REQUIREMENT = {
     '법 제36조의2 제1항 및 제2항에 따른 권리를 금융위원회가 정하여 고시하는 서식에 따라 ' +
     '행사해야 한다.',
   note:
-    '임의 양식이 아니라 고시 서식이어야 한다. 제1항 권리와 제2항 권리 모두 적용된다.',
+    '임의 양식이 아니라 고시 서식이어야 합니다. 제1항 권리와 제2항 권리에 모두 적용됩니다.',
   /** 조문이 "제1항 및 제2항"을 함께 규정하므로 자체 양식 대안은 성립하지 않는다 */
   appliesToParagraphs: [1, 2],
 }
@@ -1056,7 +1056,7 @@ export const RESPONSE_DISPOSITIONS = [
     label: '거절',
     basis: '법 제36조의2 제3항',
     detailBasis: '법 제36조의2 제3항 각 호 및 시행령 제31조의2 제5항 각 호',
-    text: '요구 자체에 응하지 아니한 경우. 법령이 정한 사유에 한한다.',
+    text: '요구 자체에 응하지 아니한 경우입니다. 법령이 정한 사유에 한합니다.',
   },
   {
     id: 'excludedByProviso',
@@ -1065,7 +1065,7 @@ export const RESPONSE_DISPOSITIONS = [
     detailBasis: '시행령 제31조의2 제8항 제3호 단서',
     text:
       '요구에는 응하였으나, 기초정보를 자체적으로 가공하여 생성 또는 추론한 정보를 ' +
-      '설명에서 제외한 경우. 이는 거절이 아니다.',
+      '설명에서 제외한 경우입니다. 이는 거절이 아닙니다.',
   },
 ]
 
@@ -1159,7 +1159,7 @@ export const FORM_EXPLANATION_REQUEST = {
   /** 어느 실물을 보고 재현했는지 — docs/law/form-spec.md */
   source: 'BC카드 공개본',
   sourceNote:
-    '금융위원회 고시 별지 서식을 금융회사가 각자 비치한다. 기관마다 표 모양이 조금씩 다를 수 있으나 항목 구조와 요구 문구는 같다.',
+    '금융위원회 고시 별지 서식을 금융회사가 각자 비치합니다. 기관마다 표 모양이 조금씩 다를 수 있으나 항목 구조와 요구 문구는 같습니다.',
 }
 
 /**
@@ -1492,7 +1492,7 @@ export const CORRECTION_ROUTING = {
           order: 1,
           formId: 'correctionRequest',
           rights: ['R3', 'R4', 'R5'],
-          description: '이 회사에 서식 2를 제출한다.',
+          description: '이 회사에 서식 2를 제출합니다.',
         },
       ],
     },
@@ -1509,14 +1509,14 @@ export const CORRECTION_ROUTING = {
        */
       requiresRecipientInput: true,
       note:
-        '지금 거절한 회사가 아니라, 그 정보가 만들어진 금융회사에 제출해야 한다. ' +
-        '상대를 잘못 고르면 요청이 반려된다.',
+        '지금 거절한 회사가 아니라, 그 정보가 만들어진 금융회사에 제출해야 합니다. ' +
+        '상대를 잘못 고르면 요청이 반려됩니다.',
       steps: [
         {
           order: 1,
           formId: 'correctionRequest',
           rights: ['R3', 'R4', 'R5'],
-          description: '정보가 발생한 금융회사에 서식 2를 제출한다.',
+          description: '정보가 발생한 금융회사에 서식 2를 제출합니다.',
         },
       ],
     },
@@ -1524,7 +1524,7 @@ export const CORRECTION_ROUTING = {
       id: 'unknown',
       label: '출처를 모르겠다',
       submitTo: null,
-      submitToLabel: '먼저 출처를 확인해야 한다',
+      submitToLabel: '먼저 출처를 확인해야 합니다',
       /** ★ 서식 1이 서식 2의 선행 단계가 되는 경로 */
       requiresPrecedingStep: true,
       steps: [
@@ -1535,7 +1535,7 @@ export const CORRECTION_ROUTING = {
           /** 서식 1의 ③ 기초정보의 개요 항목만 선택하면 된다 */
           requestItemIds: ['baseInfo'],
           description:
-            '먼저 서식 1로 기초정보의 개요 설명을 요구해 그 정보의 출처를 확인한다.',
+            '먼저 서식 1로 기초정보의 개요 설명을 요구해 그 정보의 출처를 확인합니다.',
         },
         {
           order: 2,
@@ -1543,7 +1543,7 @@ export const CORRECTION_ROUTING = {
           rights: ['R3', 'R4', 'R5'],
           dependsOnStep: 1,
           description:
-            '답변으로 출처가 확인되면 own / other 중 어느 쪽인지 다시 판단해 서식 2를 제출한다.',
+            '답변으로 출처가 확인되면 정보의 출처에 따라 어느 쪽인지 다시 판단해 서식 2를 제출합니다.',
         },
       ],
     },

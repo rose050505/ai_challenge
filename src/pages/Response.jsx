@@ -22,6 +22,10 @@ import { interpretResponse } from '../lib/interpret-client.js'
 import { buildCorrectionRows } from '../lib/correction-rows.js'
 import { PageHeader, Basis, Notice, Status, SlowHint } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
+import { AI_PROCESSING, TRANSMIT_LIMITS } from '../data/privacy.js'
+
+/** 서버가 이 길이에서 잘라내므로(api/interpret.js) 화면에서 미리 막는다 */
+const RESPONSE_MAX = TRANSMIT_LIMITS.responseText
 
 /**
  * 회신 해석기.
@@ -249,7 +253,7 @@ export default function Response() {
     <div className="space-y-6 py-8">
       <PageHeader
         kicker="회신 해석"
-        title="받은 답변서를 읽어 드립니다"
+        title="받은 회신을 읽어 드립니다"
         description="법이 정한 세 유형 중 무엇을 받았고 무엇이 빠졌는지 알려드립니다. 진단을 거치지 않고 바로 사용하셔도 됩니다."
       />
 
@@ -290,23 +294,38 @@ export default function Response() {
 
           <section className="space-y-3">
             <label className="block font-bold text-gray-900" htmlFor="responseText">
-              받으신 답변서의 내용을 그대로 붙여넣으세요.
+              받으신 회신 내용을 그대로 붙여넣으세요.
             </label>
             <p id="responseText-help" className="text-gray-600">
               개인정보가 포함된 부분은 지우고 넣으셔도 됩니다.
             </p>
+            {/* ★ 회신 원문에는 연체·소득·대출 정보가 들어 있다. 어디로 나가는지 여기서 밝힌다. */}
+            <div className="rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-700">
+              <p>
+                <b>보내는 것</b> — {AI_PROCESSING.sent.response}
+              </p>
+              <p className="mt-1">
+                <b>보내지 않는 것</b> — {AI_PROCESSING.notSent}
+              </p>
+              <p className="mt-2">{AI_PROCESSING.short}</p>
+              <p className="mt-1 text-gray-600">{AI_PROCESSING.vendorCaveat}</p>
+            </div>
             <textarea
               id="responseText"
               value={text}
               onChange={(e) => {
-                setText(e.target.value)
+                setText(e.target.value.slice(0, RESPONSE_MAX))
                 setSampleId(null)
               }}
               rows={14}
+              maxLength={RESPONSE_MAX}
               aria-describedby="responseText-help"
               placeholder="예: 귀하께서 요청하신 자동화평가 결과에 대한 설명을 아래와 같이 안내드립니다…"
               className="w-full rounded-md border border-gray-300 p-3 font-mono text-sm leading-relaxed"
             />
+            <p className="text-right text-sm tabular text-gray-600" aria-live="polite">
+              {text.length.toLocaleString()} / {RESPONSE_MAX.toLocaleString()}자
+            </p>
             <button
               type="button"
               onClick={run}
@@ -325,7 +344,10 @@ export default function Response() {
       {state === 'loading' && (
         <section className="card text-center">
           <Status className="font-bold text-gray-900">회신을 읽고 있습니다…</Status>
-          <p className="mt-1 text-gray-600">몇 초 걸릴 수 있습니다.</p>
+          {/* 실측 17초. 회신은 서술보다 길어서 더 걸린다. */}
+          <p className="mt-1 text-gray-600">
+            회신이 길면 20초 가까이 걸립니다. 최대 25초까지 기다립니다. 이 화면을 닫지 마세요.
+          </p>
           <SlowHint />
           <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded bg-gray-200">
             <div className="h-full w-1/3 animate-pulse bg-ink-500" />

@@ -32,13 +32,14 @@ import {
   BASE_INFO_CATEGORIES_BY_ID,
   BASE_INFO_KEYWORD_RULES,
 } from '../src/data/law.js'
+import { TRANSMIT_LIMITS } from '../src/data/privacy.js'
 
 const MODEL = 'claude-sonnet-5'
 const MAX_TOKENS = 4096
 const TIMEOUT_MS = 22_000
 
-/** 회신 텍스트 길이 상한 */
-const MAX_RESPONSE_CHARS = 12_000
+/** 회신 텍스트 길이 상한. 화면의 maxLength 와 같은 상수를 읽는다. */
+const MAX_RESPONSE_CHARS = TRANSMIT_LIMITS.responseText
 /** 기초정보 항목 수 상한 */
 const MAX_BASE_INFO_ITEMS = 20
 
