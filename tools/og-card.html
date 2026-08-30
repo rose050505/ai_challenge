@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  링크 미리보기 카드(public/og.png)의 원본.
+
+  ★ 이 파일이 원본이다. og.png 를 손으로 고치지 말고 여기를 고친 뒤
+    `node tools/make-og.mjs` 로 다시 그린다.
+    (앞서 만든 og.png 에는 원본이 없어, 랜딩 제목과 대표 주소가 바뀐 뒤에도
+     옛 문구와 옛 주소가 그림 안에 남아 있었다. 2026-08-31 에 이 파일을 만들었다.)
+
+  ★ 그림 안의 문구는 랜딩 h1 · index.html 의 og:image:alt 와 같아야 한다.
+    셋 중 하나만 고치면 미리보기와 화면이 서로 다른 말을 하게 된다.
+-->
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 630px; }
+      body {
+        background: #1e304a;
+        color: #fff;
+        font-family: 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif;
+        padding: 88px 80px;
+        display: flex;
+        flex-direction: column;
+      }
+      .brand { display: flex; align-items: center; gap: 22px; }
+      .mark {
+        width: 76px; height: 76px; border-radius: 18px; background: #fff;
+        color: #1e304a; font-size: 46px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .name { font-size: 42px; font-weight: 700; letter-spacing: -0.01em; }
+      .rule { width: 124px; height: 6px; background: #c9903c; margin: 44px 0 34px; }
+      h1 { font-size: 66px; font-weight: 700; line-height: 1.28; letter-spacing: -0.02em; }
+      h1 em { font-style: normal; color: #e0b674; }
+      .sub { margin-top: 34px; font-size: 27px; color: #c8d6e6; line-height: 1.5; }
+      .sub .dim { color: #a0b6d0; }
+    </style>
+  </head>
+  <body>
+    <div class="brand">
+      <div class="mark">§</div>
+      <div class="name">삼육이</div>
+    </div>
+    <div class="rule"></div>
+    <h1>AI가 내린 심사 결과,<br />이유를 <em>물을 수 있습니다</em>.</h1>
+    <div class="sub">
+      대출·카드 거절, 한도 축소, 금리 인상 · 신용정보법 제36조의2<br />
+      <span class="dim">회원가입 없이 바로 · 362.parkmiyeong.com</span>
+    </div>
+  </body>
+</html>

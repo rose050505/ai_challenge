@@ -94,16 +94,36 @@ export default function Landing() {
       {/* ── 1. 무슨 서비스인가 ───────────────────────────────── */}
       <section className="space-y-4">
         {/* 서비스 부제는 화면 맨 위 머리말에 이미 있다. 여기서 되풀이하지 않는다. */}
+        {/*
+          ★ 제목을 사건 하나에 묶지 않는다. (2026-08-31)
+            앞선 제목은 "대출이 거절됐을 때"로 시작했다. 그런데 이 서비스는
+            신용대출 거절·한도 축소·카드 발급 거절·금리 인상·리스/할부 거절을
+            모두 다룬다. 금리가 오른 사람에게 그 제목은 남의 이야기로 읽힌다.
+            제목은 다섯 사건의 공통점(= AI 가 정한 심사 결과)을 말하고,
+            사건 이름은 부제에서 늘어놓는다.
+        */}
         <h1 className="text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">
-          대출이 거절됐을 때,
-          <br />
-          이유를 물어볼 <span className="text-ink-700">법적 권리</span>가 있습니다.
+          <Plain id="landing.hero">
+            AI가 내린 심사 결과,
+            <br />
+            이유를 <span className="text-ink-700">물을 수 있습니다</span>.
+          </Plain>
         </h1>
-        {/* 서비스가 무엇인지 한 줄. "왜요?"는 이제 이름이 아니라 설명 문장이다. */}
-        <p className="max-w-prose text-lg text-gray-800 sm:text-xl">
-          AI가 내린 결정에도 <b className="text-ink-800">&ldquo;왜요?&rdquo;</b>라고 물을 수
-          있습니다.
-          <b> 삼육이는 그 요구서를 대신 만들어 드립니다.</b>
+        {/* 부제 — 어느 사건이 해당되는지, 무엇을 근거로 하는지, 우리가 무엇을 하는지.
+            근거 배지는 이 문단 안에 인라인으로 둔다. 줄을 따로 만들면
+            375×667 에서 버튼이 첫 화면 밖으로 밀린다(측정해서 정한 자리다). */}
+        <p className="flex max-w-prose flex-wrap items-baseline gap-x-2 gap-y-1 text-lg text-gray-800 sm:text-xl">
+          <span>
+            <Plain id="landing.heroSub">
+              대출·카드 거절, 한도 축소, 금리 인상 —{' '}
+              <b className="text-ink-800">
+                {LAW_META.act.shortName} {LAW_META.act.article}
+              </b>
+              가 정한 권리입니다.
+            </Plain>{' '}
+            <b>삼육이는 그 요구서를 대신 만들어 드립니다.</b>
+          </span>
+          <Basis prefix="근거">{`${LAW_META.act.shortName} ${LAW_META.act.article}`}</Basis>
         </p>
 
         {/* ── 2. 바로 해 보기 — 제목 바로 아래 ───────────────── */}

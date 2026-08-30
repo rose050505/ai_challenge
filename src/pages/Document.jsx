@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import {
   FORM_EXPLANATION_REQUEST,
   FORM_CORRECTION_REQUEST,
+  FORM_ORIGINAL_UNVERIFIED,
   FORM_REQUEST_ITEMS,
   FORM_SECTION1_REFUSAL_NOTICE,
   FORM_SECTION1_DISCREPANCY,
@@ -1177,6 +1178,13 @@ function DocumentSheet({ activeCase, form2Index }) {
           <b>서식 출처</b> — 이 서식은 {currentForm.source}을 기준으로 재현했습니다.{' '}
           {currentForm.sourceNote ?? currentForm.sourceCaveat}{' '}
           <Basis>{currentForm.basis}</Basis>
+        </p>
+        {/* ★ 확인하지 못한 것을 확인한 것처럼 두지 않는다.
+            우리는 기관 공개본을 보고 재현했고, 고시의 별지 원본과는 대조하지 못했다.
+            대조하지 못한 이상 "정본과 같다"고 말할 수 없고, 그 사실을 여기서 밝힌다. */}
+        <p className="rounded-md border border-seal-300 bg-seal-50 p-3 text-sm text-gray-800">
+          <b>원본과 대조하지 못했습니다</b> — {FORM_ORIGINAL_UNVERIFIED.note}{' '}
+          <Basis>{FORM_ORIGINAL_UNVERIFIED.basis}</Basis>
         </p>
         {/* ★ 안내가 버튼보다 먼저 눈에 들어와야 한다. 누른 뒤에 읽으면 늦다. */}
         <PrintSetupNotice />

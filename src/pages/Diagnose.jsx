@@ -569,6 +569,25 @@ function Result({ counterparty, transaction, sectionRef }) {
         )}
       </div>
 
+      {/*
+        ★ 다음으로 가는 길을 결과 앞머리에도 둔다. (2026-08-31)
+          결과의 실질은 아래 권리 카드 다섯 장이고 그건 줄일 것이 아니다.
+          다만 그 다섯 장을 다 지나야 버튼이 나온다 — 375px 에서 결과 제목과
+          버튼 사이가 1,917px, 1280px 에서 1,518px 이었다(재어 보고 적는다).
+          큰 버튼을 위로 올리면 권리를 보기 전에 눌러 버리므로 올리지 않았다.
+          여기에는 조용한 한 줄만 두고, 큰 버튼은 아래 그대로 남긴다.
+      */}
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-700">
+        <span className="font-semibold">바로 이어서 하시려면</span>
+        <Link to="/strategy" className="font-bold text-ink-700 underline">
+          제출할 정보 정하기
+        </Link>
+        <Link to="/document" className="font-bold text-ink-700 underline">
+          서식 만들기
+        </Link>
+        <span className="text-gray-500">— 아래에서 권리를 먼저 보셔도 됩니다.</span>
+      </p>
+
       <div>
         <h3 className="mb-3 border-l-4 border-ink-600 pl-3 text-base font-bold text-ink-800">
           제1항 — 설명 요구

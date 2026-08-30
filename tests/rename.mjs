@@ -42,7 +42,9 @@ t_('유래에 근거 조문 배지', !!link, String(link))
 const L = link && JSON.parse(link)
 t_('배지가 국가법령정보센터 제36조의2로 연결', L?.href?.includes('law.go.kr') && decodeURIComponent(L.href).includes('제36조의2'), L?.href)
 t_('새 탭 + noopener noreferrer', L?.target==='_blank' && L?.rel==='noopener noreferrer')
-t_('"왜요?"는 설명 문장으로 남아 있다', b.includes('AI가 내린 결정에도 “왜요?”라고 물을 수 있습니다'))
+// 2026-08-31 제목 교체로 "왜요?" 문장이 사라졌다. 지킬 것은 문장이 아니라
+// "이전 이름이 어디에도 남지 않는다"는 쪽이므로, 그것을 그대로 검사한다.
+t_('이전 이름이 첫 화면 어디에도 없다', !b.includes('왜요'), b.slice(0, 120))
 
 console.log('[C] 기존 자산 호환')
 // 이전 이름으로 내보낸 파일(표지는 그대로)이 열려야 한다
