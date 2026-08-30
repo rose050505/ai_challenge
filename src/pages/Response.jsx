@@ -156,26 +156,39 @@ export default function Response() {
    * @param {{sampleId: string, text: string}} [preset]
    *   딥링크(?sample=…&run=1)로 들어온 경우. state 반영을 기다리지 않고 바로 돌린다.
    */
+  /** 진행 중이면 새 호출을 내보내지 않는다 (Strategy.jsx 의 running 과 같은 이유) */
+  const running = useRef(false)
+
   const run = async (preset) => {
+    if (running.current) return
+    running.current = true
     setState('loading')
-    const r = await interpretResponse({
-      sampleId: preset?.sampleId ?? sampleId,
-      responseText: preset?.text ?? text,
-    })
-    setResult(r)
-    setErrors([])
-    setCatOverrides({})
-    if (r.mode === 'manual') {
-      setManualCovered([])
-      setManualItems([{ 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label }])
+    try {
+      const r = await interpretResponse({
+        sampleId: preset?.sampleId ?? sampleId,
+        responseText: preset?.text ?? text,
+      })
+      setResult(r)
+      setErrors([])
+      setCatOverrides({})
+      if (r.mode === 'manual') {
+        setManualCovered([])
+        setManualItems([{ 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label }])
+      }
+      setState('done')
+      // 단계 완료 — 해석 결과만 저장한다 (원문은 저장하지 않는다)
+      setSection(
+        'response',
+        {
+          interpretation: r.mode === 'manual' ? null : r.interpretation,
+          errors: [],
+          catOverrides: {},
+        },
+        { immediate: true },
+      )
+    } finally {
+      running.current = false
     }
-    setState('done')
-    // 단계 완료 — 해석 결과만 저장한다 (원문은 저장하지 않는다)
-    setSection(
-      'response',
-      { interpretation: r.mode === 'manual' ? null : r.interpretation, errors: [], catOverrides: {} },
-      { immediate: true },
-    )
   }
 
   const pickSample = (s) => {
@@ -509,7 +522,10 @@ export default function Response() {
             {interpretation.missing.length > 0 && (
               <Notice className="mt-3" title="설명되지 않은 항목이 있습니다">
                 <p>
-                  {interpretation.missing.map((id) => RESPONSE_TYPES_BY_ID[id].label).join(', ')}
+                  {interpretation.missing
+                    .map((id) => RESPONSE_TYPES_BY_ID[id]?.label)
+                    .filter(Boolean)
+                    .join(', ')}
                 </p>
               </Notice>
             )}
@@ -687,7 +703,7 @@ export default function Response() {
                                       {AMBIGUOUS_CATEGORY_ITEMS.candidates.map((c) => (
                                         <li key={c.categoryId}>
                                           <b>
-                                            {BASE_INFO_CATEGORIES_BY_ID[c.categoryId].label}
+                                            {BASE_INFO_CATEGORIES_BY_ID[c.categoryId]?.label ?? c.categoryId}
                                           </b>{' '}
                                           — {c.perspective} <Basis>{c.basis}</Basis>
                                         </li>

@@ -50,14 +50,20 @@ export async function requestCandidates({ sampleId, situation, eventLabel, secto
       return fallback(body?.error ?? 'api_unavailable')
     }
 
-    const body = await res.json()
-    if (!Array.isArray(body?.candidates) || body.candidates.length === 0) {
+    // 200 인데 본문이 JSON 이 아닐 수 있다(프록시가 낀 HTML 오류 페이지 등)
+    const body = await res.json().catch(() => null)
+    if (body === null) return fallback('unparsable_response')
+    if (!Array.isArray(body.candidates) || body.candidates.length === 0) {
       return fallback('no_valid_candidates')
     }
     return { candidates: body.candidates, source: 'ai', notice: null }
-  } catch {
-    // 네트워크 단절, 타임아웃, JSON 파싱 실패 — 전부 폴백으로 흡수한다.
-    return fallback('timeout')
+  } catch (err) {
+    /**
+     * ★ 왜 폴백했는지를 사실대로 말한다.
+     *   전에는 어떤 실패든 '지연되어'라고 적었다. 본문이 깨졌거나 연결이 끊긴 것을
+     *   "지연"이라고 말하면 화면이 거짓을 말하는 것이 된다.
+     */
+    return fallback(err?.name === 'AbortError' ? 'timeout' : 'api_unavailable')
   } finally {
     clearTimeout(timer)
   }

@@ -93,6 +93,104 @@ const STRATEGY_SOURCES = ['ai', 'cached', 'fallback']
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const str = (v, d = '') => (typeof v === 'string' ? v : d)
 const arr = (v, d = []) => (Array.isArray(v) ? v : d)
+const bool = (v) => v === true
+
+/**
+ * 화면에 **그대로 그려지는** 값.
+ *
+ * ★ str() 로는 부족하다. str() 은 문자열이 아니면 기본값을 주지만,
+ *   객체·배열이 담긴 필드를 그냥 통과시키던 자리가 여럿 있었다.
+ *   React 는 객체를 자식으로 받으면 렌더 도중 예외를 던진다 → 그 화면이 오류 경계로 넘어간다.
+ *   (적대적 감사에서 저장소를 손으로 오염시켜 /strategy·/response 를 실제로 넘겼다.)
+ *   숫자·불리언은 사람이 읽을 수 있으므로 문자열로 바꿔 살리고, 그 밖은 버린다.
+ */
+const text = (v) =>
+  typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : ''
+
+/** 알려진 키만 남기고 값을 전부 text() 로 강제한다. 모르는 키는 버린다. */
+const pickText = (raw, keys) => {
+  const o = {}
+  for (const k of keys) o[k] = text(raw?.[k])
+  return o
+}
+
+/** /strategy 후보 · 서식 2 섹션 3으로 넘어가는 항목 */
+const CANDIDATE_KEYS = ['정보명', '세부내용', '증빙서류', '선정이유', '근거범주']
+
+/** 후보 한 건. 이름도 내용도 없으면 표에 그릴 것이 없으므로 버린다. */
+function normalizeCandidate(raw) {
+  if (!isObj(raw)) return null
+  const c = pickText(raw, CANDIDATE_KEYS)
+  return c['정보명'] || c['세부내용'] ? c : null
+}
+
+/** /response → 서식 2 섹션 2로 넘어가는 정정 행 */
+function normalizeCorrectionRow(raw) {
+  if (!isObj(raw)) return null
+  const row = { categoryId: text(raw.categoryId), current: text(raw.current) }
+  return row.categoryId ? row : null
+}
+
+/**
+ * 회신 해석 결과.
+ *
+ * ★ 이 값은 서버(api/interpret.js)의 가드를 거쳐 만들어지지만,
+ *   **저장소와 불러온 파일은 그 경로를 거치지 않는다.** 여기서 다시 강제한다.
+ *   covered/missing 의 유형 id 는 화면이 사전에서 찾아 쓰므로, 문자열이 아닌 것은 버린다.
+ *   (모르는 id 가 남아도 화면이 죽지 않도록 조회 쪽에도 보호를 뒀다.)
+ */
+function normalizeInterpretation(raw) {
+  if (!isObj(raw)) return null
+  const ids = (v) => arr(v).filter((x) => typeof x === 'string')
+  return {
+    covered: ids(raw.covered),
+    missing: ids(raw.missing),
+    baseInfoItems: arr(raw.baseInfoItems)
+      .filter(isObj)
+      .map((it) => pickText(it, ['항목', '내용', '분류', 'correctedFrom', 'correctionBasis']))
+      .filter((it) => it['항목'] || it['내용']),
+    refused: bool(raw.refused),
+    refusalReasonText: text(raw.refusalReasonText),
+    excludedByProviso: bool(raw.excludedByProviso),
+    provisoText: text(raw.provisoText),
+  }
+}
+
+/** 사용자가 손으로 바꾼 분류. 키는 항목 번호, 값은 분류 라벨. */
+function normalizeCatOverrides(raw) {
+  if (!isObj(raw)) return {}
+  const out = {}
+  for (const [k, v] of Object.entries(raw)) {
+    const label = text(v)
+    if (label) out[k] = label
+  }
+  return out
+}
+
+/** 서식 2 섹션 2 표: 분류 id → {현행, 정정} */
+function normalizeForm2Rows(raw) {
+  if (!isObj(raw)) return null
+  const out = {}
+  for (const [k, v] of Object.entries(raw)) {
+    if (!isObj(v)) continue
+    out[k] = { current: text(v.current), correction: text(v.correction) }
+  }
+  return out
+}
+
+/** 서식 2에서 어느 섹션을 쓸지. 불리언만 남긴다. */
+function normalizeForm2Enabled(raw) {
+  if (!isObj(raw)) return null
+  const out = {}
+  for (const k of ['s2', 's3', 's4']) if (k in raw) out[k] = bool(raw[k])
+  return out
+}
+
+/** 서식 2 섹션 3 표의 행 */
+function normalizeFavorable(raw) {
+  if (!Array.isArray(raw)) return null
+  return raw.filter(isObj).map((r) => ({ infoName: text(r.infoName), detail: text(r.detail) }))
+}
 
 /**
  * 불러온 값을 우리 모양으로 강제한다.
@@ -120,13 +218,13 @@ export function normalizeJourney(raw) {
       routingBranchId: typeof d.routingBranchId === 'string' ? d.routingBranchId : null,
       sampleId: typeof d.sampleId === 'string' ? d.sampleId : null,
       limitKind: typeof d.limitKind === 'string' ? d.limitKind : null,
-      selectedCandidates: arr(d.selectedCandidates).filter(isObj),
-      correctionRows: arr(d.correctionRows).filter(isObj),
+      selectedCandidates: arr(d.selectedCandidates).map(normalizeCandidate).filter(Boolean),
+      correctionRows: arr(d.correctionRows).map(normalizeCorrectionRow).filter(Boolean),
       missingRequestItems: arr(d.missingRequestItems).filter((x) => typeof x === 'string'),
     },
     strategy: {
       notice: typeof s.notice === 'string' ? s.notice : null,
-      candidates: arr(s.candidates).filter(isObj),
+      candidates: arr(s.candidates).map(normalizeCandidate).filter(Boolean),
       picked: arr(s.picked).filter((x) => Number.isInteger(x)),
       /** 후보가 어디서 왔는지. 화면이 'AI가 고른 것'과 '일반 목록'을 구분해 말한다. */
       source: STRATEGY_SOURCES.includes(s.source) ? s.source : null,
@@ -143,9 +241,9 @@ export function normalizeJourney(raw) {
         consent: f1.consent === 'agree' || f1.consent === 'disagree' ? f1.consent : null,
       },
       form2: {
-        enabled: isObj(f2.enabled) ? f2.enabled : null,
-        rows: isObj(f2.rows) ? f2.rows : null,
-        favorable: Array.isArray(f2.favorable) ? f2.favorable.filter(isObj) : null,
+        enabled: normalizeForm2Enabled(f2.enabled),
+        rows: normalizeForm2Rows(f2.rows),
+        favorable: normalizeFavorable(f2.favorable),
         recipient: str(f2.recipient),
       },
       activeCase: f.activeCase === 'second' ? 'second' : f.activeCase === 'base' ? 'base' : null,
@@ -154,9 +252,9 @@ export function normalizeJourney(raw) {
       form2Index: normalizeForm2Index(f.form2Index, normalizeForm2Extras(f.form2Extras).length),
     },
     response: {
-      interpretation: isObj(r.interpretation) ? r.interpretation : null,
+      interpretation: normalizeInterpretation(r.interpretation),
       errors: arr(r.errors).filter((x) => Number.isInteger(x)),
-      catOverrides: isObj(r.catOverrides) ? r.catOverrides : {},
+      catOverrides: normalizeCatOverrides(r.catOverrides),
     },
     milestones: isObj(j.milestones)
       ? Object.fromEntries(
@@ -235,9 +333,9 @@ function normalizeForm2Extras(raw) {
     .slice(0, MAX_FORM2_EXTRAS)
     .map((e) => ({
       recipient: str(e.recipient),
-      enabled: isObj(e.enabled) ? e.enabled : null,
-      rows: isObj(e.rows) ? e.rows : null,
-      favorable: Array.isArray(e.favorable) ? e.favorable.filter(isObj) : null,
+      enabled: normalizeForm2Enabled(e.enabled),
+      rows: normalizeForm2Rows(e.rows),
+      favorable: normalizeFavorable(e.favorable),
     }))
 }
 

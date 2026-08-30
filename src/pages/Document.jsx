@@ -89,7 +89,9 @@ function Field({ value, onChange, placeholder, label, className = '' }) {
   // 측정 영역에는 인쇄에 실제로 나가는 모양(줄바꿈되는 span)만 그린다.
   // 입력칸을 그대로 두면 여러 줄로 접히는 긴 값의 높이를 놓친다.
   if (measuring) {
-    return <span className="inline whitespace-pre-wrap break-words">{value}</span>
+    return (
+      <span className="sheet-value inline whitespace-pre-wrap">{value}</span>
+    )
   }
   return (
     <>
@@ -100,7 +102,7 @@ function Field({ value, onChange, placeholder, label, className = '' }) {
         aria-label={label}
         className={`${className} placeholder:text-gray-500 print:hidden`}
       />
-      <span className="hidden whitespace-pre-wrap break-words print:inline">{value}</span>
+      <span className="sheet-value hidden whitespace-pre-wrap print:inline">{value}</span>
     </>
   )
 }
@@ -166,7 +168,7 @@ function SignatureBlock({ paged = false, mark = FORM_SIGNATURE_TEXTS.signatureMa
 /** 사용자 입력이 들어가는 밑줄 칸 */
 function Blank({ value }) {
   return (
-    <span className="inline-block min-w-32 border-b border-gray-500 px-1 text-center">
+    <span className="sheet-value inline-block min-w-32 border-b border-gray-500 px-1 text-center">
       {value || ' '}
     </span>
   )

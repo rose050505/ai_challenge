@@ -47,13 +47,14 @@ export async function interpretResponse({ sampleId, responseText }) {
       const body = await res.json().catch(() => null)
       return manualMode(body?.error ?? 'api_unavailable')
     }
-    const body = await res.json()
+    const body = await res.json().catch(() => null)
     if (!Array.isArray(body?.covered) || !Array.isArray(body?.missing)) {
       return manualMode('unparsable_response')
     }
     return { mode: 'ai', interpretation: body, notice: null }
-  } catch {
-    return manualMode('timeout')
+  } catch (err) {
+    // ★ 중단(타임아웃)과 그 밖의 실패를 구분해 사실대로 말한다 (analyze-client 와 같은 이유)
+    return manualMode(err?.name === 'AbortError' ? 'timeout' : 'api_unavailable')
   } finally {
     clearTimeout(timer)
   }

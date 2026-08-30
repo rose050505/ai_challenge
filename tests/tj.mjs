@@ -79,6 +79,39 @@ ok('[6-2] 서술 한 줄이면 내용 있음', hasSavedContent(normalizeJourney(
 ok('[6-2] 사건 선택도 내용 있음', hasSavedContent(normalizeJourney({diagnosis:{eventId:'loanRejected'}}))===true)
 ok('[6-2] 서식 이름도 내용 있음', hasSavedContent(normalizeJourney({form:{personal:{name:'홍'}}}))===true)
 
+// [6-3] 오염된 값이 화면에 그대로 흘러가지 않는가
+//   ★ React 는 객체를 자식으로 받으면 렌더 도중 예외를 던진다.
+//     저장소와 불러온 파일은 서버 가드를 거치지 않으므로 여기서 막아야 한다.
+{
+  const poisoned = normalizeJourney({
+    strategy: { source: 'ai', candidates: [{ 정보명: { x: 1 }, 세부내용: [1], 증빙서류: {}, 선정이유: {}, 근거범주: {} }, { 정보명: '재직증명서', 세부내용: '재직 중' }] },
+    response: {
+      interpretation: { covered: 'notarray', missing: 3, baseInfoItems: 'oops', refused: 'yes', provisoText: {} },
+      catOverrides: 7,
+    },
+    form: { form2: { enabled: { s2: 'yes' }, rows: { capacity: { current: {}, correction: 'x' } }, favorable: [{ infoName: {}, detail: 5 }] } },
+    diagnosis: { selectedCandidates: [{ 정보명: {} }], correctionRows: [{ categoryId: {}, current: 'x' }] },
+  })
+  const leaves = []
+  const walk = (v) => {
+    if (Array.isArray(v)) return v.forEach(walk)
+    if (v && typeof v === 'object') return Object.values(v).forEach(walk)
+    leaves.push(v)
+  }
+  walk(poisoned)
+  ok('[6-3] 정규화 뒤 남은 값은 전부 원시값', leaves.every((v) => v === null || ['string', 'number', 'boolean'].includes(typeof v)))
+  ok('[6-3] 객체가 들어 있던 후보는 버린다', poisoned.strategy.candidates.length === 1)
+  ok('[6-3] 멀쩡한 후보는 남는다', poisoned.strategy.candidates[0]['정보명'] === '재직증명서')
+  ok('[6-3] covered/missing 은 배열', Array.isArray(poisoned.response.interpretation.covered) && Array.isArray(poisoned.response.interpretation.missing))
+  ok('[6-3] baseInfoItems 는 배열', Array.isArray(poisoned.response.interpretation.baseInfoItems))
+  ok('[6-3] refused 는 불리언', poisoned.response.interpretation.refused === false)
+  ok('[6-3] catOverrides 는 객체', typeof poisoned.response.catOverrides === 'object')
+  ok('[6-3] enabled 는 불리언만', poisoned.form.form2.enabled.s2 === false)
+  ok('[6-3] 값이 객체인 정정 행은 버린다', poisoned.diagnosis.correctionRows.length === 0)
+  ok('[6-3] 서식 2 표의 값은 문자열', typeof poisoned.form.form2.rows.capacity.current === 'string')
+  ok('[6-3] 섹션 3 행의 값은 문자열', typeof poisoned.form.form2.favorable[0].infoName === 'string' && poisoned.form.form2.favorable[0].detail === '5')
+}
+
 // [7] 스키마 버전이 파일에 들어간다
 ok('[7] 내보낸 파일에 버전', buildExport(EMPTY_JOURNEY).schemaVersion===SCHEMA_VERSION)
 ok('[7] 내보낸 파일에 표지', buildExport(EMPTY_JOURNEY).app==='wae.journey')

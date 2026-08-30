@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { R3_SCOPE, RIGHTS_BY_ID, INSTITUTION_OPTIONS } from '../data/law.js'
 import { EVENT_TYPES_BY_ID } from '../data/events.js'
@@ -113,24 +113,45 @@ export default function Strategy() {
   const event = EVENT_TYPES_BY_ID[diagnosis.eventId]
   const sector = INSTITUTION_OPTIONS.find((o) => o.id === diagnosis.institutionSectorId)
 
+  /**
+   * 진행 중인 호출이 있으면 새 호출을 내보내지 않는다.
+   *
+   * ★ 버튼은 state 가 'loading' 이 되면 화면에서 사라진다. 그건 **다시 그린 뒤**의 일이라,
+   *   같은 프레임 안에서 연달아 눌리면(연타·느린 기기) 그만큼 요청이 나간다.
+   *   적대적 감사에서 15연타 → /api 요청 15회를 확인했다. 비용도 문제지만,
+   *   늦게 온 옛 응답이 새 응답을 덮어쓸 수 있는 것이 더 나쁘다.
+   */
+  const running = useRef(false)
+
   const run = async () => {
+    if (running.current) return
+    running.current = true
     setState('loading')
-    const r = await requestCandidates({
-      sampleId: diagnosis.sampleId,
-      situation: diagnosis.reason,
-      eventLabel: event?.label,
-      sectorLabel: sector?.label,
-    })
-    setResult(r)
-    const all = r.candidates.map((_, i) => i)
-    setPicked(all)
-    setState('done')
-    // 단계 완료 — 바로 저장한다
-    setSection(
-      'strategy',
-      { candidates: r.candidates, notice: r.notice ?? null, picked: all, source: r.source ?? null },
-      { immediate: true },
-    )
+    try {
+      const r = await requestCandidates({
+        sampleId: diagnosis.sampleId,
+        situation: diagnosis.reason,
+        eventLabel: event?.label,
+        sectorLabel: sector?.label,
+      })
+      setResult(r)
+      const all = r.candidates.map((_, i) => i)
+      setPicked(all)
+      setState('done')
+      // 단계 완료 — 바로 저장한다
+      setSection(
+        'strategy',
+        {
+          candidates: r.candidates,
+          notice: r.notice ?? null,
+          picked: all,
+          source: r.source ?? null,
+        },
+        { immediate: true },
+      )
+    } finally {
+      running.current = false
+    }
   }
 
   const toggle = (i) =>
