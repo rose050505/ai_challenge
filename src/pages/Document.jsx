@@ -140,8 +140,11 @@ function Sheet({ title, subtitle, children }) {
 /**
  * 서명란 — 날짜 표기는 두되 서명은 반드시 공란.
  * paged=true 면 위 여백을 블록 간격에 맡긴다 (측정과 인쇄가 어긋나지 않게).
+ *
+ * mark 는 서식별 원문 표기다. 서식 2는 원본 대조에서 "(서명 / 인)" 임을 확인했고,
+ * 서식 1은 원본 대조를 하지 않았으므로 공용 기본값을 그대로 쓴다.
  */
-function SignatureBlock({ paged = false }) {
+function SignatureBlock({ paged = false, mark = FORM_SIGNATURE_TEXTS.signatureMark }) {
   const measuring = useSheetMode() === 'measure'
   return (
     <div
@@ -153,7 +156,7 @@ function SignatureBlock({ paged = false }) {
       <p className="mt-2 whitespace-nowrap">
         {FORM_SIGNATURE_TEXTS.applicantLabel}
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        {FORM_SIGNATURE_TEXTS.signatureMark}
+        {mark}
       </p>
     </div>
   )
@@ -371,13 +374,15 @@ function form2Blocks({
     })
     // "구 분" 행은 5종 고정. 해당 없는 분류는 비워둔다.
     for (const cat of BASE_INFO_CATEGORIES) {
+      // 서식에 인쇄되는 라벨은 원문 표기(formLabel)를 쓴다. 화면 용어(label)와 별개다.
+      const formLabel = cat.formLabel ?? cat.label
       blocks.push({
         id: `s2-${cat.id}`,
         group: 'S2',
         node: (
           <tr key={cat.id}>
             <th className="border p-1 text-left align-top font-normal">
-              {cat.label}
+              {formLabel}
               {/* 법정 예시 힌트. 화면 전용이라 인쇄에는 나가지 않는다. */}
               <details className="no-print mt-1 font-normal">
                 <summary className="cursor-pointer text-xs text-gray-500">무엇을 적나요?</summary>
@@ -393,7 +398,7 @@ function form2Blocks({
               <Field
                 value={rows[cat.id]?.current ?? ''}
                 onChange={(v) => setRow(cat.id, 'current', v)}
-                label={`${cat.label} — ${s2.table.columns[1].label}`}
+                label={`${formLabel} — ${s2.table.columns[1].label}`}
                 className="w-full"
               />
             </td>
@@ -401,7 +406,7 @@ function form2Blocks({
               <Field
                 value={rows[cat.id]?.correction ?? ''}
                 onChange={(v) => setRow(cat.id, 'correction', v)}
-                label={`${cat.label} — ${s2.table.columns[2].label}`}
+                label={`${formLabel} — ${s2.table.columns[2].label}`}
                 className="w-full"
               />
             </td>
@@ -497,7 +502,7 @@ function form2Blocks({
   blocks.push({
     id: 'signature',
     keepWithPrev: true,
-    node: <SignatureBlock paged />,
+    node: <SignatureBlock paged mark={FORM_CORRECTION_REQUEST.signature.signatureMark} />,
   })
 
   return { blocks, groups }
@@ -1109,14 +1114,6 @@ function DocumentSheet({ activeCase, form2Index }) {
             <p className="text-sm text-gray-700">
               대응 전략에서 고른 {handoff.candidates.length}개 항목이 섹션 3에 채워졌습니다.
               세부 수치는 직접 확인해 수정하세요.
-            </p>
-          )}
-          {!FORM_CORRECTION_REQUEST.sections[0].verbatimVerified && (
-            <p className="border-t border-gray-200 pt-2 text-sm text-gray-700">
-              <span aria-hidden="true">※ </span>
-              섹션 1의 안내문은 {FORM_CORRECTION_REQUEST.source}에서 그대로 옮겼습니다. 다만 PDF
-              에서 글자를 추출해 다시 조판한 것이라 문장 부호나 줄바꿈 수준의 차이가 남아 있을 수
-              있습니다. 항목 구조와 요구 문구는 같습니다.
             </p>
           )}
           <p className="text-sm text-gray-600">{FORM_CORRECTION_REQUEST.attachment.rationale}</p>

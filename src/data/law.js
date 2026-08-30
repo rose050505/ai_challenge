@@ -1292,6 +1292,12 @@ export const BASE_INFO_CATEGORIES = [
   {
     id: 'capacity',
     label: '신용거래능력 판단정보',
+    /**
+     * ★ 서식 2 원문은 이 한 분류만 붙여 쓴다("신용거래능력판단정보").
+     *   서식에 인쇄되는 라벨만 이것을 쓰고, 화면 용어·회신 해석의 분류 라벨은 label 을 쓴다.
+     *   서식 원문 재현과 우리 화면 용어는 별개다. 나머지 네 분류는 formLabel 이 없다.
+     */
+    formLabel: '신용거래능력판단정보',
     lawBasis: '법 제2조 제1호 라목',
     definitionBasis: '법 제2조 제1호의5',
     examples: ['개인의 직업', '재산', '채무', '소득의 총액', '납세실적'],
@@ -1416,10 +1422,14 @@ export const R3_SCOPE = {
   categoryLabel: '신용거래능력 판단정보',
   definitionBasis: '법 제2조 제1호의5',
   definition: '개인의 직업ㆍ재산ㆍ채무ㆍ소득의 총액 및 납세실적',
-  /** 서식 2 [섹션 3]에 실린 예시. 이 결을 따른다. */
+  /**
+   * 서식 2 [섹션 3]에 실린 예시. 이 결을 따른다.
+   * ★ 원문 그대로다(2026-08-30 원본 대조). 작은따옴표는 U+2019, 물결은 U+223C 다.
+   *   ASCII 의 ' 나 ~ 로 바꾸지 마라. 서식의 예시 행이 이 값을 그대로 인쇄한다.
+   */
   formExample: {
     infoName: '건강보험 납부실적',
-    detail: "'xx년 x월 x일 ~ '◊◊년 ◊월 ◊일까지 연체없이 납부",
+    detail: '’xx년 x월 x일∼’◊◊년 ◊월 ◊일까지 연체없이 납부',
   },
   /** 출력 형식: 정보명 / 세부 내용(기간·실적을 구체적 수치로) */
   outputShape: ['정보명', '세부 내용 (기간·실적을 구체적 수치로)'],
@@ -1601,8 +1611,7 @@ export const FORM_CORRECTION_REQUEST = {
       right: null,
       basis: null,
       /**
-       * 섹션 1 원문 전문 (2026-08-23 확보). 문구 수정 금지.
-       * ⚠️ PDF 텍스트 추출본에서 복원한 것이다. 원본 대조 후 verbatimVerified 를 켠다.
+       * 섹션 1 원문 전문 (2026-08-23 확보, 2026-08-30 원본 대조 완료). 문구 수정 금지.
        * "저축은행" 2회는 substitution 규칙에 따라 업권 shortLabel 로 치환한다.
        * "당사"는 서식 발행 주체를 가리키므로 치환하지 않는다.
        */
@@ -1615,10 +1624,12 @@ export const FORM_CORRECTION_REQUEST = {
         '개인사업자신용평가회사 또는 기업신용조회회사로부터 수집한 타 금융회사의 정보인 ' +
         '경우에는 해당 금융회사에 정정ㆍ삭제를 요청하여야 합니다.',
       /**
-       * 원본 대조 완료 여부. 사용자가 원본과 대조한 뒤 true 로 바꾼다.
-       * false 인 동안 화면에 "원본 대조 전" 경고를 띄우고, true 가 되면 경고가 사라진다.
+       * 원본 대조 완료 여부. false 인 동안 화면에 "원본 대조 전" 경고를 띄운다.
+       * 2026-08-30 PDF 를 레이아웃 보존 방식으로 재추출해 원문과 대조했다.
+       * 이때 섹션 3 헤더 어순, 섹션 4 쉼표, 예시 행 문장부호, "신용거래능력판단정보"
+       * 붙여쓰기, 붙임·서명란 공백 다섯 군데를 교정했다.
        */
-      verbatimVerified: false,
+      verbatimVerified: true,
       summary: [
         '금융회사는 고객 요청에 따라 자동화평가 결과, 주요 기준, 기초정보의 개요를 설명한다.',
         '기초정보가 정확하지 않은 경우 정정·삭제 및 수정된 정보를 활용한 재산출을 요청할 수 있다.',
@@ -1692,18 +1703,18 @@ export const FORM_CORRECTION_REQUEST = {
       toggleable: true,
       /** 헤더 고정 문구. 문구 수정 금지. */
       headerText:
-        '자동화평가 결과의 산출에 유리하다고 판단되는 정보를 다음과 같이 제출합니다.',
+        '다음과 같이 자동화평가 결과의 산출에 유리하다고 판단되는 정보를 제출합니다.',
       headerNote: '(해당 사항이 없는 경우 본란 삭제)',
       table: {
         columns: [
           { id: 'infoName', label: '정보명' },
           { id: 'detail', label: '세부 내용' },
         ],
-        /** 서식에 실린 예시 행. R3의 성격(비금융 정보로 신용 보강)을 규정한다. */
-        example: {
-          infoName: '건강보험 납부실적',
-          detail: "'xx년 x월 x일 ~ '◊◊년 ◊월 ◊일까지 연체없이 납부",
-        },
+        /**
+         * 서식에 실린 예시 행. R3의 성격(비금융 정보로 신용 보강)을 규정한다.
+         * ★ 문자열을 여기 다시 적지 않는다. R3_SCOPE.formExample 이 원문 단일 출처다.
+         */
+        example: R3_SCOPE.formExample,
       },
       /** /strategy 의 LLM 출력이 이 섹션으로 흘러 들어간다 */
       filledBy: 'strategy',
@@ -1717,7 +1728,7 @@ export const FORM_CORRECTION_REQUEST = {
       toggleable: true,
       /** 고정 문구. 사용자 입력 없음. 체크 여부만 결정. */
       fixedText:
-        '상기 오류정보를 정정 또는 삭제하고 수정된 정보를 활용하여 ' +
+        '상기 오류정보를 정정 또는 삭제하고, 수정된 정보를 활용하여 ' +
         '본인에 대한 개인신용평가 결과를 재산출하여 줄 것을 요구합니다.',
       userInput: false,
       /**
@@ -1734,15 +1745,19 @@ export const FORM_CORRECTION_REQUEST = {
 
   /** 붙임 — 파일 첨부가 아니라 "무엇을 함께 내야 하는지" 안내로 처리한다 */
   attachment: {
-    label: '붙임 : 증빙자료',
+    label: '붙 임 : 증빙자료',
     guidanceOnly: true,
     rationale:
       '법 제36조의2 제2항 제2호의 전제가 "정확하지 아니하거나 최신의 정보가 아니라고 ' +
       '판단되는 경우"이므로, 그 판단의 근거 자료를 붙이는 것이 실효성을 높인다.',
   },
 
-  /** 서명란 — 날짜는 자동 채움 가능, 서명은 반드시 공란 */
-  signature: { dateAutoFill: true, signatureBlank: true },
+  /**
+   * 서명란 — 날짜는 자동 채움 가능, 서명은 반드시 공란.
+   * signatureMark 는 이 서식의 원문 표기다(2026-08-30 원본 대조). 공백까지 원문 그대로다.
+   * 서식 1은 원본 대조를 하지 않았으므로 공용 FORM_SIGNATURE_TEXTS 를 그대로 쓴다.
+   */
+  signature: { dateAutoFill: true, signatureBlank: true, signatureMark: '(서명 / 인)' },
 
   /** 자체 양식 대체가 불가한 이유 (시행령 제31조의2 제6항) — 서식 확보 후에도 유효 */
   noSubstituteReason:
