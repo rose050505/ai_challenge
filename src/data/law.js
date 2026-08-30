@@ -330,16 +330,6 @@ export const FSC_ACT_ARTICLE_38_CLAUSES = [
   },
 ]
 
-/** 제4·5호가 미확인 상태인지 여부. UI가 "직접 입력" 안내를 띄울지 판단하는 데 쓴다. */
-export const FSC_ACT_ARTICLE_38_UNVERIFIED_CLAUSES = FSC_ACT_ARTICLE_38_CLAUSES.filter(
-  (c) => !c.verified,
-).map((c) => c.clause)
-
-/**
- * /diagnose 2단계 기관 선택용 — **업권 단위** 옵션.
- * 호수 단위가 아니라 사용자가 자기 거래처를 알아볼 수 있는 업권 단위로 쪼갠다.
- * 확인된 항목에만 근거 호수(clause/basis)를 붙인다.
- */
 /**
  * /diagnose 기관 선택용 — **업권 단위** 옵션.
  * 호수 단위가 아니라 사용자가 자기 거래처를 알아볼 수 있는 업권 단위로 쪼갠다.

@@ -44,5 +44,17 @@ t('프롬프트에 법정 정의 원문 포함', A.SYSTEM_PROMPT.includes(R3_SCO
 t('프롬프트에 근거 조문 포함', A.SYSTEM_PROMPT.includes(R3_SCOPE.rightBasis))
 t('프롬프트에 선정이유 지시 포함', A.SYSTEM_PROMPT.includes('선정이유'))
 
+
+// ── parseCandidates — 모델이 JSON 만 주지 않는 경우들 ─────────────
+// "테스트용으로 export" 라고 적어 두고 정작 시험이 없었다 (2026-08-31 Phase 6).
+t('코드펜스를 벗긴다', A.parseCandidates('```json\n{"candidates":[{"정보명":"a"}]}\n```')?.length === 1)
+t('언어 없는 코드펜스도', A.parseCandidates('```\n{"candidates":[{"정보명":"a"}]}\n```')?.length === 1)
+t('앞뒤 잡소리를 걷어낸다', A.parseCandidates('네, 알겠습니다.\n{"candidates":[{"정보명":"a"}]}\n도움이 되셨길.')?.length === 1)
+t('맨 JSON 도 받는다', A.parseCandidates('{"candidates":[]}')?.length === 0)
+t('깨진 JSON 은 null', A.parseCandidates('{"candidates":[') === null)
+t('candidates 가 배열이 아니면 null', A.parseCandidates('{"candidates":"x"}') === null)
+t('빈 문자열은 null', A.parseCandidates('') === null)
+t('JSON 이 아니면 null', A.parseCandidates('죄송합니다. 답할 수 없습니다.') === null)
+
 console.log(`treason: ${pass}/${pass+fail} 통과`)
 process.exit(fail?1:0)

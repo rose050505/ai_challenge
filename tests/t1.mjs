@@ -1,4 +1,4 @@
-import { applyInterpretGuards, correctCategory } from '../api/interpret.js'
+import { applyInterpretGuards, correctCategory, parseInterpretation } from '../api/interpret.js'
 const j = (o) => JSON.stringify(o, null, 0)
 let fail = 0
 const eq = (name, got, want) => {
@@ -69,6 +69,13 @@ eq('[6] missing 3유형 보정', g.missing.sort(), ['baseInfo','criteria'].sort(
 eq('[6] 20개 상한', g.baseInfoItems.length, 20)
 eq('[6] 잘못된 분류 → 기타 정보', g.baseInfoItems[0].분류, '기타 정보')
 eq('[6] refused 문자열 → false', g.refused, false)
+
+// [7] parseInterpretation — 모델이 JSON 만 주지 않는 경우들
+//     "테스트용 export" 라고 적어 두고 정작 시험이 없었다 (2026-08-31 Phase 6).
+eq('[7] 코드펜스를 벗긴다', parseInterpretation('```json\n{"covered":["result"]}\n```')?.covered?.[0], 'result')
+eq('[7] 앞뒤 잡소리를 걷어낸다', parseInterpretation('분석 결과입니다.\n{"covered":[]}\n이상입니다.')?.covered?.length, 0)
+eq('[7] 깨진 JSON 은 null', parseInterpretation('{"covered":['), null)
+eq('[7] 빈 문자열은 null', parseInterpretation(''), null)
 
 console.log(fail ? `\n${fail} FAILED` : '\n모두 통과')
 process.exit(fail ? 1 : 0)

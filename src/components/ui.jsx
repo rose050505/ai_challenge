@@ -74,20 +74,6 @@ export function Basis({ children, prefix, chain = false, className = '', link = 
   )
 }
 
-/** 섹션 번호가 붙는 제목 (진단 단계 / 이후 절차 항목에 공통으로 쓴다) */
-export function SectionTitle({ n, children, as: Tag = 'h2' }) {
-  return (
-    <Tag className="flex items-baseline gap-2 text-lg font-bold text-gray-900">
-      {n != null && (
-        <span className="tabular shrink-0 rounded bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
-          {n}
-        </span>
-      )}
-      <span>{children}</span>
-    </Tag>
-  )
-}
-
 /** 기본 카드 */
 export function Card({ children, className = '', as: Tag = 'div', ...rest }) {
   return (

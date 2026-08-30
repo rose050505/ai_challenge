@@ -8,7 +8,9 @@
 
 - 절대경로 import → 저장소 상대경로
 - 앱 주소·크롬 주소를 환경변수로 (`APP_URL`, `CDP`) — 기본값은 그대로
-- 산출물(스크린샷·인쇄 PDF) 저장 위치 → `tests/out/` (`.gitignore` 에 걸려 있다)
+- 산출물 저장 위치 — `paged` · `tprintlong` · `depshots` 는 `tests/out/` 에 쓴다.
+  `phase8`(`chk-*.pdf`) · `tour`(`tour-*.png`) · `tstrategy`(`strategy-*.png`)는
+  아직 `tests/` 바로 밑에 쓴다. 둘 다 `.gitignore` 에 걸려 있어 커밋되지는 않는다.
 
 ---
 
@@ -72,8 +74,9 @@ cd tests
 `run-print.sh` 는 두 가지를 돈다.
 - `paged.mjs` — 서식 2의 쪽 수 예고 = 실제 (10가지 조합)
 - `tprintlong.mjs` — **긴 값이 잘리지 않고 전부 인쇄되는가**.
-  인쇄된 PDF 에서 글자를 뽑아 넣은 글자 수와 대조한다. `pdftotext`·`pdfinfo`(poppler-utils)가 필요하고,
-  없으면 스스로 건너뛴다.
+  인쇄된 PDF 에서 글자를 뽑아 넣은 글자 수와 대조한다.
+  `pdftotext`·`pdfinfo`(poppler-utils)가 필요하다. **`run-print.sh` 는 `pdfinfo` 가 없으면
+  맨 앞에서 통째로 멈춘다.** (`node tprintlong.mjs` 로 따로 돌리면 스스로 건너뛴다.)
 
 배포본을 상대로 도는 시험:
 
@@ -110,6 +113,7 @@ node blocked-lead.mjs https://362.parkmiyeong.com  # 저장 차단 시 서식 �
 | `journey.mjs` | 저장 → 새 세션 → 이어서 하기 → 내보내기/불러오기 |
 | `private.mjs` | 저장이 막힌 브라우저에서 기능이 죽지 않는가 |
 | `rename.mjs` | 서비스명 표기, 옛 파일명 호환, 저장소 네임스페이스 불변 |
+| `tlaw.mjs` | 법령 원문 역방향 대조 — 화면의 조문 인용·근거 배지·판본이 원문과 맞는가 |
 | `tform2.mjs` | 서식 2 원문 대조 교정 5건이 인쇄물에 그대로 나가는가 |
 | `trform.mjs` | 회신 법정 서식(별지 제15호의4) 고지 — 원문·미확인 고지·단정 금지 |
 | `tfacts.mjs` | 개인정보·전송 고지가 실제 동작과 일치하는가, 샘플 캐시 해제 |
