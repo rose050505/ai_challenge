@@ -114,12 +114,21 @@ export const PRIVACY_TABLE = {
 
 /**
  * 운영 주체.
- * ★ 연락처는 아직 정해지지 않았다. 자리만 만들어 두고, 정해지면 이 상수만 고친다.
- *   contact 가 비어 있으면 화면에는 팀명만 나가고 연락 경로 줄은 나가지 않는다.
+ *
+ * ★ 메일 주소를 한 덩어리 문자열로 두지 않는다.
+ *   주소를 통째로 적어 두면 소스와 번들을 긁는 수집기에 그대로 걸린다.
+ *   대신 아이디와 도메인을 나눠 두고 operatorEmail() 이 실행 시점에 합친다.
+ *
+ * ★ 다만 **사람의 복사를 막지 않는다.** 화면에는 완성된 주소가 하나의 텍스트로 그려지고,
+ *   드래그해 복사하면 그대로 붙는다. CSS 로 순서를 뒤집거나 ::before 로 그리는 식의
+ *   "보이기만 하고 복사되지 않는" 방식은 쓰지 않는다 — 그건 연락을 막는 것이다.
  */
 export const OPERATOR = {
   team: '그라파이트',
-  /** 예: 'graphite@example.com' — 정해지면 여기만 채운다 */
-  contact: '',
+  contactUser: 'bmy31513151',
+  contactDomain: 'gmail.com',
   contactLabel: '문의',
 }
+
+/** 실행 시점에 합친다. join 이라 번들러가 하나의 리터럴로 접지 않는다. */
+export const operatorEmail = () => [OPERATOR.contactUser, OPERATOR.contactDomain].join('@')

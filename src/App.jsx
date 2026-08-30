@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Routes, Route, Link, NavLink, useLocation } from 'react-router-dom'
 import { DiagnosisProvider, useJourney } from './lib/diagnosis-context.jsx'
 import { SaveStatus, JourneyFlash, STORAGE_SCOPE_TEXT } from './components/Journey.jsx'
-import { OPERATOR } from './data/privacy.js'
+import { OPERATOR, operatorEmail } from './data/privacy.js'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { PlainProvider, usePlain } from './lib/plain.jsx'
 import { TourProvider } from './lib/tour.jsx'
@@ -265,15 +265,12 @@ export default function App() {
             {/* ★ 운영 주체와 연락 경로. 없으면 "만든 사람을 알 수 없는 서비스"가 된다. */}
             <p className="mt-3 border-t border-gray-200 pt-3">
               만든 곳 <b className="text-gray-800">{OPERATOR.team}</b>
-              {OPERATOR.contact && (
-                <>
-                  {' · '}
-                  {OPERATOR.contactLabel}{' '}
-                  <a className="underline" href={`mailto:${OPERATOR.contact}`}>
-                    {OPERATOR.contact}
-                  </a>
-                </>
-              )}
+              {' · '}
+              {OPERATOR.contactLabel}{' '}
+              {/* 주소는 한 덩어리 텍스트로 그린다 — 드래그해 복사하면 그대로 붙는다 */}
+              <a className="underline" href={`mailto:${operatorEmail()}`}>
+                {operatorEmail()}
+              </a>
             </p>
           </div>
         </footer>
