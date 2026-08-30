@@ -1,6 +1,6 @@
 import {
   parseImport, buildExport, normalizeJourney, EMPTY_JOURNEY, SCHEMA_VERSION,
-  daysSince, formatDate, formatWhen, exportFileName, todayInputValue,
+  daysSince, formatDate, formatWhen, exportFileName, todayInputValue, hasSavedContent,
 } from '../src/lib/journey-storage.js'
 let fail=0
 const eq=(n,g,w)=>{const ok=JSON.stringify(g)===JSON.stringify(w);if(!ok)fail++;console.log(`${ok?'PASS':'FAIL'}  ${n}${ok?'':`\n   got  ${JSON.stringify(g)}\n   want ${JSON.stringify(w)}`}`)}
@@ -67,6 +67,17 @@ eq('[6] 오늘 표기', formatWhen('2026-08-26T22:14:00', now), '오늘 22:14')
 eq('[6] 다른 날 표기', formatWhen('2026-08-23T09:05:00', now), '8월 23일 09:05')
 ok('[6] 파일명에 날짜', /삼육이-기록-20260826-\d{4}\.json/.test(exportFileName(now)), exportFileName(now))
 eq('[6] date input 값', todayInputValue(now), '2026-08-26')
+
+// [6-2] 빈 여정과 내용 있는 여정 구분 (헤더의 "저장됨" 표시가 이걸 본다)
+ok('[6-2] 빈 여정은 내용 없음', hasSavedContent(EMPTY_JOURNEY)===false)
+ok('[6-2] 빈 여정을 정규화해도 없음', hasSavedContent(normalizeJourney({}))===false)
+ok('[6-2] 키 순서가 달라도 없음', hasSavedContent(JSON.parse(JSON.stringify({
+  ...EMPTY_JOURNEY,
+  form: { ...EMPTY_JOURNEY.form, form2Extras: [], form2Index: 0 },
+})))===false)
+ok('[6-2] 서술 한 줄이면 내용 있음', hasSavedContent(normalizeJourney({diagnosis:{reason:'ㅁ'}}))===true)
+ok('[6-2] 사건 선택도 내용 있음', hasSavedContent(normalizeJourney({diagnosis:{eventId:'loanRejected'}}))===true)
+ok('[6-2] 서식 이름도 내용 있음', hasSavedContent(normalizeJourney({form:{personal:{name:'홍'}}}))===true)
 
 // [7] 스키마 버전이 파일에 들어간다
 ok('[7] 내보낸 파일에 버전', buildExport(EMPTY_JOURNEY).schemaVersion===SCHEMA_VERSION)

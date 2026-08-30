@@ -5,7 +5,7 @@ import {
   COUNTERPARTY_TYPES_BY_ID,
 } from '../data/law.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
-import { formatWhen, formatDate, daysSince } from '../lib/journey-storage.js'
+import { formatWhen, formatDate, daysSince, hasSavedContent } from '../lib/journey-storage.js'
 import { Notice, Card } from './ui.jsx'
 import { PRIVACY_TABLE } from '../data/privacy.js'
 
@@ -81,7 +81,7 @@ export function hasProgress(journey) {
  * 저장이 안 되는 환경이면 그 사실을 알린다 (조용히 실패하지 않는다).
  */
 export function SaveStatus() {
-  const { savedAt, storageAvailable } = useJourney()
+  const { journey, savedAt, storageAvailable } = useJourney()
   const when = formatWhen(savedAt)
 
   if (!storageAvailable) {
@@ -93,6 +93,12 @@ export function SaveStatus() {
     )
   }
   if (!when) return null
+  /*
+   * ★ 아무것도 입력하지 않았는데 "저장됨"이 뜨면 그 자체가 거짓 표시다.
+   *   화면을 옮기기만 해도 빈 여정이 한 번 저장되면서 시각이 찍히기 때문에,
+   *   실제로 담긴 내용이 있을 때만 알린다.
+   */
+  if (!hasSavedContent(journey)) return null
   return (
     <span className="text-sm text-gray-500" role="status" aria-live="polite">
       <span aria-hidden="true">✓ </span>

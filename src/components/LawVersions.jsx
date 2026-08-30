@@ -53,6 +53,10 @@ export default function LawVersions({ className = '' }) {
             <span aria-hidden="true"> ↗</span>
             <span className="sr-only">— 국가법령정보센터에서 원문 보기, 새 탭에서 열립니다</span>
           </a>
+          {/* 판본은 2026-08-30 원문 대조에서 확인했다. 여기만 비어 있었다. */}
+          <span className="tabular block text-gray-700">
+            [{LAW_META.supervisionRule.revision}] · 시행 {LAW_META.supervisionRule.effectiveDate}
+          </span>
           <span className="block text-gray-700">
             두 서식이 실린 금융위원회 고시입니다. 행정규칙은 조문 단위로 열리지 않아 규정
             전체가 열립니다.

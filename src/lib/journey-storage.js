@@ -195,6 +195,39 @@ function normalizeSecondCase(raw) {
 /** 추가 서식 2 건. 넘치는 값은 버린다. */
 export const MAX_FORM2_EXTRAS = 4
 
+/**
+ * 저장된 내용이 실제로 있는가 (빈 여정과 구분).
+ *
+ * ★ 화면을 옮기기만 해도 빈 여정이 한 번 저장되면서 시각이 찍힌다.
+ *   그것만 보고 "저장됨"을 띄우면, 아무것도 입력하지 않은 사람에게 거짓을 말하는 것이 된다.
+ *
+ * ★ JSON.stringify 비교로는 안 된다. 저장 경로에 따라 **키 순서가 달라져서**
+ *   내용이 같아도 문자열이 달라진다(form2Index / form2Extras 순서가 실제로 갈렸다).
+ *   그래서 순서를 보지 않는 깊은 비교를 쓴다.
+ */
+function sameValue(a, b) {
+  if (a === b) return true
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+    return a.every((v, i) => sameValue(v, b[i]))
+  }
+  if (a && b && typeof a === 'object' && typeof b === 'object') {
+    const ka = Object.keys(a)
+    const kb = Object.keys(b)
+    if (ka.length !== kb.length) return false
+    return ka.every((k) => Object.prototype.hasOwnProperty.call(b, k) && sameValue(a[k], b[k]))
+  }
+  return false
+}
+
+/** 여정에 담긴 내용이 있는지. 버전·저장시각은 내용이 아니므로 보지 않는다. */
+export function hasSavedContent(journey) {
+  if (!journey) return false
+  return ['diagnosis', 'strategy', 'form', 'response', 'milestones'].some(
+    (k) => !sameValue(journey[k], EMPTY_JOURNEY[k]),
+  )
+}
+
 function normalizeForm2Extras(raw) {
   if (!Array.isArray(raw)) return []
   return raw

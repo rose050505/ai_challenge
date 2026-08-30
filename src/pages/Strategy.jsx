@@ -49,6 +49,26 @@ function SourceBanner({ source, hasSituation }) {
       </p>
     )
   }
+  /**
+   * 샘플 시나리오는 캐시된 예시로 끝까지 돈다 — API 를 타지 않는다.
+   * ★ 심사자든 사용자든 여기서 멈추면 **AI 가 한 번도 돌지 않은 화면**만 보고 간다.
+   *   그래서 "본인 이야기로 바꾸면 그 내용으로 다시 찾아 드린다"를 이 자리에 둔다.
+   *   새 판정 로직이 아니라, 이미 있는 경로(진단 3단계 서술 → /api/analyze)로 가는 안내다.
+   */
+  if (source === 'cached') {
+    return (
+      <div className="rounded-md border-l-4 border-seal-400 bg-seal-50 p-4">
+        <p className="font-bold text-gray-900">지금은 샘플의 미리 준비된 예시입니다</p>
+        <p className="mt-2 text-gray-800">
+          <b>진단 3단계에 본인 상황을 적으시면</b>, 그 내용을 읽고 다시 찾아 드립니다. 그때는
+          항목마다 <b>어느 대목 때문에 골랐는지</b>도 함께 적어 드립니다.
+        </p>
+        <Link to="/diagnose#reason" className="btn btn-secondary mt-3">
+          내 상황으로 다시 찾기
+        </Link>
+      </div>
+    )
+  }
   if (source !== 'fallback') return null
   return (
     <div className="rounded-md border border-dashed border-gray-500 bg-gray-50 p-4">
