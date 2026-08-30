@@ -283,10 +283,17 @@ export function buildExport(journey) {
   }
 }
 
-/** 파일명에 날짜를 넣는다 (같은 날 여러 번 내보내도 알아볼 수 있게 시각까지) */
+/**
+ * 파일명에 날짜를 넣는다 (같은 날 여러 번 내보내도 알아볼 수 있게 시각까지).
+ *
+ * ★ 파일명은 사람이 알아보라고 붙이는 것뿐이다. 불러오기는 **파일명을 보지 않는다.**
+ *   parseImport 는 파일 안의 표지(FILE_MARKER)만 확인하므로,
+ *   서비스명이 바뀌기 전 이름으로 내보낸 파일도 그대로 열린다.
+ *   그래서 FILE_MARKER 는 바꾸지 않는다. 바꾸면 기존 파일이 안 열린다.
+ */
 export function exportFileName(now = new Date()) {
   const p = (n) => String(n).padStart(2, '0')
-  return `왜요-기록-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(
+  return `삼육이-기록-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(
     now.getHours(),
   )}${p(now.getMinutes())}.json`
 }

@@ -23,6 +23,8 @@
 export const LAW_META = {
   act: {
     name: '신용정보의 이용 및 보호에 관한 법률',
+    /** 통용되는 약칭. 배지 링크(basisLink)가 이 형태를 조문 주소로 풀어 준다. */
+    shortName: '신용정보법',
     article: '제36조의2',
     effectiveDate: '2026-08-13',
     revision: '법률 제21646호, 2026. 5. 12., 일부개정',

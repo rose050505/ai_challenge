@@ -200,11 +200,11 @@ export default function App() {
             <Link
               to="/"
               className="flex items-baseline gap-2 text-xl font-bold text-ink-800"
-              aria-label="왜요 — 처음으로"
+              aria-label="삼육이 — 처음으로"
             >
-              왜요
+              삼육이
               <span className="text-xs font-normal text-gray-500">
-                자동화평가 설명·이의제기 도우미
+                자동화평가 설명·이의제기 지원 서비스
               </span>
             </Link>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -250,6 +250,10 @@ export default function App() {
           <div className="mx-auto max-w-3xl px-4 py-6 text-sm text-gray-600">
             {/* 판본 표시는 각주가 아니라 근거다. 본문과 같은 크기로 둔다. */}
             <FooterLawVersions />
+            {/* 공식 전체 표기는 여기에 한 번 둔다 */}
+            <p className="mt-1 font-bold text-gray-800">
+              삼육이 — 자동화평가 설명·이의제기 지원 서비스
+            </p>
             <p className="mt-1">
               법률 자문이 아닙니다. 회원가입이 없고, 입력한 내용은 서버에 저장되지 않습니다.
             </p>

@@ -98,10 +98,11 @@ export default function Landing() {
           <br />
           이유를 물어볼 <span className="text-ink-700">법적 권리</span>가 있습니다.
         </h1>
-        {/* 서비스명의 의미를 여기서 드러낸다 — 버튼 앞의 한 줄 */}
+        {/* 서비스가 무엇인지 한 줄. "왜요?"는 이제 이름이 아니라 설명 문장이다. */}
         <p className="max-w-prose text-lg text-gray-800 sm:text-xl">
-          AI가 내린 결정에 <b className="text-ink-800">&ldquo;왜요?&rdquo;</b>라고 물을 권리.
-          <b> 그 요구서를 대신 만들어 드립니다.</b>
+          AI가 내린 결정에도 <b className="text-ink-800">&ldquo;왜요?&rdquo;</b>라고 물을 수
+          있습니다.
+          <b> 삼육이는 그 요구서를 대신 만들어 드립니다.</b>
         </p>
 
         {/* ── 2. 바로 해 보기 — 제목 바로 아래 ───────────────── */}
@@ -117,6 +118,7 @@ export default function Landing() {
             {TOUR_TITLE}
           </button>
         </div>
+
       </section>
       </div>
 
@@ -128,6 +130,20 @@ export default function Landing() {
 
       {/* ── 4. 왜 물어볼 수 있는가 — 근거 조문은 여기서 밝힌다 ── */}
       <section className="space-y-4">
+        {/* ★ 이름의 유래는 서비스 설명의 일부다. 이름만 두고 유래를 숨기지 않는다.
+            자리는 이 섹션의 첫 줄이다 — 이름 → 그 조문 → 그 조문의 판본이 한 덩어리로 읽힌다.
+            제목 위나 버튼 아래에 두면(둘 다 측정해 봤다) 버튼이나 자가진단이
+            375×667 첫 화면 밖으로 밀린다. */}
+        <p className="flex max-w-prose flex-wrap items-baseline gap-x-2 gap-y-1 text-lg text-gray-900">
+          <span>
+            이름은{' '}
+            <b className="text-ink-800">
+              {LAW_META.act.shortName} {LAW_META.act.article}
+            </b>
+            에서 왔습니다. <b>이 조문 하나가 이 서비스의 전부입니다.</b>
+          </span>
+          <Basis prefix="이름의 유래">{`${LAW_META.act.shortName} ${LAW_META.act.article}`}</Basis>
+        </p>
         <p className="max-w-prose text-gray-700">
           <Plain id="landing.lead">
           컴퓨터가 자동으로 심사했다면 그 결과와 기준을 설명하라고 요구할 수 있습니다.{' '}
