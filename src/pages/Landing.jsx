@@ -120,6 +120,18 @@ export default function Landing() {
           </button>
         </div>
 
+        {/*
+          ★ 이미 답변을 받은 사람에게는 첫 화면에 자기 자리가 없었다.
+            머리말의 [회신 해석]만이 길인데, 사용자가 쓰는 말은 "회신"이 아니라 "답변서"다.
+            (2026-08-31 실사용 시뮬레이션 시나리오 C) 그래서 여기 한 줄을 둔다.
+        */}
+        <p className="text-gray-800">
+          이미 금융회사에서 <b>답변(회신)</b>을 받으셨나요?{' '}
+          <Link to="/response" className="font-bold text-ink-700 underline">
+            받은 답변을 읽어 드립니다
+          </Link>
+        </p>
+
       </section>
       </div>
 

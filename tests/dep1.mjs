@@ -48,7 +48,7 @@ ok('진단: 제공자·국외 이전 고지', b.includes('Anthropic(미국)의 C
 ok('진단: 글자 수', b.includes('/ 2,000자'))
 
 console.log('\n[2] 샘플 → 서술 수정 → 진짜 API 호출')
-await click('프리랜서 이OO'); await sleep(1300)
+await ev(`(()=>{const b=[...document.querySelectorAll('main button')].find(x=>/샘플 시나리오로 바로 채우기/.test(x.innerText)); if(b&&b.getAttribute('aria-expanded')!=='true') b.click(); return 1})()`); await sleep(300); await click('프리랜서 이OO'); await sleep(1300)
 ok('샘플 직후 sampleId', (await st()).includes('freelancer'), await st())
 await type('#reason','작년에 육아휴직을 쓰고 올해 3월 복직했습니다. 지금은 같은 회사에서 정규직으로 일하고 월급도 정상입니다. 휴직 기간에 소득이 없던 것이 그대로 반영된 것 같습니다.')
 await sleep(1600)

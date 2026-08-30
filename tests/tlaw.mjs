@@ -72,7 +72,7 @@ ok('감독규정 판본 노출', b.includes('금융위원회고시 제2026-37호
 
 console.log('\n[E] 샘플 → 라이브 유도')
 await send('Page.navigate',{url:BASE+'/diagnose'}); await sleep(1300)
-await click('사회초년생 김OO'); await sleep(1200)
+await ev(`(()=>{const b=[...document.querySelectorAll('main button')].find(x=>/샘플 시나리오로 바로 채우기/.test(x.innerText)); if(b&&b.getAttribute('aria-expanded')!=='true') b.click(); return 1})()`); await sleep(300); await click('사회초년생 김OO'); await sleep(1200)
 await send('Page.navigate',{url:BASE+'/strategy'}); await sleep(1300)
 await ev(`(()=>{const x=[...document.querySelectorAll('button')].find(b=>/후보 만들기|다시 만들기/.test(b.innerText));if(x)x.click();return true})()`)
 await sleep(2500); b=await body()

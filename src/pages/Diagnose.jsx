@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import {
   RIGHTS,
@@ -125,10 +125,16 @@ export default function Diagnose() {
       limitKind: s.limitKind ?? null,
     })
 
+  /** 샘플 목록을 펼쳐 둘지. 샘플로 들어왔거나 샘플을 쓰는 중이면 펼친다. */
+  const [sampleOpen, setSampleOpen] = useState(Boolean(params.get('sample')) || Boolean(sampleId))
+
   // 랜딩의 [샘플 시나리오로 체험하기] 진입 시 입력을 미리 채운다.
   useEffect(() => {
     const s = SAMPLE_SCENARIOS_BY_ID[params.get('sample')]
-    if (s) applySample(s)
+    if (s) {
+      applySample(s)
+      setSampleOpen(true)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
 
@@ -138,6 +144,25 @@ export default function Diagnose() {
   const sectorDone =
     !needsSector || (sector && (sector.id !== 'other' || customInstitution.trim()))
   const ready = Boolean(eventId && counterparty && sectorDone)
+
+  /**
+   * 답을 다 고른 순간 결과로 데려간다.
+   *
+   * ★ 결과는 질문들 **아래**에 생긴다. 1280×800 에서 결과 제목이 y=1943 이었다.
+   *   화면은 그대로 있으므로, 마지막 항목을 고른 사람은 아무 일도 일어나지 않은 것처럼 본다.
+   *   (2026-08-31 실사용 시뮬레이션에서 확인)
+   * ★ 이미 답이 채워진 채로 들어온 사람(이어서 하기)은 건드리지 않는다.
+   *   화면을 마음대로 끌어내리면 그게 더 나쁘다. 그래서 **아니었다가 되는 순간**만 움직인다.
+   */
+  const resultRef = useRef(null)
+  const wasReady = useRef(ready)
+  useEffect(() => {
+    if (ready && !wasReady.current) {
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      resultRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+    }
+    wasReady.current = ready
+  }, [ready])
 
   // 사건 유형 × 업권 조합으로 법 제2조 제1호의3 가목의 어느 호인지 판정한다.
   // CB사에는 업권 개념이 없으므로 sectorId 를 넘기지 않는다.
@@ -156,10 +181,37 @@ export default function Diagnose() {
 
       <DownstreamNotice changed={changed} />
 
+      {/*
+        ── 샘플은 접어 둔다 ─────────────────────────────────────────
+        ★ 펼쳐 두었더니 [내 상황으로 시작하기]로 들어온 사람이 **샘플을 자기 상황으로
+          오인해 눌렀다.** 카드 글에 "카드 발급 거절" 같은 말이 들어 있어서, 1단계보다
+          위에 있으면 먼저 눈에 걸린다. (2026-08-31 실사용 시뮬레이션에서 실제로 재현)
+          375px 에서는 샘플 세 장이 첫 화면을 다 먹어 1단계가 화면 밖으로 밀리기도 했다.
+        ★ 그렇다고 없애지 않는다. 심사자 체험 경로다. 랜딩의 [샘플 시나리오로 체험하기]는
+          ?sample= 로 바로 채우므로 그 경로는 그대로다. 여기서는 접어 두고,
+          그 주소로 들어왔거나 샘플을 쓰는 중이면 펼친 채로 시작한다.
+        ─────────────────────────────────────────────────────────── */}
       <section className="panel" aria-labelledby="sample-heading">
-        <p id="sample-heading" className="mb-3 font-bold text-gray-900">
-          샘플 시나리오로 바로 채우기
-        </p>
+        <h2 id="sample-heading">
+          <button
+            type="button"
+            onClick={() => setSampleOpen((v) => !v)}
+            aria-expanded={sampleOpen}
+            aria-controls="sample-panel"
+            className="flex w-full items-center justify-between gap-3 text-left font-bold text-gray-900"
+          >
+            <span>
+              샘플 시나리오로 바로 채우기
+              <span className="ml-2 text-sm font-normal text-gray-600">
+                직접 겪은 일이 없어도 전체 흐름을 볼 수 있습니다 (3종)
+              </span>
+            </span>
+            <span aria-hidden="true" className="shrink-0 text-gray-600">
+              {sampleOpen ? '▲' : '▼'}
+            </span>
+          </button>
+        </h2>
+        <div id="sample-panel" hidden={!sampleOpen} className="mt-3">
         <div className="grid gap-2 sm:grid-cols-3">
           {SAMPLE_SCENARIOS.map((s) => (
             <button
@@ -187,6 +239,7 @@ export default function Diagnose() {
             {activeSample.demonstrates}
           </p>
         )}
+        </div>
       </section>
 
       <Step n={1} title="무슨 일이 있었나요?">
@@ -340,7 +393,7 @@ export default function Diagnose() {
       </Step>
 
       {ready ? (
-        <Result counterparty={counterparty} transaction={transaction} />
+        <Result sectionRef={resultRef} counterparty={counterparty} transaction={transaction} />
       ) : (
         <p
           role="status"
@@ -474,12 +527,12 @@ function RightCard({ right, counterparty }) {
   )
 }
 
-function Result({ counterparty, transaction }) {
+function Result({ counterparty, transaction, sectionRef }) {
   const p1 = RIGHTS.filter((r) => r.paragraph === 1 && r.counterparties.includes(counterparty.id))
   const p2 = RIGHTS.filter((r) => r.paragraph === 2 && r.counterparties.includes(counterparty.id))
 
   return (
-    <section className="space-y-6 border-t border-gray-200 pt-8">
+    <section ref={sectionRef} className="space-y-6 border-t border-gray-200 pt-8">
       <h2 className="text-2xl font-bold text-gray-900">행사할 수 있는 권리</h2>
 
       {/* 사건 유형 × 업권 조합 판정. 애매하면 하위 호를 특정하지 않는다. */}
