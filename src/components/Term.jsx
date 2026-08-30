@@ -53,7 +53,7 @@ export function Term({ id, children }) {
         type="button"
         className="term-trigger"
         aria-expanded={open}
-        aria-controls={panelId}
+        aria-controls={open ? panelId : undefined}
         aria-label={`${entry.term} — 용어 풀이 ${open ? '닫기' : '보기'}`}
         onClick={() => setOpen((v) => !v)}
       >

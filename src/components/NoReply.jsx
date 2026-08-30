@@ -73,7 +73,7 @@ export default function NoReply({ defaultOpen = false }) {
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          aria-controls="noreply-panel"
+          aria-controls={open ? 'noreply-panel' : undefined}
           className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-4 text-left"
         >
           <span>

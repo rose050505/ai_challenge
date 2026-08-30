@@ -39,7 +39,7 @@ export default function Disclosure({ n, title, summary, defaultOpen = false, chi
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          aria-controls={panelId}
+          aria-controls={open ? panelId : undefined}
           className="flex w-full items-start justify-between gap-3 rounded-lg px-4 py-4 text-left"
         >
           <span className="min-w-0 flex-1">

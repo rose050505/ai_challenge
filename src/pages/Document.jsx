@@ -229,7 +229,7 @@ function Form1({ selectedItems, toggleItem, personal, setPersonal, consent, setC
           <tbody>
             {FORM1_APPLICANT_FIELDS.map((f) => (
               <tr key={f.id}>
-                <th className="w-28 border p-1 text-left">{f.label}</th>
+                <th scope="row" className="w-28 border p-1 text-left">{f.label}</th>
                 <td className="border p-1">
                   {f.input ? (
                     <Field
@@ -384,7 +384,7 @@ function form2Blocks({
         group: 'S2',
         node: (
           <tr key={cat.id}>
-            <th className="border p-1 text-left align-top font-normal">
+            <th scope="row" className="border p-1 text-left align-top font-normal">
               {formLabel}
               {/* 법정 예시 힌트. 화면 전용이라 인쇄에는 나가지 않는다. */}
               <details className="no-print mt-1 font-normal">

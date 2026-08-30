@@ -52,7 +52,7 @@ export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          aria-controls="email-draft-panel"
+          aria-controls={open ? 'email-draft-panel' : undefined}
           className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-4 text-left"
         >
           <span>

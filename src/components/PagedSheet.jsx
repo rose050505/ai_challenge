@@ -91,7 +91,7 @@ function renderBlocks(blocks, groups) {
           <thead>
             <tr>
               {group.columns.map((c) => (
-                <th key={c.id} className={c.className} style={c.style}>
+                <th key={c.id} scope="col" className={c.className} style={c.style}>
                   {c.label}
                 </th>
               ))}
@@ -239,7 +239,7 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
                   <thead data-mghead={g.id}>
                     <tr>
                       {g.columns.map((c) => (
-                        <th key={c.id} className={c.className} style={c.style}>
+                        <th key={c.id} scope="col" className={c.className} style={c.style}>
                           {c.label}
                         </th>
                       ))}

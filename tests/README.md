@@ -118,6 +118,7 @@ node blocked-lead.mjs https://362.parkmiyeong.com  # 저장 차단 시 서식 �
 | `tour.mjs`, `tourkbd.mjs` | 둘러보기 4정거장, 키보드만으로 완주 |
 | `tdiag.mjs` | 그림 3종(화살촉·모바일 변형 포함) |
 | `kbd.mjs` | 키보드 접근성, 글자 크기 |
+| `ta11y.mjs` | 스크린리더 관점 — 랜드마크·제목 계층·라벨·aria-controls·표 머리 (8화면) |
 | `afterprint.mjs` | 인쇄 후 흐름, 카운트다운 없음 |
 | `mail.mjs` | 푸터 문의처 mailto·복사 가능 |
 | `samplenote.mjs` | 샘플이 예시임을 화면이 밝히는가 |
