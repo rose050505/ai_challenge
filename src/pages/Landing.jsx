@@ -5,6 +5,8 @@ import { SAMPLE_SCENARIOS } from '../data/samples.js'
 import { Basis, Card } from '../components/ui.jsx'
 import { Term, GlossaryList } from '../components/Term.jsx'
 import SelfCheck from '../components/SelfCheck.jsx'
+import LawVersions from '../components/LawVersions.jsx'
+import { LoopDiagram } from '../components/Diagrams.jsx'
 import { Plain } from '../lib/plain.jsx'
 import { useTour } from '../lib/tour.jsx'
 import { TOUR_TITLE } from '../data/tour.js'
@@ -141,6 +143,11 @@ export default function Landing() {
             {LAW_META.act.revision}
           </Basis>
         </p>
+        {/* ★ 판본 표시는 각주가 아니라 근거다.
+            바닥글에 두었을 때 이 화면의 91% 지점(모바일 8.8화면 아래)에 묻혔다.
+            "왜 물어볼 수 있는가"를 말하는 이 자리가 제자리다.
+            (바닥글의 같은 블록은 이 화면에서만 감춘다 — 두 번 보일 이유가 없다) */}
+        <LawVersions />
       </section>
 
       {/* ── 5. 자동화평가란 ──────────────────────────────────── */}
@@ -162,6 +169,8 @@ export default function Landing() {
       {/* ── 6. 무엇을 해 주는가 ──────────────────────────────── */}
       <section className="space-y-4">
         <h2 className="text-2xl font-bold text-gray-900">무엇을 해 드리나요</h2>
+        {/* 세 단계를 글로 읽기 전에 고리 하나로 먼저 보인다 */}
+        <LoopDiagram className="rounded-lg border border-gray-200 bg-white p-4" />
         <ol className="space-y-3">
           {STEPS.map((s) => (
             <Card as="li" key={s.n}>

@@ -17,6 +17,7 @@ import { SAMPLE_SCENARIOS, SAMPLE_SCENARIOS_BY_ID } from '../data/samples.js'
 import { useDiagnosis, useJourney } from '../lib/diagnosis-context.jsx'
 import { PageHeader, Basis, Card, Choice, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
+import { RoutingDiagram } from '../components/Diagrams.jsx'
 
 /** 단계 카드. 화면 전체의 제목-설명-본문 리듬을 여기 한 곳에서 정한다. */
 function Step({ n, title, children, hint }) {
@@ -353,6 +354,8 @@ function RoutingDisclosure() {
       <div className="border-t border-amber-200 p-3">
         <p className="font-bold text-gray-900">{CORRECTION_ROUTING.question}</p>
         <p className="mt-1 text-gray-700">상대를 잘못 고르면 요청이 반려됩니다.</p>
+        {/* 고르기 전에 세 갈래가 어디로 가는지 한 장으로 보인다 */}
+        <RoutingDiagram className="mt-3 rounded-md border border-amber-200 bg-white p-3" />
         <div className="mt-3 space-y-2">
           {CORRECTION_ROUTING.branches.map((b) => (
             <Choice

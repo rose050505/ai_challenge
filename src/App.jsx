@@ -139,6 +139,17 @@ function PlainNotice() {
  * 각 화면이 useState 초기값으로 저장된 내용을 읽으므로, 그때 화면을 새로 마운트해야
  * 불러온 내용이 실제로 반영된다.
  */
+/**
+ * 바닥글의 법령 판본 블록.
+ * 첫 화면에서는 권리 목록 바로 뒤(본문 안)에 두었으므로 여기서는 감춘다.
+ * 다른 화면에서는 바닥글이 유일한 자리다.
+ */
+function FooterLawVersions() {
+  const { pathname } = useLocation()
+  if (pathname === '/') return null
+  return <LawVersions className="mb-5 text-base" />
+}
+
 function AppRoutes() {
   const { generation } = useJourney()
   const { pathname } = useLocation()
@@ -238,7 +249,7 @@ export default function App() {
         <footer className="no-print mt-12 border-t border-gray-200 bg-white">
           <div className="mx-auto max-w-3xl px-4 py-6 text-sm text-gray-600">
             {/* 판본 표시는 각주가 아니라 근거다. 본문과 같은 크기로 둔다. */}
-            <LawVersions className="mb-5 text-base" />
+            <FooterLawVersions />
             <p className="mt-1">
               법률 자문이 아닙니다. 회원가입이 없고, 입력한 내용은 서버에 저장되지 않습니다.
             </p>

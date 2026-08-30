@@ -136,7 +136,8 @@ function openRule({ submitted, refused }) {
     noReply: submitted,
     methods: false,
     refusal: refused,
-    postRefusal: false,
+    // 거절 회신을 해석하고 왔다면 남은 경로가 지금 필요한 정보다
+    postRefusal: refused,
   }
 }
 

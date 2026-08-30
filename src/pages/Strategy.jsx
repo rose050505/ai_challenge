@@ -6,6 +6,7 @@ import { useJourney } from '../lib/diagnosis-context.jsx'
 import { requestCandidates } from '../lib/analyze-client.js'
 import { PageHeader, Basis, Card, Notice, Status, SlowHint } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
+import { ArchitectureDiagram } from '../components/Diagrams.jsx'
 
 /**
  * 후보 목록에 붙는 "선정이유".
@@ -152,6 +153,12 @@ export default function Strategy() {
           이 범위는 <Term id="capacityInfo">{R3_SCOPE.categoryLabel}</Term>입니다. 범위 밖의
           항목(예: 성격, 학력)은 제안하지 않습니다.
         </p>
+      </section>
+
+      {/* AI가 어디까지 하고 어디부터 코드가 하는지 — 이 화면에서 가장 자주 나오는 질문이다 */}
+      <section className="space-y-2">
+        <h2 className="text-lg font-bold text-gray-900">이 화면에서 AI는 어디까지 하나요</h2>
+        <ArchitectureDiagram className="rounded-lg border border-gray-200 bg-white p-4" />
       </section>
 
       {state === 'idle' && (

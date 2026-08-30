@@ -1148,6 +1148,8 @@ export const FORM_SIGNATURE_TEXTS = {
 export const FORM_EXPLANATION_REQUEST = {
   id: 'explanationRequest',
   title: '자동화평가 결과에 대한 설명요구서',
+  /** 좁은 자리(그림 상자 등)에서 쓰는 줄임 이름. 공식 제목을 줄인 것이지 다른 서식이 아니다. */
+  shortTitle: '설명요구서',
   subtitle: '(제40조의5제1항 관련)',
   basis: '신용정보업감독규정 제40조의5제1항 관련 (금융위원회 고시 서식)',
   coveredRights: ['R1', 'R2'],
@@ -1556,6 +1558,8 @@ export const CORRECTION_ROUTING_BY_ID = Object.fromEntries(
 export const FORM_CORRECTION_REQUEST = {
   id: 'correctionRequest',
   title: '기초정보 정정ㆍ삭제 및 자동화평가 재산출 요청서',
+  /** 좁은 자리(그림 상자 등)에서 쓰는 줄임 이름 */
+  shortTitle: '정정ㆍ재산출 요청서',
   subtitle: null,
   basis: '신용정보법 시행령 제31조의2 제6항 (금융위원회가 정하여 고시하는 서식)',
   coveredRights: ['R3', 'R4', 'R5'],
