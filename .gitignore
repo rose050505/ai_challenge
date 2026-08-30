@@ -31,7 +31,9 @@ dist-ssr
 # Vercel
 .vercel
 
-# 시험이 저장소 루트에 떨구는 산출물 (인쇄 PDF·스크린샷). 소스가 아니다.
+# 시험이 떨구는 산출물 (인쇄 PDF·스크린샷). 소스가 아니다.
 /*.pdf
 /*.png
+tests/*.pdf
+tests/*.png
 tests/out/
