@@ -195,10 +195,26 @@ LLM이 법조문을 지어내는 순간 이 서비스는 신뢰를 잃는다.
 
 ---
 
+## 회귀 시험
+
+시험은 `tests/` 에 있다. 실행 방법과 준비물은 `tests/README.md`.
+
+```bash
+npm run build && npx vite preview --port 4400 &          # 앱
+chrome-headless-shell --remote-debugging-port=9444 \
+  --user-data-dir=/tmp/cdp-profile about:blank &          # 브라우저
+cd tests && ./run.sh                                     # 단위 + 브라우저
+cd tests && ./run-print.sh                               # 인쇄 쪽수 예고=실제
+```
+
+배포본을 상대로: `node tests/dep1.mjs https://362.parkmiyeong.com`
+(**실제 API 를 한 번 호출한다.**)
+
 ## 작업 원칙
 
 - 커밋은 기능 단위로 자주.
 - 화면 하나가 끝나면 반드시 `npm run build`가 통과하는지 확인한다.
+- **고친 뒤에는 `tests/run.sh` 를 돌린다.** 인쇄에 닿는 변경이면 `run-print.sh` 도.
 - 새 라이브러리 추가는 최소화. 특히 PDF·차트 라이브러리는 추가하지 않는다.
 - 법조문 텍스트는 `src/data/law.js` 한 곳에만 두고, 어디서도 하드코딩 중복하지 않는다.
 - 모든 법적 주장에는 근거 조항(예: "제36조의2 제2항 제2호 나목")을 화면에 함께 표시한다.

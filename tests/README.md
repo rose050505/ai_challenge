@@ -1,0 +1,127 @@
+# 회귀 시험
+
+이 폴더는 **저장소 밖(임시 디렉터리)에 있던 시험을 옮겨 온 것**이다.
+기능 동결(2026-09-01) 이후에는 버그픽스만 하는데, 고칠 때마다 돌릴 것이 없으면
+고쳤는지 확인할 방법이 없다. 그래서 저장소 안에 둔다.
+
+시험 코드는 옮기면서 세 가지만 손봤다. 검사 내용은 한 줄도 바꾸지 않았다.
+
+- 절대경로 import → 저장소 상대경로
+- 앱 주소·크롬 주소를 환경변수로 (`APP_URL`, `CDP`) — 기본값은 그대로
+- 산출물(스크린샷·인쇄 PDF) 저장 위치 → `tests/out/` (`.gitignore` 에 걸려 있다)
+
+---
+
+## 준비물
+
+브라우저를 쓰는 시험은 **둘 다 떠 있어야** 한다.
+
+### 1) 앱 (빌드 결과물을 4400 포트로)
+
+```bash
+npm run build
+npx vite preview --port 4400
+```
+
+시험은 `dist/` 를 본다. **소스를 고쳤으면 다시 빌드해야 한다.**
+(개발 서버 `npm run dev` 로도 돌아가지만, 인쇄 시험은 빌드본으로 재는 것이 맞다.)
+
+### 2) 헤드리스 크롬 (원격 디버깅 9444 포트)
+
+```bash
+chrome-headless-shell \
+  --remote-debugging-port=9444 \
+  --user-data-dir=/tmp/cdp-profile \
+  --no-first-run about:blank
+```
+
+`chrome-headless-shell` 이 없으면 `npx puppeteer browsers install chrome-headless-shell` 로 받는다.
+일반 `google-chrome --headless=new` 도 동작한다.
+
+떠 있는지 확인:
+
+```bash
+curl -s http://127.0.0.1:9444/json/version
+```
+
+### 환경변수 (선택)
+
+| 변수 | 기본값 | 쓰임 |
+|---|---|---|
+| `APP_URL` | `http://localhost:4400` | 시험 대상 주소 |
+| `CDP` | `http://127.0.0.1:9444` | 헤드리스 크롬의 디버깅 주소 |
+
+---
+
+## 실행
+
+```bash
+cd tests
+./run.sh            # 단위 + 브라우저 시험 전부
+./run.sh unit       # 브라우저 없이 도는 것만
+./run.sh browser    # 브라우저가 필요한 것만
+./run.sh tfacts     # 하나만
+```
+
+인쇄 쪽수 시험은 따로 돈다 (10가지 조합 × PDF 생성이라 몇 분 걸린다).
+
+```bash
+./run-print.sh
+```
+
+배포본을 상대로 도는 시험:
+
+```bash
+node dep1.mjs https://362.parkmiyeong.com          # 배포본 사실 확인 + 라이브 AI
+node private-dep.mjs https://362.parkmiyeong.com   # 저장 차단(시크릿) 환경
+node depshots.mjs https://362.parkmiyeong.com      # 375/768/1280 스크린샷
+node blocked-lead.mjs https://362.parkmiyeong.com  # 저장 차단 시 서식 안내문
+```
+
+`dep1.mjs` 는 **실제 API 를 한 번 호출한다.** 비용이 든다(적다).
+
+---
+
+## 무엇을 보는 시험인가
+
+### 브라우저 없이 (단위)
+
+| 파일 | 검사 |
+|---|---|
+| `tp.mjs` | 인쇄 페이지 분할 계산(paginate) |
+| `tj.mjs` | 여정 저장·불러오기, 정규화, 주민등록번호가 저장 구조에 없음 |
+| `t1.mjs` | 회신 해석 서버 가드(분류 교정, 거절 판정) |
+| `tpre.mjs` | 인쇄 전 점검(preflight) 문구 |
+| `treason.mjs` | `/strategy` 선정이유 가드 — 서술에 없는 인용을 버리는가 |
+| `safari.mjs` | 옛 사파리 인쇄 분기 판정 |
+
+### 브라우저 (앱 + 크롬 필요)
+
+| 파일 | 검사 |
+|---|---|
+| `phase1~5`, `phase8` | 화면별 기능 회귀(진단·판정·서식·인쇄·이후 절차) |
+| `e2e4.mjs` | 회신 해석 전 경로 |
+| `journey.mjs` | 저장 → 새 세션 → 이어서 하기 → 내보내기/불러오기 |
+| `private.mjs` | 저장이 막힌 브라우저에서 기능이 죽지 않는가 |
+| `rename.mjs` | 서비스명 표기, 옛 파일명 호환, 저장소 네임스페이스 불변 |
+| `tform2.mjs` | 서식 2 원문 대조 교정 5건이 인쇄물에 그대로 나가는가 |
+| `tfacts.mjs` | 개인정보·전송 고지가 실제 동작과 일치하는가, 샘플 캐시 해제 |
+| `tnext.mjs` | `/next` 접기·펼치기 기본 상태 |
+| `tstrategy.mjs` | `/strategy` 선정이유·출처 표시 |
+| `tour.mjs`, `tourkbd.mjs` | 둘러보기 4정거장, 키보드만으로 완주 |
+| `tdiag.mjs` | 그림 3종(화살촉·모바일 변형 포함) |
+| `kbd.mjs` | 키보드 접근성, 글자 크기 |
+| `afterprint.mjs` | 인쇄 후 흐름, 카운트다운 없음 |
+| `mail.mjs` | 푸터 문의처 mailto·복사 가능 |
+| `samplenote.mjs` | 샘플이 예시임을 화면이 밝히는가 |
+| `paged.mjs` | 인쇄 쪽수 예고 = 실제 (`run-print.sh` 가 돌린다) |
+
+---
+
+## 주의
+
+- 시험끼리 **같은 브라우저·같은 localStorage 를 쓴다.** 앞 시험이 남긴 기록이
+  뒤 시험을 흔들 수 있어, 대부분의 시험이 앱의 [처음부터]로 먼저 지우고 시작한다.
+  새로 시험을 쓸 때도 그렇게 해라. `localStorage.clear()` 만으로는 부족하다 —
+  앱이 화면을 떠날 때 메모리의 여정을 다시 저장한다.
+- 인쇄 시험은 **빌드본**을 본다. 소스만 고치고 빌드를 안 하면 옛 결과가 나온다.
