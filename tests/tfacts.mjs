@@ -29,7 +29,11 @@ ok('랜딩: 전송 사실 고지', b.includes('분석을 위해 서버를 거칩
 await ev(`document.querySelectorAll('details').forEach(d=>d.open=true)`); await sleep(400)
 b=await body()
 ok('랜딩: 처리 내역 표 노출', b.includes('무엇을 어떻게 다루나요') && b.includes('Anthropic(미국)의 Claude 모델로 전송'))
-ok('랜딩: 표에 회신 원문 행', b.includes('해석이 끝나면 폐기'))
+// 2026-08-31: "폐기"만 적으면 절반이다. 저장되는 항목 값이 회신문에서 옮겨진 것이라는
+// 사실까지 화면이 말하는지 본다 (src/data/privacy.js RESPONSE_RETENTION)
+ok('랜딩: 표에 회신 원문 행', b.includes('원문 전체는 저장하지 않습니다'))
+ok('★ 원문 전체와 원문의 조각을 나눠 적는다',
+   b.includes('회신문에서 그대로 옮긴 것이고') && b.includes('이 브라우저에 저장됩니다'))
 ok('푸터: 운영 주체', b.includes('만든 곳') && b.includes('그라파이트'))
 
 await send('Page.navigate',{url:BASE+'/document'}); await sleep(1500)

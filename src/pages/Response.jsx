@@ -23,7 +23,7 @@ import { interpretResponse } from '../lib/interpret-client.js'
 import { buildCorrectionRows } from '../lib/correction-rows.js'
 import { PageHeader, Basis, Notice, Status, SlowHint, Elapsed } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
-import { AI_PROCESSING, TRANSMIT_LIMITS } from '../data/privacy.js'
+import { AI_PROCESSING, TRANSMIT_LIMITS, RESPONSE_RETENTION } from '../data/privacy.js'
 
 /** 서버가 이 길이에서 잘라내므로(api/interpret.js) 화면에서 미리 막는다 */
 const RESPONSE_MAX = TRANSMIT_LIMITS.responseText
@@ -131,7 +131,8 @@ export default function Response() {
   const { journey, setSection } = useJourney()
   /**
    * 저장된 해석 결과가 있으면 그대로 이어서 보여준다.
-   * ★ 붙여넣은 회신 원문은 저장하지 않는다. 개인 신용정보를 우리가 붙들고 있을 이유가 없다.
+   * ★ 붙여넣은 회신 원문 **전체**는 저장하지 않는다. 개인 신용정보를 붙들고 있을 이유가 없다.
+   *   (해석이 뽑아낸 항목의 값은 원문에서 옮겨진 것이라 남는다 — RESPONSE_RETENTION)
    *   해석 결과(항목 목록)만 남긴다.
    */
   const savedResponse = journey.response
@@ -176,7 +177,7 @@ export default function Response() {
         setManualItems([{ 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label }])
       }
       setState('done')
-      // 단계 완료 — 해석 결과만 저장한다 (원문은 저장하지 않는다)
+      // 단계 완료 — 해석 결과만 저장한다 (원문 전체는 저장하지 않는다)
       setSection(
         'response',
         {
@@ -348,9 +349,7 @@ export default function Response() {
             >
               회신 해석하기
             </button>
-            <p className="text-sm text-gray-600">
-              붙여넣은 회신 원문은 저장하지 않습니다. 해석 결과만 이 브라우저에 남습니다.
-            </p>
+            <p className="text-sm text-gray-600">{RESPONSE_RETENTION.short}</p>
           </section>
         </>
       )}
@@ -375,8 +374,8 @@ export default function Response() {
           {result.mode === 'restored' && (
             <Notice title="이전에 해석한 결과를 불러왔습니다" mark="i">
               <p>
-                이 브라우저에 저장된 해석 결과입니다. 붙여넣으셨던 회신 원문은 저장하지 않으므로
-                여기에 없습니다. 새 회신을 넣으시려면 아래 [다른 회신 넣기]를 누르세요.
+                {RESPONSE_RETENTION.restored} 새 회신을 넣으시려면 아래 [다른 회신 넣기]를
+                누르세요.
               </p>
             </Notice>
           )}

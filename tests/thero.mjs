@@ -69,6 +69,11 @@ t_('부제도 쉬운 말로 바뀐다', pBody.includes('정해 둔 권리입니�
 const pCtaY = await y(`[...document.querySelectorAll('a')].find(e=>e.textContent.includes('내 상황으로 시작하기'))`)
 t_('쉬운 말에서도 버튼이 첫 화면 안', pCtaY!==null && pCtaY < 667, 'y='+pCtaY)
 
+// ★ 쉬운 말을 켠 채로 끝내면 다음 시험(phase5 "기본은 원문")이 깨진다.
+//   같은 브라우저·같은 localStorage 를 쓰기 때문이다. 여기서 되돌린다.
+const {result:{identifier:seedR}} = await send('Page.addScriptToEvaluateOnNewDocument',
+  {source:`try{localStorage.clear();localStorage.setItem('wy-tour-v1','done')}catch(e){}`})
+
 console.log('[A-2] 서식 — 정본과 대조하지 못했다는 고지')
 await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false})
 for (const f of ['explanationRequest','correctionRequest']) {
@@ -77,9 +82,9 @@ for (const f of ['explanationRequest','correctionRequest']) {
   t_(`${f}: 원본 미대조를 밝힌다`, b.includes('원본과 대조하지 못했습니다'), b.slice(0,80))
   t_(`${f}: 왜 대조하지 못했는지 밝힌다`, b.includes('고시의 첨부 파일로만'))
   t_(`${f}: 개정 판본을 특정한다`, b.includes('2026-08-13') && b.includes('제2026-37호'))
-  // ★ 확인하지 않은 것을 단정하지 않는다 — "별지 15의2가 개정됐다"고 말하면 안 된다
-  t_(`${f}: 별지 개정 여부를 단정하지 않는다`,
-     !/별지 제15호의[23] 서식이 (개정|변경)됐/.test(b) && b.includes('바꾸었는지'))
+  // ★ 확인한 것(원본이 개정됐다)과 확인하지 못한 것(우리 실물이 개정 뒤인지)을 나눈다
+  t_(`${f}: 개정 사실과 미확인 사실을 나눈다`,
+     b.includes('원본은 2026-08-13 개정됐는데') && b.includes('개정 뒤의 판본인지는 확인하지 못했습니다'))
   // 고지는 화면에만 — 종이에는 나가지 않는다
   const inSheet = await ev(`(document.querySelector('.print-sheet')?.innerText ?? '').includes('원본과 대조하지 못했습니다')`)
   t_(`${f}: 고지가 인쇄물에는 들어가지 않는다`, inSheet===false)
@@ -97,6 +102,14 @@ t_('아래 큰 버튼은 그대로 남아 있다', bigY!==null && bigY > quickY,
 const links = await ev(`(()=>{const p=[...document.querySelectorAll('p')].find(e=>e.textContent.includes('바로 이어서 하시려면'));
   return p?JSON.stringify([...p.querySelectorAll('a')].map(a=>a.getAttribute('href'))):null})()`)
 t_('두 갈래 모두로 이어진다', links && JSON.parse(links).join(',')==='/strategy,/document', String(links))
+
+await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:seedR})
+// 마지막으로 한 번 더 비워 두고 나간다 (다음 시험이 깨끗한 상태에서 시작하도록)
+const {result:{identifier:seedZ}} = await send('Page.addScriptToEvaluateOnNewDocument',
+  {source:`try{localStorage.clear()}catch(e){}`})
+await send('Page.navigate',{url:BASE+'/'}); await sleep(1000)
+await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:seedZ})
+t_('쉬운 말을 켠 채로 끝내지 않는다', (await ev(`localStorage.getItem('wy-plain')`)) !== '1')
 
 t_('★ 처리되지 않은 예외 0건', errs.length===0, errs.join('|'))
 console.log(`\n통과 ${pass} / 실패 ${fail}`)
