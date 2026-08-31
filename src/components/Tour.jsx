@@ -97,12 +97,25 @@ export default function Tour() {
   const panelRef = useRef(null)
   const isStation = typeof step === 'number'
   const station = isStation ? TOUR_STATIONS[step] : null
-  const rects = useTargets(station?.targets, step)
+  /*
+   * ★ 소개·마무리도 강조 대상을 가질 수 있다. (2026-08-31)
+   *   소개에서 첫 화면의 자가진단을 비추기 위해 head 를 훅보다 먼저 구한다.
+   */
+  const head = step === INTRO ? TOUR_INTRO : step === OUTRO ? TOUR_OUTRO : station
+  const rects = useTargets(head?.targets, step)
 
   // 단계가 바뀔 때마다 패널로 포커스를 옮긴다. 스크린리더가 새 내용을 읽는다.
   useEffect(() => {
     if (!active) return
     panelRef.current?.focus()
+    /*
+     * ★ 패널을 맨 위로 되돌린다. (2026-08-31 사용자 지적 — 실기에서 발견)
+     *   패널은 overflow-y-auto 다. 앞 정거장에서 [다음]을 누르려고 안쪽을 내려 두면
+     *   그 scrollTop 이 그대로 남아, 다음 정거장의 글이 **중간부터** 보였다.
+     *   [이전]으로 돌아갈 때도 같다. focus() 뒤에 되돌린다 —
+     *   focus() 가 스크롤을 건드릴 수 있으므로 순서가 중요하다.
+     */
+    if (panelRef.current) panelRef.current.scrollTop = 0
   }, [active, step])
 
   // 포커스 트랩 + Esc
@@ -147,9 +160,6 @@ export default function Tour() {
   const placeTop =
     rects.length > 0 &&
     Math.min(...rects.map((r) => r.y)) > (typeof window === 'undefined' ? 0 : window.innerHeight) * 0.42
-  const head =
-    step === INTRO ? TOUR_INTRO : step === OUTRO ? TOUR_OUTRO : station
-
   const prev = () => {
     if (step === OUTRO) return goTo(total - 1)
     if (isStation && step > 0) return goTo(step - 1)
@@ -274,8 +284,13 @@ export default function Tour() {
             </button>
           )}
         </div>
+        {/* ★ 안내 줄은 소개에서 한 번만 길게 말한다. (2026-08-31, 375px 실기)
+            정거장마다 두 줄을 되풀이하면 그만큼 패널이 커지고, 커진 패널이
+            정작 이 정거장이 비추는 것을 덮는다. */}
         <p className="mt-3 text-sm text-gray-600">
-          건너뛰셔도 지금 보시던 화면에서 그대로 이어서 쓰실 수 있습니다. Esc 로도 닫힙니다.
+          {step === INTRO
+            ? '건너뛰셔도 지금 보시던 화면에서 그대로 이어서 쓰실 수 있습니다. Esc 로도 닫힙니다.'
+            : 'Esc 로도 닫힙니다.'}
         </p>
       </div>
     </div>

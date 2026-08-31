@@ -36,7 +36,9 @@ export default function SelfCheck() {
         </Plain>
       </p>
 
-      <ul className="mt-4 space-y-2">
+      {/* 둘러보기 소개가 비추는 자리. 구역 전체(720px)를 비추면 화면이 통째로 밝아져
+          "여기를 보세요"가 되지 않는다. 물어보는 항목만 비춘다. */}
+      <ul className="mt-4 space-y-2" data-tour="selfcheck-items">
         {SELF_CHECK_ITEMS.map((item) => {
           const on = picked.includes(item.id)
           return (

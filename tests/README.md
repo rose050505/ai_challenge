@@ -133,7 +133,7 @@ cd tests
 | `tfacts.mjs` | 개인정보·전송 고지가 실제 동작과 일치하는가, 샘플 캐시 해제 |
 | `tnext.mjs` | `/next` 접기·펼치기 기본 상태 |
 | `tstrategy.mjs` | `/strategy` 선정이유·출처 표시 |
-| `tour.mjs`, `tourkbd.mjs` | 둘러보기 4정거장, 키보드만으로 완주 |
+| `tour.mjs`, `tourkbd.mjs` | 둘러보기 완주(마우스·키보드), **375px 에서 정거장마다 패널이 맨 위부터 보이는가**. 정거장 수는 `src/data/tour.js` 에서 읽는다 |
 | `tdiag.mjs` | 그림 3종(화살촉·모바일 변형 포함) |
 | `kbd.mjs` | 키보드 접근성, 글자 크기 |
 | `ta11y.mjs` | 스크린리더 관점 — 랜드마크·제목 계층·라벨·aria-controls·표 머리 (8화면) |
@@ -152,3 +152,16 @@ cd tests
   새로 시험을 쓸 때도 그렇게 해라. `localStorage.clear()` 만으로는 부족하다 —
   앱이 화면을 떠날 때 메모리의 여정을 다시 저장한다.
 - 인쇄 시험은 **빌드본**을 본다. 소스만 고치고 빌드를 안 하면 옛 결과가 나온다.
+
+---
+
+## 시험이 아닌 것 — `mkdiagrams.mjs`
+
+기획서·발표 자료에 들어가는 그림 PNG(`docs/assets/diagram-*.png`)를 화면의 가로판 SVG에서
+그대로 다시 뽑는다. **`src/components/Diagrams.jsx` 를 고쳤으면 반드시 돌린다.**
+안 돌리면 화면은 새 문구, 기획서 그림만 옛 문구로 남는다.
+
+```bash
+node tests/mkdiagrams.mjs            # 셋 다
+node tests/mkdiagrams.mjs routing    # 하나만
+```

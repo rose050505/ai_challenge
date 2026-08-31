@@ -20,7 +20,7 @@ t_('아무것도 안 고른 상태 안내', b0.includes('해당하는 것이 없
 t_('단정하지 않는다(초기)', !b0.includes('자동화평가입니다'))
 
 // 순서 — 자가진단이 권리 5종보다 위에 있어야 한다
-const order = await ev(`(()=>{const txt=document.body.innerText;return {sc:txt.indexOf('혹시 이런 일이'),rights:txt.indexOf('행사할 수 있는 권리'),cta:txt.indexOf('샘플 시나리오로 체험하기')}})()`)
+const order = await ev(`(()=>{const txt=document.body.innerText;return {sc:txt.indexOf('혹시 이런 일이'),rights:txt.indexOf('행사할 수 있는 권리'),cta:txt.indexOf('샘플로 체험하기')}})()`)
 t_('자가진단이 권리 목록보다 앞', order.sc>0 && order.sc < order.rights)
 t_('샘플 CTA 가 자가진단보다 앞', order.cta>0 && order.cta < order.sc)
 

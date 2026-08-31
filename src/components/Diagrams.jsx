@@ -334,34 +334,45 @@ export function ArchitectureDiagram({ className = '' }) {
       </>
     ),
   }
+  /*
+   * ★ 세로판을 다시 그린 이유 (2026-08-31, 375px 실기)
+   *   앞선 세로판은 네 상자를 한 줄로 세워 "사용자 → LLM → 법령 상수 → 서버 검산"으로
+   *   읽혔다. 그러면 **법령 상수가 LLM 의 산물**처럼 보인다. 이 그림이 답하려는 질문
+   *   ("법조문도 AI가 지어낸 것 아닌가")에 정반대로 답하는 셈이다.
+   *   가로판은 처음부터 둘을 나란히 두고 서버 검산에서 만나게 그렸다.
+   *   세로판도 같은 구조로 고친다 — LLM 은 오른쪽으로, 법령 상수는 왼쪽으로 돌아
+   *   서버 검산의 양옆으로 들어온다. 둘 사이에는 화살표가 없다.
+   */
   const tall = {
-    /* 마지막 상자 바닥이 y=476 이다. 캡션을 걷어낸 만큼 아래 여백을 줄인다. */
-    viewBox: '0 0 360 492',
+    viewBox: '0 0 360 474',
     children: (
       <>
         <Box x={60} y={8} w={240} h={56} tone="gray" sub="자유 서술 · 회신문">
           사용자가 쓴 것
         </Box>
         <Arrow d="M 180 68 V 92" />
-        <Box x={60} y={96} w={240} h={72} sub="맥락만 옮긴다 · 판정하지 않는다">
+        <Box x={60} y={96} w={240} h={68} sub="맥락만 옮긴다 · 판정하지 않는다">
           LLM
         </Box>
-        <Arrow d="M 180 172 V 200" />
-        <Box x={60} y={204} w={240} h={72} tone="gray" sub="법조문 · 거절 사유 · 서식 · 절차">
+        {/* ★ 여기에 화살표를 두지 않는다. 법령 상수는 LLM 이 만든 것이 아니다. */}
+        <Box x={60} y={192} w={240} h={68} tone="gray" sub="법조문 · 거절 사유 · 서식 · 절차">
           법령 상수 · 코드
         </Box>
-        <Arrow d="M 180 280 V 308" />
-        <Box x={60} y={312} w={240} h={72} tone="seal" sub="법의 구조에 비추어 검사">
+        <Box x={60} y={300} w={240} h={68} tone="seal" sub="법의 구조에 비추어 검사">
           서버 검산
         </Box>
-        <Arrow d="M 180 388 V 416" />
-        <Box x={16} y={420} w={160} h={56}>
+        {/* LLM 이 옮긴 것은 오른쪽으로 돌아 검산으로 */}
+        <Arrow d="M 300 130 H 328 V 334 H 304" tone="seal" marker="arrowSeal" />
+        {/* 법령 상수는 왼쪽으로 돌아 검산으로 — 이 기준으로 맞춰 본다 */}
+        <Arrow d="M 60 226 H 32 V 334 H 56" />
+        <Box x={12} y={400} w={164} h={60}>
           화면에 나가는 것
         </Box>
-        <Box x={192} y={420} w={152} h={56} tone="gray" dashed>
+        <Box x={192} y={400} w={156} h={60} tone="gray" dashed sub="근거가 안 맞으면">
           버린다
         </Box>
-        <Arrow d="M 268 388 V 416" tone="gray" dashed />
+        <Arrow d="M 110 368 V 396" />
+        <Arrow d="M 250 368 V 396" tone="gray" dashed />
       </>
     ),
   }
@@ -386,9 +397,27 @@ const FORM1 = [FORMS_BY_ID.explanationRequest.shortTitle, '(서식 1)']
 const FORM2 = [FORMS_BY_ID.correctionRequest.shortTitle, '(서식 2)']
 
 const ROUTING_DESC =
-  `${CORRECTION_ROUTING.question} 이 회사와의 거래에서 발생한 정보면 이 회사에, ` +
-  '다른 금융회사에서 온 정보면 그 금융회사에 정정·재산출 요청서를 냅니다. ' +
-  '출처를 모르면 먼저 설명요구서로 기초정보의 개요를 물어 출처를 확인한 뒤 요청서를 냅니다.'
+  `${CORRECTION_ROUTING.question} 이 회사와의 거래에서 생긴 기록이면 이 회사에, ` +
+  '다른 회사와의 거래에서 생긴 기록이면 그 회사에 정정·재산출 요청서를 냅니다. ' +
+  '모르겠으면 먼저 설명요구서로 기초정보의 개요를 물어 어느 회사에서 온 기록인지 확인한 뒤 요청서를 냅니다.'
+
+/** 질문은 한 줄에 안 들어간다. 그림 상자 안에서만 두 줄로 끊는다. */
+const ROUTING_Q_LINES = ['고치려는 내용이', '이 회사와의 거래에서 생긴 것인가요?']
+
+/** 세로판의 갈래 하나. 질문에서 내려온 세로선에 팔을 뻗어 붙는다. */
+function TallBranch({ y, spineX, label, tone, children }) {
+  return (
+    <g>
+      {/* 줄기에서 갈라지는 지점 */}
+      <circle cx={spineX} cy={y + 28} r="4.5" fill={STROKE.ink} />
+      <Arrow d={`M ${spineX} ${y + 28} H ${spineX + 22}`} />
+      <Box x={spineX + 26} y={y} w={300} h={56} tone={tone}>
+        {label}
+      </Box>
+      {children}
+    </g>
+  )
+}
 
 export function RoutingDiagram({ className = '' }) {
   /*
@@ -396,90 +425,109 @@ export function RoutingDiagram({ className = '' }) {
    *   (Box 는 제목을 가운데, 부제를 아래에서 14 위에 그린다)
    */
   const wide = {
-    viewBox: '0 0 880 420',
+    viewBox: '0 0 880 428',
     children: (
       <>
-        <Box x={250} y={8} w={380} h={56} tone="gray">
-          {CORRECTION_ROUTING.question}
+        <Box x={230} y={8} w={420} h={64} tone="gray">
+          {ROUTING_Q_LINES}
         </Box>
-        <path d="M 440 64 V 76" fill="none" stroke={STROKE.ink} strokeWidth="2.5" />
-        <path d="M 150 76 H 730" fill="none" stroke={STROKE.ink} strokeWidth="2.5" />
-        <Arrow d="M 150 76 V 96" />
-        <Arrow d="M 440 76 V 96" />
-        <Arrow d="M 730 76 V 96" />
+        <path d="M 440 72 V 84" fill="none" stroke={STROKE.ink} strokeWidth="2.5" />
+        <path d="M 150 84 H 730" fill="none" stroke={STROKE.ink} strokeWidth="2.5" />
+        <Arrow d="M 150 84 V 104" />
+        <Arrow d="M 440 84 V 104" />
+        <Arrow d="M 730 84 V 104" />
 
-        <Box x={20} y={100} w={260} h={64}>
-          {['이 회사와의 거래에서', '발생한 정보']}
+        <Box x={20} y={108} w={260} h={64}>
+          {R.own.chartLabel}
         </Box>
-        <Box x={310} y={100} w={260} h={64}>
-          {['다른 금융회사와의', '거래에서 발생한 정보']}
+        <Box x={310} y={108} w={260} h={64}>
+          {R.other.chartLabel}
         </Box>
-        <Box x={600} y={100} w={260} h={64} tone="seal">
-          {R.unknown.label}
+        <Box x={600} y={108} w={260} h={64} tone="seal">
+          {R.unknown.chartLabel}
         </Box>
 
-        <Arrow d="M 150 168 V 276" />
-        <Arrow d="M 440 168 V 276" />
-        <Arrow d="M 730 168 V 192" tone="seal" marker="arrowSeal" />
+        <Arrow d="M 150 176 V 284" />
+        <Arrow d="M 440 176 V 284" />
+        <Arrow d="M 730 176 V 200" tone="seal" marker="arrowSeal" />
 
-        <Box x={20} y={280} w={260} h={76} sub={R.own.submitToLabel}>
+        <Box x={20} y={288} w={260} h={76} sub={R.own.submitToLabel}>
           {FORM2}
         </Box>
-        <Box x={310} y={280} w={260} h={76} sub={R.other.submitToLabel}>
+        <Box x={310} y={288} w={260} h={76} sub={R.other.submitToLabel}>
           {FORM2}
         </Box>
 
         {/* 이 갈래만 두 단계 */}
-        <Box x={600} y={196} w={260} h={76} tone="seal" sub="기초정보의 개요를 물어 출처 확인">
+        <Box x={600} y={204} w={260} h={76} tone="seal" sub="기초정보의 개요를 물어 출처 확인">
           {[`${FORM1[0]} 먼저`, FORM1[1]]}
         </Box>
-        <Arrow d="M 730 276 V 300" tone="seal" marker="arrowSeal" />
-        <Box x={600} y={304} w={260} h={76} sub="확인된 그 회사에 제출">
+        <Arrow d="M 730 284 V 308" tone="seal" marker="arrowSeal" />
+        <Box x={600} y={312} w={260} h={76} sub="확인된 그 회사에 제출">
           {FORM2}
         </Box>
-        <Caption x={730} y={402} size={14} tone="#8a5a18" weight={700}>
+        <Caption x={730} y={410} size={14} tone="#8a5a18" weight={700}>
           이 경로만 두 단계입니다
         </Caption>
       </>
     ),
   }
+  /*
+   * ★ 세로판을 다시 그린 이유 (2026-08-31 사용자 지적, 375px 실기)
+   *   앞선 세로판은 질문·갈래·결과를 **한 줄로 세워** 놓았다. 그래서
+   *   "하나의 질문에서 셋으로 갈라진다"가 사라지고 여덟 칸짜리 순서도로 읽혔다.
+   *   (갈래 A → 서식 → 갈래 B → 서식 … 순서대로 하는 일처럼 보인다)
+   *   그림이 구조를 못 보여주면 없느니만 못하다.
+   *
+   *   고친 방법: 질문에서 **왼쪽 세로 줄기**를 내리고, 세 갈래가 각각 그 줄기에서
+   *   갈라져 나오게 했다. 갈라지는 지점에 점을 찍고, 갈래와 그 결과는 줄기보다
+   *   안쪽으로 들여썼다. 줄기를 눈으로 따라가면 갈라지는 곳이 셋이라는 것이 보인다.
+   */
+  const SPINE = 26
   const tall = {
-    viewBox: '0 0 360 800',
+    viewBox: '0 0 360 774',
     children: (
       <>
-        <Box x={10} y={8} w={340} h={56} tone="gray">
-          {CORRECTION_ROUTING.question}
+        <Box x={8} y={8} w={344} h={64} tone="gray">
+          {ROUTING_Q_LINES}
         </Box>
-        <Arrow d="M 180 68 V 92" />
+        {/* 질문에서 내려오는 줄기. 마지막 갈래가 갈라지는 높이까지만 긋는다. */}
+        <path
+          d={`M ${SPINE} 72 V 496`}
+          fill="none"
+          stroke={STROKE.ink}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        <Caption x={SPINE + 14} y={92} anchor="start" size={13} tone="#294061" weight={700}>
+          답에 따라 셋으로 갈립니다
+        </Caption>
 
-        <Box x={10} y={96} w={340} h={54}>
-          이 회사와의 거래에서 발생한 정보
-        </Box>
-        <Arrow d="M 180 154 V 178" />
-        <Box x={40} y={182} w={280} h={76} sub={R.own.submitToLabel}>
-          {FORM2}
-        </Box>
+        <TallBranch y={100} spineX={SPINE} label={R.own.chartLabel}>
+          <Arrow d="M 92 156 V 180" />
+          <Box x={72} y={184} w={280} h={76} sub={R.own.submitToLabel}>
+            {FORM2}
+          </Box>
+        </TallBranch>
 
-        <Box x={10} y={286} w={340} h={54}>
-          다른 금융회사에서 온 정보
-        </Box>
-        <Arrow d="M 180 344 V 368" />
-        <Box x={40} y={372} w={280} h={76} sub={R.other.submitToLabel}>
-          {FORM2}
-        </Box>
+        <TallBranch y={284} spineX={SPINE} label={R.other.chartLabel}>
+          <Arrow d="M 92 340 V 364" />
+          <Box x={72} y={368} w={280} h={76} sub={R.other.submitToLabel}>
+            {FORM2}
+          </Box>
+        </TallBranch>
 
-        <Box x={10} y={476} w={340} h={54} tone="seal">
-          {R.unknown.label}
-        </Box>
-        <Arrow d="M 180 534 V 558" tone="seal" marker="arrowSeal" />
-        <Box x={40} y={562} w={280} h={76} tone="seal" sub="기초정보의 개요를 물어 출처 확인">
-          {[`${FORM1[0]} 먼저`, FORM1[1]]}
-        </Box>
-        <Arrow d="M 180 642 V 666" tone="seal" marker="arrowSeal" />
-        <Box x={40} y={670} w={280} h={76} sub="확인된 그 회사에 제출">
-          {FORM2}
-        </Box>
-        <Caption x={180} y={782} size={14} tone="#8a5a18" weight={700}>
+        <TallBranch y={468} spineX={SPINE} label={R.unknown.chartLabel} tone="seal">
+          <Arrow d="M 92 524 V 548" tone="seal" marker="arrowSeal" />
+          <Box x={72} y={552} w={280} h={76} tone="seal" sub="기초정보의 개요를 물어 출처 확인">
+            {[`${FORM1[0]} 먼저`, FORM1[1]]}
+          </Box>
+          <Arrow d="M 92 628 V 652" tone="seal" marker="arrowSeal" />
+          <Box x={72} y={656} w={280} h={76} sub="확인된 그 회사에 제출">
+            {FORM2}
+          </Box>
+        </TallBranch>
+        <Caption x={212} y={760} size={14} tone="#8a5a18" weight={700}>
           이 경로만 두 단계입니다
         </Caption>
       </>

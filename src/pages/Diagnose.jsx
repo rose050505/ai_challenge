@@ -426,7 +426,7 @@ function RoutingDisclosure({ withDiagram = false }) {
       </summary>
       <div className="border-t border-amber-200 p-3">
         <p className="font-bold text-gray-900">{CORRECTION_ROUTING.question}</p>
-        <p className="mt-1 text-gray-700">상대를 잘못 고르면 요청이 반려됩니다.</p>
+        <p className="mt-1 text-gray-700">{CORRECTION_ROUTING.questionWhy}</p>
         {/* 고르기 전에 세 갈래가 어디로 가는지 한 장으로 보인다 */}
         {withDiagram && (
           <RoutingDiagram className="mt-3 rounded-md border border-amber-200 bg-white p-3" />
@@ -439,12 +439,20 @@ function RoutingDisclosure({ withDiagram = false }) {
               onClick={() => update({ routingBranchId: b.id })}
             >
               <span className="block font-medium">{b.label}</span>
+              {/* ★ 예시가 없으면 사용자는 자기 경우가 어디에 드는지 못 고른다 */}
+              <span
+                className={`mt-1 block text-sm ${
+                  branch?.id === b.id ? 'text-ink-100' : 'text-gray-700'
+                }`}
+              >
+                {b.example}
+              </span>
               <span
                 className={`mt-1 block text-sm ${
                   branch?.id === b.id ? 'text-ink-100' : 'text-gray-600'
                 }`}
               >
-                {b.submitToLabel}
+                → {b.submitToLabel}
               </span>
             </Choice>
           ))}

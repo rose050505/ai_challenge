@@ -135,37 +135,54 @@ export default function Landing() {
           <Basis prefix="근거">{`${LAW_META.act.shortName} ${LAW_META.act.article}`}</Basis>
         </p>
 
-        {/* ── 2. 바로 해 보기 — 제목 바로 아래 ───────────────── */}
-        <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:flex-wrap">
-          <Link to="/diagnose" className="btn btn-primary">
+        {/* ── 2. 바로 해 보기 — 제목 바로 아래 ─────────────────
+            ★ 셋을 나란히 두지 않는다. (2026-08-31 사용자 지적)
+              같은 크기의 버튼 셋이 세로로 쌓이면 처음 온 사람은 **어느 것을 눌러야
+              할지 정하지 못한다.** 세 개 중 하나만 고르라는 화면이 되고,
+              그만큼 자가진단이 첫 화면 밖으로 밀린다.
+              처음 온 사람이 눌러야 할 것은 [내 상황으로 시작하기] 하나다.
+              나머지 둘은 "둘러보고 싶은 사람"(심사자 포함)의 길이므로
+              한 줄 아래에 작게 나란히 둔다. 없애지는 않는다 — 심사 경로다. */}
+        <div className="space-y-2 pt-1">
+          <Link to="/diagnose" className="btn btn-primary w-full sm:w-auto">
             내 상황으로 시작하기
           </Link>
-          <Link to={`/diagnose?sample=${SAMPLE_SCENARIOS[0].id}`} className="btn btn-secondary">
-            샘플 시나리오로 체험하기
-          </Link>
-          {/* 서식 생성기로 오해받는 지점을 여기서 막는다 */}
-          <button type="button" onClick={start} className="btn btn-quiet">
-            {TOUR_TITLE}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={`/diagnose?sample=${SAMPLE_SCENARIOS[0].id}`}
+              className="btn btn-secondary"
+            >
+              샘플로 체험하기
+            </Link>
+            {/* 서식 생성기로 오해받는 지점을 여기서 막는다 */}
+            <button type="button" onClick={start} className="btn btn-secondary">
+              {TOUR_TITLE}
+            </button>
+          </div>
         </div>
-
-        {/*
-          ★ 이미 답변을 받은 사람에게는 첫 화면에 자기 자리가 없었다.
-            머리말의 [회신 해석]만이 길인데, 사용자가 쓰는 말은 "회신"이 아니라 "답변서"다.
-            (2026-08-31 실사용 시뮬레이션 시나리오 C) 그래서 여기 한 줄을 둔다.
-        */}
-        <p className="text-ink-100">
-          이미 금융회사에서 <b className="text-white">답변(회신)</b>을 받으셨나요?{' '}
-          <Link to="/response" className="font-bold text-white underline">
-            받은 답변을 읽어 드립니다
-          </Link>
-        </p>
 
       </section>
       </div>
 
       {/* ── 3. 자가진단 — 나에게 필요한지 여기서 판단된다 ────── */}
       <SelfCheck />
+
+      {/*
+        ★ 이미 답변을 받은 사람에게는 첫 화면에 자기 자리가 없었다.
+          머리말의 [회신 해석]만이 길인데, 사용자가 쓰는 말은 "회신"이 아니라 "답변서"다.
+          (2026-08-31 실사용 시뮬레이션 시나리오 C) 그래서 이 한 줄을 둔다.
+        ★ 자리를 히어로 안에서 자가진단 **아래**로 옮겼다. (2026-08-31, 375px 실기)
+          히어로 안에 있을 때 이 줄이 두 줄을 먹어 자가진단 항목이 첫 화면 밖으로
+          밀렸다. 처음 온 사람이 첫 화면에서 판단해야 하는 것은 "내 일인가"이고,
+          그 판단은 자가진단 항목을 봐야 시작된다. 이 줄은 이미 한 바퀴를 돈
+          사람의 것이므로 자가진단 바로 다음이 제자리다. 없애지 않는다.
+      */}
+      <p className="panel-accent text-gray-800">
+        이미 금융회사에서 <b className="text-gray-900">답변(회신)</b>을 받으셨나요?{' '}
+        <Link to="/response" className="font-bold text-ink-800 underline">
+          받은 답변을 읽어 드립니다
+        </Link>
+      </p>
 
       {/* 제출한 기록이 있으면 여기서 회신 해석으로 이어 준다 */}
       <SubmissionRecord />

@@ -1,5 +1,8 @@
 /** 그림 3종 — 접근성 / 세로판 / 화살촉 / 법령 라벨 출처 */
 const BASE = process.env.APP_URL || 'http://localhost:4400'
+/* 그림의 라벨은 law.js 에서 와야 한다. 시험이 문구를 손으로 박아 두면
+   문구를 고칠 때 코드가 아니라 시험이 막는다. */
+const { CORRECTION_ROUTING } = await import('../src/data/law.js')
 const t=(await (await fetch((process.env.CDP || 'http://127.0.0.1:9444') + '/json/list')).json()).find(x=>x.type==='page')
 const ws=new WebSocket(t.webSocketDebuggerUrl); await new Promise(r=>ws.onopen=r)
 let id=0; const pend=new Map(); const errs=[]
@@ -61,7 +64,28 @@ await check('dg-routing','/diagnose?sample=returner',
 console.log('[법령 라벨은 law.js 에서 온다]')
 await go('/diagnose?sample=returner',`(()=>{const d=[...document.querySelectorAll('details')].find(d=>d.textContent.includes('정정을 요구하려면'));if(d)d.open=true})()`)
 const txt = await ev(`document.querySelector('svg[data-diagram=dg-routing][data-layout=tall]').textContent`)
-t_('질문 문구가 law.js 의 것과 같다', txt.includes('정정하려는 정보는 어디에서 만들어진 것인가요?'))
+/* 그림 상자 안에서는 두 줄로 끊기므로 조각으로 나눠 확인한다 */
+t_('질문 문구가 law.js 의 것과 같다',
+   CORRECTION_ROUTING.question.split(' ').every(w=>txt.includes(w)), txt.slice(0,60))
+t_('세 갈래가 모두 그려진다',
+   CORRECTION_ROUTING.branches.every(b=>b.chartLabel.every(l=>txt.includes(l))), txt.slice(0,120))
+/* ★ 세로판이 "분기"로 읽혀야 한다 — 갈라지는 지점(점) 셋 + 줄기보다 안쪽 들여쓰기 */
+const tallSvg = `document.querySelector('svg[data-diagram=dg-routing][data-layout=tall]')`
+const dots = await ev(`${tallSvg}.querySelectorAll('circle').length`)
+t_('★ 세로판에 갈라지는 지점이 셋', dots===3, String(dots))
+t_('★ 세로판의 갈래가 줄기보다 안쪽으로 들여쓰였다', await ev(`(()=>{
+  const svg=${tallSvg};
+  const q=[...svg.querySelectorAll('rect')][0];
+  const qx=+q.getAttribute('x');
+  const cs=[...svg.querySelectorAll('circle')];
+  const branchX=cs.map(c=>{
+    const cy=+c.getAttribute('cy');
+    return [...svg.querySelectorAll('rect')].filter(r=>{
+      const y=+r.getAttribute('y'), h=+r.getAttribute('height');
+      return cy>y && cy<y+h }).map(r=>+r.getAttribute('x'))[0]
+  });
+  return cs.every(c=>+c.getAttribute('cx')>qx) && branchX.every(x=>x>qx+20)
+})()`))
 t_('서식 이름이 law.js 의 줄임 이름', txt.includes('정정ㆍ재산출 요청서') && txt.includes('설명요구서'))
 t_('★ 처리되지 않은 예외 0건', errs.length===0, errs.join('|'))
 

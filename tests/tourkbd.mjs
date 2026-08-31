@@ -1,5 +1,9 @@
 /** 둘러보기 — 키보드만으로 완주 / 포커스 트랩 / 시크릿 모드 */
 const BASE = process.env.APP_URL || 'http://localhost:4400'
+/* ★ 정거장 수·문구는 데이터에서 읽는다. 시험이 4정거장을 손으로 박고 있으면
+   정거장을 줄이는 순간 코드가 아니라 시험이 막는다. */
+const { TOUR_STATIONS, TOUR_INTRO, TOUR_OUTRO } = await import('../src/data/tour.js')
+const N = TOUR_STATIONS.length
 const t=(await (await fetch((process.env.CDP || 'http://127.0.0.1:9444') + '/json/list')).json()).find(x=>x.type==='page')
 const ws=new WebSocket(t.webSocketDebuggerUrl); await new Promise(r=>ws.onopen=r)
 let id=0; const pend=new Map(); const errors=[]
@@ -31,7 +35,7 @@ const tabTo=async(label)=>{for(let i=0;i<12;i++){
 
 await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false})
 
-console.log('[A] 키보드만으로 4정거장 완주')
+console.log(`[A] 키보드만으로 ${N}정거장 완주`)
 await wipe('/')
 t_('열리면 패널로 포커스가 간다', await ev(`document.activeElement===document.querySelector('[role=dialog][aria-modal]')`))
 t_('포커스 트랩 — Tab 을 20번 눌러도 패널 밖으로 안 나간다', await (async()=>{
@@ -39,15 +43,16 @@ t_('포커스 트랩 — Tab 을 20번 눌러도 패널 밖으로 안 나간다'
 // 1) 시작하기
 t_('Tab 으로 [시작하기] 에 닿는다', await tabTo('시작하기'))
 await enter(); await sleep(1400)
-t_('① 정거장 (키보드)', (await panel()).includes('1 / 4'))
-for (const n of [2,3,4]) {
+t_('① 정거장 (키보드)', (await panel()).includes(`1 / ${N}`))
+for (let n=2; n<=N; n++) {
   t_(`Tab 으로 [다음] 에 닿는다 (→${n})`, await tabTo('다음'))
-  await enter(); await sleep(n===3?2200:1600)
-  t_(`${n} / 4 정거장 (키보드)`, (await panel()).includes(`${n} / 4`), await panel().then(s=>s.slice(0,30)))
+  // 회신 해석 정거장은 해석이 끝나야 대상이 생긴다. 그 정거장만 더 기다린다.
+  await enter(); await sleep(TOUR_STATIONS[n-1].id==='interpret'?2200:1600)
+  t_(`${n} / ${N} 정거장 (키보드)`, (await panel()).includes(`${n} / ${N}`), await panel().then(s=>s.slice(0,30)))
 }
 t_('Tab 으로 마지막 [다음]', await tabTo('다음'))
 await enter(); await sleep(900)
-t_('마무리 패널 (키보드)', (await panel()).includes('한 바퀴 돌았습니다'))
+t_('마무리 패널 (키보드)', (await panel()).includes(TOUR_OUTRO.title))
 t_('Tab 으로 [닫기]', await tabTo('닫기'))
 await enter(); await sleep(700)
 t_('키보드로 완주 후 닫힘', (await panel())==='')
@@ -68,11 +73,11 @@ const {identifier} = (await send('Page.addScriptToEvaluateOnNewDocument',{source
 `})).result
 errors.length=0
 await send('Page.navigate',{url:BASE+'/'}); await sleep(1600)
-t_('저장이 막혀도 투어가 열린다', (await panel()).includes('2분만 따라와'))
+t_('저장이 막혀도 투어가 열린다', (await panel()).includes(TOUR_INTRO.title))
 await ev(`(()=>{const p=document.querySelector('[role=dialog][aria-modal]');[...p.querySelectorAll('button')].find(b=>b.textContent.trim()==='시작하기').click()})()`); await sleep(1400)
-t_('저장이 막혀도 ① 정거장이 뜬다', (await panel()).includes('1 / 4'))
+t_('저장이 막혀도 ① 정거장이 뜬다', (await panel()).includes(`1 / ${N}`))
 await ev(`(()=>{const p=document.querySelector('[role=dialog][aria-modal]');[...p.querySelectorAll('button')].find(b=>b.textContent.trim()==='다음').click()})()`); await sleep(1600)
-t_('저장이 막혀도 ② 로 넘어간다', (await panel()).includes('2 / 4'))
+t_('저장이 막혀도 ② 로 넘어간다', (await panel()).includes(`2 / ${N}`))
 await ev(`(()=>{const p=document.querySelector('[role=dialog][aria-modal]');[...p.querySelectorAll('button')].find(b=>b.textContent.trim()==='건너뛰기').click()})()`); await sleep(700)
 t_('저장이 막혀도 닫힌다', (await panel())==='')
 t_('★ 처리되지 않은 예외 0건', errors.length===0, errors.join(' | '))
