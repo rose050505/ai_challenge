@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LAW_META, RIGHTS, DEFINITION_AUTOMATED_EVALUATION } from '../data/law.js'
 import { SAMPLE_SCENARIOS } from '../data/samples.js'
@@ -107,6 +107,14 @@ const ENTRY_CARDS = [
 ]
 
 function EntryCards({ onTour }) {
+  /*
+   * ★ 샘플을 **미리 채워 놓지 않는다.** (2026-09-01 사용자 지적)
+   *   앞서는 [샘플로 체험하기]가 곧바로 `?sample=<첫 번째>` 로 진단을 채웠다.
+   *   처음 온 사람이 남의 상황이 적힌 화면을 만나고, 그것이 자기 것인 줄 안다.
+   *   → 누구의 예시로 볼지 **먼저 고르게** 한다. 새 화면을 만들지 않고 여기서 편다.
+   *   심사 경로가 1회에서 2회 클릭이 되므로, 고르는 화면은 아주 가볍게 둔다.
+   */
+  const [pick, setPick] = useState(false)
   return (
     <section aria-labelledby="entry-heading" className="space-y-3">
       <h2 id="entry-heading" className="text-[1.375rem] font-semibold text-gray-900">
@@ -136,10 +144,36 @@ function EntryCards({ onTour }) {
         <button type="button" onClick={onTour} className="btn btn-secondary">
           {TOUR_TITLE}
         </button>
-        <Link to={`/diagnose?sample=${SAMPLE_SCENARIOS[0].id}`} className="btn btn-secondary">
+        <button
+          type="button"
+          onClick={() => setPick((v) => !v)}
+          aria-expanded={pick}
+          aria-controls="sample-pick"
+          className="btn btn-secondary"
+        >
           샘플로 체험하기
-        </Link>
+        </button>
       </p>
+      {/* ★ 접혀 있어도 요소는 남긴다. aria-controls 가 가리키는 id 가 없으면
+          보조기술이 "무엇을 여는 단추인지" 알 수 없다. hidden 으로 감춘다. */}
+      <div id="sample-pick" hidden={!pick} className="panel space-y-2">
+          <p className="font-bold text-gray-900">어느 분의 예시로 보시겠어요?</p>
+          <p className="text-sm text-gray-700">
+            고르시면 그 상황이 채워진 채로 진단 화면이 열립니다. 채워진 값은 언제든 고쳐 쓰실 수
+            있고, 하나라도 고치시면 그때부터 샘플이 아니라 <b>내 기록</b>이 됩니다.
+          </p>
+          <ul className="grid gap-2 md:grid-cols-3">
+            {SAMPLE_SCENARIOS.map((sc) => (
+              <li key={sc.id}>
+                <Link to={`/diagnose?sample=${sc.id}`} className="card block h-full">
+                  <span className="block font-bold text-gray-900">{sc.title}</span>
+                  {/* 진단 화면의 "이 샘플이 보여주는 것"과 같은 문장이다 (samples.js 한 곳) */}
+                  <span className="mt-1 block text-sm text-gray-700">{sc.demonstrates}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+      </div>
     </section>
   )
 }

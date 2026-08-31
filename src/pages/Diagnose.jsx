@@ -258,10 +258,35 @@ export default function Diagnose() {
           ))}
         </div>
         {activeSample && (
-          <p className="mt-3 text-sm text-gray-700">
-            <span className="font-bold">이 샘플이 보여주는 것: </span>
-            {activeSample.demonstrates}
-          </p>
+          <>
+            <p className="mt-3 text-sm text-gray-700">
+              <span className="font-bold">이 샘플이 보여주는 것: </span>
+              {activeSample.demonstrates}
+            </p>
+            {/*
+              ★ 샘플이 채워진 채로 남아 있을 때 **빠져나갈 문**을 여기 둔다. (2026-09-01)
+                둘러보기를 중간에 건너뛴 사람, 예시를 보고 온 사람, 다시 들어온 사람은
+                모두 남의 상황이 적힌 화면을 만난다. 첫 화면의 [처음부터]까지 가지 않고
+                이 자리에서 비울 수 있어야 한다. 지우는 것은 이 화면의 답뿐이다.
+            */}
+            <button
+              type="button"
+              onClick={() =>
+                edit({
+                  eventId: '',
+                  counterpartyId: '',
+                  institutionSectorId: '',
+                  customInstitution: '',
+                  reason: '',
+                  routingBranchId: null,
+                  limitKind: null,
+                })
+              }
+              className="btn btn-secondary mt-3"
+            >
+              지우고 내 상황으로 시작하기
+            </button>
+          </>
         )}
         </div>
       </section>
