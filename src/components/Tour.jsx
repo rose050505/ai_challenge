@@ -220,7 +220,7 @@ export default function Tour() {
           )}
         </div>
 
-        <h2 id="tour-title" className="mt-1 text-xl font-bold text-gray-900">
+        <h2 id="tour-title" className="mt-1 text-[1.375rem] font-semibold text-gray-900">
           {head.title}
         </h2>
 
@@ -232,14 +232,14 @@ export default function Tour() {
 
         {/* 진행 중인 기록을 덮어쓴다는 사실은 시작 전에 말한다 */}
         {step === INTRO && hasProgress && (
-          <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">
+          <p className="mt-3 rounded-md border border-amber-400 bg-amber-50 p-3 text-amber-900">
             <span aria-hidden="true">※ </span>
             {TOUR_INTRO.overwriteWarning}
           </p>
         )}
 
         {station?.action && (
-          <div className="mt-3 rounded-md border border-gray-300 bg-gray-50 p-3">
+          <div className="mt-3 rounded-md border border-gray-400 bg-gray-50 p-3">
             <button type="button" onClick={toggleDemo} className="btn btn-secondary">
               {demo ? station.action.off : station.action.on}
             </button>

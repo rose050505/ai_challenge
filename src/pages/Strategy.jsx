@@ -238,7 +238,7 @@ export default function Strategy() {
       {/* AI가 어디까지 하고 어디부터 코드가 하는지 — 이 화면에서 가장 자주 나오는 질문이다 */}
       <section className="space-y-2">
         <h2 className="text-lg font-bold text-gray-900">이 화면에서 AI는 어디까지 하나요</h2>
-        <ArchitectureDiagram className="rounded-lg border border-gray-200 bg-white p-4" />
+        <ArchitectureDiagram className="rounded-lg border border-gray-400 bg-white p-4" />
       </section>
 
       {state === 'idle' && (
@@ -258,7 +258,7 @@ export default function Strategy() {
           </button>
           {/* ★ 무엇이 어디로 나가는지 입력란 옆에서 밝힌다. 링크 뒤에 숨기지 않는다.
                  (감사 지적: 어느 AI 인지, 어디로 가는지가 화면 어디에도 없었다) */}
-          <div className="rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-700">
+          <div className="rounded-md border border-gray-400 bg-white p-3 text-sm text-gray-700">
             <p>
               <b>보내는 것</b> — {AI_PROCESSING.sent.strategy}
             </p>
@@ -280,7 +280,7 @@ export default function Strategy() {
           </p>
           <SlowHint />
           <Elapsed className="mt-2" />
-          <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded bg-gray-200">
+          <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded-md bg-gray-200">
             <div className="h-full w-1/3 animate-pulse bg-ink-500" />
           </div>
         </section>
@@ -300,7 +300,7 @@ export default function Strategy() {
             stale={stale && result.source === saved.source}
           />
 
-          <p className="rounded-md border border-gray-300 bg-white p-3 text-gray-700">
+          <p className="rounded-md border border-gray-400 bg-white p-3 text-gray-700">
             이 제안은 참고용이며, 실제 제출 여부는 본인이 판단합니다. 법률 자문이 아닙니다.
           </p>
 

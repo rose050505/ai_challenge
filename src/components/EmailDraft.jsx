@@ -46,7 +46,7 @@ export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
   }
 
   return (
-    <section id="email-draft" className="no-print rounded-lg border border-ink-200 bg-white">
+    <section id="email-draft" className="no-print rounded-lg border border-ink-400 bg-white">
       <h2>
         <button
           type="button"
@@ -68,7 +68,7 @@ export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
       </h2>
 
       {open && (
-        <div id="email-draft-panel" className="space-y-4 border-t border-gray-200 p-4">
+        <div id="email-draft-panel" className="space-y-4 border-t border-gray-300 p-4">
           <p className="text-sm text-gray-700">
             <Basis prefix="근거">{emailChannel.basis}</Basis>
           </p>
@@ -100,7 +100,7 @@ export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
               onChange={(e) => setTo(e.target.value)}
               aria-describedby="email-to-help"
               placeholder="예: privacy@example.co.kr"
-              className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2"
+              className="mt-2 w-full rounded-md border border-gray-400 px-3 py-2"
             />
           </div>
 
@@ -112,7 +112,7 @@ export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
               id="email-subject"
               readOnly
               value={draft.subject}
-              className="mt-2 w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2"
+              className="mt-2 w-full rounded-md border border-gray-400 bg-gray-50 px-3 py-2"
             />
           </div>
 
@@ -126,7 +126,7 @@ export default function EmailDraft({ open: openProp, onOpenChange, ...props }) {
               value={body}
               onChange={(e) => setEdited(e.target.value)}
               rows={18}
-              className="mt-2 w-full rounded-md border border-gray-300 p-3 font-mono text-sm leading-relaxed"
+              className="mt-2 w-full rounded-md border border-gray-400 p-3 font-mono text-sm leading-relaxed"
             />
           </div>
 

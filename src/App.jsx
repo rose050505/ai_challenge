@@ -77,7 +77,7 @@ function FontScale() {
       <span className="sr-only text-sm text-gray-500 sm:not-sr-only sm:mr-1" id="font-scale-label">
         글자 크기
       </span>
-      <div className="flex overflow-hidden rounded-md border border-gray-300" role="group" aria-labelledby="font-scale-label">
+      <div className="flex overflow-hidden rounded-md border border-gray-400" role="group" aria-labelledby="font-scale-label">
         {FONT_SCALES.map((s, i) => (
           <button
             key={s.id}
@@ -85,7 +85,7 @@ function FontScale() {
             onClick={() => setScale(s.id)}
             aria-pressed={scale === s.id}
             title={s.title}
-            className={`px-2 py-1 leading-none ${
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center px-2 leading-none ${
               scale === s.id ? 'bg-ink-700 text-white' : 'bg-white text-gray-700 hover:bg-ink-50'
             }`}
             style={{ fontSize: `${0.875 + i * 0.25}rem` }}
@@ -110,10 +110,10 @@ function PlainToggle() {
       type="button"
       onClick={() => setPlain(!plain)}
       aria-pressed={plain}
-      className={`rounded-md border px-3 py-1 text-sm ${
+      className={`inline-flex min-h-11 items-center rounded-md border px-3 text-sm ${
         plain
           ? 'border-ink-700 bg-ink-700 text-white'
-          : 'border-gray-300 bg-white text-gray-700 hover:bg-ink-50'
+          : 'border-gray-400 bg-white text-gray-700 hover:bg-ink-50'
       }`}
     >
       {plain && <span aria-hidden="true">✓ </span>}
@@ -127,7 +127,7 @@ function PlainNotice() {
   const { plain } = usePlain()
   if (!plain) return null
   return (
-    <div className="no-print border-b border-ink-200 bg-ink-50">
+    <div className="no-print border-b border-ink-400 bg-ink-50">
       <p className="mx-auto max-w-3xl px-4 py-2 text-sm text-ink-900">
         <b>{PLAIN_NOTICE.title}</b> — {PLAIN_NOTICE.body}
       </p>
@@ -148,7 +148,7 @@ function PlainNotice() {
 function FooterLawVersions() {
   const { pathname } = useLocation()
   if (pathname === '/') return null
-  return <LawVersions className="mb-5 text-base" />
+  return <LawVersions collapsed className="mb-5 text-base" />
 }
 
 function AppRoutes() {
@@ -169,7 +169,7 @@ function AppRoutes() {
         path="*"
         element={
           <div className="py-10">
-            <h1 className="text-2xl font-bold">찾는 화면이 없습니다</h1>
+            <h1 className="text-[1.75rem] font-bold sm:text-[2.125rem]">찾는 화면이 없습니다</h1>
             <Link to="/" className="btn btn-secondary mt-4">
               처음으로
             </Link>
@@ -191,19 +191,19 @@ export default function App() {
         {/* 키보드 사용자가 네비게이션 다섯 개를 매번 지나치지 않게 한다 */}
         <a
           href="#main"
-          className="no-print sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:bg-ink-700 focus:px-4 focus:py-2 focus:text-white"
+          className="no-print sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-ink-700 focus:px-4 focus:py-2 focus:text-white"
         >
           본문으로 건너뛰기
         </a>
 
-        <header className="no-print border-b border-gray-200 bg-white">
+        <header className="no-print border-b border-gray-400 bg-white">
           {/* ★ 375×667 에서 헤더가 첫 화면의 절반을 먹고 있었다(감사 지적).
                  데스크톱은 그대로 두고 작은 화면에서만 여백·부제·라벨을 줄인다.
                  기능은 하나도 빼지 않는다 — 자리만 줄인다. */}
-          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 sm:gap-y-2 sm:py-3">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-3 gap-y-0 px-4 py-0.5 sm:gap-x-4 sm:gap-y-2 sm:py-1.5">
             <Link
               to="/"
-              className="flex items-baseline gap-2 text-xl font-bold text-ink-800"
+              className="flex min-h-11 items-baseline gap-2 py-1.5 text-xl font-bold text-ink-800"
               aria-label="삼육이 — 처음으로"
             >
               삼육이
@@ -211,20 +211,20 @@ export default function App() {
                 자동화평가 설명·이의제기 지원 서비스
               </span>
             </Link>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0 sm:gap-x-4">
               <SaveStatus />
               <PlainToggle />
               <FontScale />
             </div>
           </div>
-          <nav aria-label="주요 화면" className="mx-auto max-w-3xl px-4 pb-1.5 sm:pb-2">
+          <nav aria-label="주요 화면" className="mx-auto max-w-3xl px-4 pb-0.5 sm:pb-1">
             <ul className="flex flex-wrap gap-x-1 gap-y-1">
               {NAV.map((n) => (
                 <li key={n.to}>
                   <NavLink
                     to={n.to}
                     className={({ isActive }) =>
-                      `block rounded-md px-2.5 py-1.5 text-base sm:px-3 sm:py-2 ${
+                      `flex min-h-11 items-center rounded-md px-2.5 text-base sm:px-3 ${
                         isActive
                           ? 'bg-ink-50 font-bold text-ink-800 underline decoration-2 underline-offset-4'
                           : 'text-gray-700 hover:bg-gray-100'
@@ -250,7 +250,7 @@ export default function App() {
           <AppRoutes />
         </main>
 
-        <footer className="no-print mt-12 border-t border-gray-200 bg-white">
+        <footer className="no-print mt-12 border-t border-gray-400 bg-white">
           <div className="mx-auto max-w-3xl px-4 py-6 text-sm text-gray-600">
             {/* 판본 표시는 각주가 아니라 근거다. 본문과 같은 크기로 둔다. */}
             <FooterLawVersions />
@@ -263,7 +263,7 @@ export default function App() {
             </p>
             <p className="mt-1">{STORAGE_SCOPE_TEXT}</p>
             {/* ★ 운영 주체와 연락 경로. 없으면 "만든 사람을 알 수 없는 서비스"가 된다. */}
-            <p className="mt-3 border-t border-gray-200 pt-3">
+            <p className="mt-3 border-t border-gray-300 pt-3">
               만든 곳 <b className="text-gray-800">{OPERATOR.team}</b>
               {' · '}
               {OPERATOR.contactLabel}{' '}

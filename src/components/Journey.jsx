@@ -100,9 +100,11 @@ export function SaveStatus() {
    */
   if (!hasSavedContent(journey)) return null
   return (
+    /* 좁은 화면에서는 시각을 접는다 — 머리말이 한 줄 더 늘어나면
+       첫 화면의 CTA 가 그만큼 밀린다. 저장 여부는 그대로 남는다. */
     <span className="text-sm text-gray-500" role="status" aria-live="polite">
       <span aria-hidden="true">✓ </span>
-      저장됨 · {when}
+      저장됨<span className="hidden sm:inline"> · {when}</span>
     </span>
   )
 }
@@ -159,7 +161,7 @@ export function ResumeCard({ compact = false }) {
         className="rounded-lg border-2 border-ink-700 bg-white p-4"
         aria-labelledby="resume-heading"
       >
-        <h2 id="resume-heading" className="font-bold text-gray-900">
+        <h2 id="resume-heading" className="text-lg font-bold text-gray-900">
           진행 중인 기록이 있습니다
           {when && <span className="font-normal text-gray-600"> · {when}</span>}
         </h2>
@@ -172,7 +174,7 @@ export function ResumeCard({ compact = false }) {
             이어서 하기
           </Link>
           {confirming ? (
-            <span className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-2">
+            <span className="flex flex-wrap items-center gap-2 rounded-md border border-amber-400 bg-amber-50 p-2">
               <span className="text-sm text-amber-900">저장된 기록을 모두 지울까요?</span>
               <button
                 type="button"
@@ -201,7 +203,7 @@ export function ResumeCard({ compact = false }) {
   return (
     <section className="rounded-lg border-2 border-ink-700 bg-white p-5" aria-labelledby="resume-heading">
       <p className="text-sm font-semibold tracking-wide text-ink-600">이어서 하기</p>
-      <h2 id="resume-heading" className="mt-1 text-xl font-bold text-gray-900">
+      <h2 id="resume-heading" className="mt-1 text-[1.375rem] font-semibold text-gray-900">
         진행 중인 기록이 있습니다
       </h2>
       <dl className="mt-3 grid gap-1 text-gray-700 sm:grid-cols-[7rem_1fr]">
@@ -220,7 +222,7 @@ export function ResumeCard({ compact = false }) {
           이어서 하기
         </Link>
         {confirming ? (
-          <span className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-2">
+          <span className="flex flex-wrap items-center gap-2 rounded-md border border-amber-400 bg-amber-50 p-2">
             <span className="text-sm text-amber-900">저장된 기록을 모두 지울까요?</span>
             <button
               type="button"
@@ -300,7 +302,7 @@ export function BackupPanel({ compact = false }) {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={`rounded-lg border-2 border-dashed p-4 ${
-          dragging ? 'border-ink-600 bg-ink-50' : 'border-gray-300'
+          dragging ? 'border-ink-600 bg-ink-50' : 'border-gray-400'
         }`}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -352,7 +354,7 @@ export function BackupPanel({ compact = false }) {
       )}
 
       {!storageAvailable && (
-        <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">
+        <p className="rounded-md border border-amber-400 bg-amber-50 p-3 text-amber-900">
           이 브라우저에서는 자동 저장을 쓸 수 없습니다(시크릿 모드이거나 저장이 차단돼
           있습니다). 화면을 닫으면 입력이 사라지므로, 작업을 마치기 전에 위 [파일로
           내보내기]로 보관해 두세요. 다른 기능은 모두 그대로 동작합니다.
@@ -377,11 +379,11 @@ export function BackupPanel({ compact = false }) {
  */
 export function WhyNoLogin() {
   return (
-    <details className="rounded-lg border border-gray-200 bg-white">
+    <details className="rounded-lg border border-gray-400 bg-white">
       <summary className="cursor-pointer rounded-lg px-4 py-3 font-bold text-gray-900">
         왜 로그인이 없나요?
       </summary>
-      <div className="space-y-3 border-t border-gray-200 p-4 text-gray-700">
+      <div className="space-y-3 border-t border-gray-300 p-4 text-gray-700">
         <p>
           설명요구서와 회신에는 소득, 채무, 연체 이력 같은 <b>신용정보</b>가 담깁니다.
         </p>
@@ -400,7 +402,7 @@ export function WhyNoLogin() {
         {/* ★ 처리 내역을 별도 페이지로 빼지 않는다. 라우트를 늘리지 않고 이 자리를 넓힌다.
                문구는 전부 privacy.js 한 곳에서 읽는다. */}
         <div className="overflow-x-auto">
-          <h3 className="font-bold text-gray-900">{PRIVACY_TABLE.title}</h3>
+          <h3 className="text-lg font-bold text-gray-900">{PRIVACY_TABLE.title}</h3>
           {/* 375px 에서 가로 스크롤이 생기면 정작 읽어야 할 열이 잘린다.
                  최소 너비를 두지 않고 좁은 화면에서는 줄바꿈으로 흘린다. */}
           <table className="mt-2 w-full border-collapse text-sm">
@@ -410,7 +412,7 @@ export function WhyNoLogin() {
                   <th
                     key={c}
                     scope="col"
-                    className={`border border-gray-300 bg-gray-50 p-2 text-left font-bold ${
+                    className={`border border-gray-400 bg-gray-50 p-2 text-left font-bold ${
                       i === 0 ? 'w-24 sm:w-40' : ''
                     }`}
                   >
@@ -422,10 +424,10 @@ export function WhyNoLogin() {
             <tbody>
               {PRIVACY_TABLE.rows.map(([k, v]) => (
                 <tr key={k}>
-                  <th scope="row" className="border border-gray-300 p-2 text-left align-top font-normal">
+                  <th scope="row" className="border border-gray-400 p-2 text-left align-top font-normal">
                     {k}
                   </th>
-                  <td className="border border-gray-300 p-2 align-top">{v}</td>
+                  <td className="border border-gray-400 p-2 align-top">{v}</td>
                 </tr>
               ))}
             </tbody>

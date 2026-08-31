@@ -99,12 +99,12 @@ function TypeRow({ type, got }) {
   return (
     <li
       className={`rounded-md border p-3 ${
-        got ? 'border-gray-200 bg-white' : 'border-amber-300 bg-amber-50'
+        got ? 'border-gray-400 bg-white' : 'border-amber-400 bg-amber-50'
       }`}
     >
       <div className="flex items-start gap-3">
         <span
-          className={`mt-0.5 flex shrink-0 items-center gap-1 rounded px-2 py-0.5 text-sm font-bold ${
+          className={`mt-0.5 flex shrink-0 items-center gap-1 rounded-md px-2 py-0.5 text-sm font-bold ${
             got ? 'bg-ink-100 text-ink-800' : 'bg-amber-200 text-amber-900'
           }`}
         >
@@ -293,7 +293,7 @@ export default function Response() {
                   className={`rounded-md border bg-white p-3 text-left ${
                     sampleId === s.id
                       ? 'border-ink-700 ring-2 ring-ink-200'
-                      : 'border-gray-300 hover:border-ink-400'
+                      : 'border-gray-400 hover:border-ink-400'
                   }`}
                 >
                   <span className="block font-bold text-gray-900">
@@ -315,7 +315,7 @@ export default function Response() {
               개인정보가 포함된 부분은 지우고 넣으셔도 됩니다.
             </p>
             {/* ★ 회신 원문에는 연체·소득·대출 정보가 들어 있다. 어디로 나가는지 여기서 밝힌다. */}
-            <div className="rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-700">
+            <div className="rounded-md border border-gray-400 bg-white p-3 text-sm text-gray-700">
               <p>
                 <b>보내는 것</b> — {AI_PROCESSING.sent.response}
               </p>
@@ -336,7 +336,7 @@ export default function Response() {
               maxLength={RESPONSE_MAX}
               aria-describedby="responseText-help"
               placeholder="예: 귀하께서 요청하신 자동화평가 결과에 대한 설명을 아래와 같이 안내드립니다…"
-              className="w-full rounded-md border border-gray-300 p-3 font-mono text-sm leading-relaxed"
+              className="w-full rounded-md border border-gray-400 p-3 font-mono text-sm leading-relaxed"
             />
             <p className="text-right text-sm tabular text-gray-600" aria-live="polite">
               {text.length.toLocaleString()} / {RESPONSE_MAX.toLocaleString()}자
@@ -363,7 +363,7 @@ export default function Response() {
           </p>
           <SlowHint />
           <Elapsed className="mt-2" />
-          <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded bg-gray-200">
+          <div className="mx-auto mt-4 h-1 w-48 overflow-hidden rounded-md bg-gray-200">
             <div className="h-full w-1/3 animate-pulse bg-ink-500" />
           </div>
         </section>
@@ -434,13 +434,13 @@ export default function Response() {
                   >
                     <thead>
                       <tr className="bg-gray-100">
-                        <th scope="col" className="border border-gray-300 p-2 text-left">
+                        <th scope="col" className="border border-gray-400 p-2 text-left">
                           항목
                         </th>
-                        <th scope="col" className="border border-gray-300 p-2 text-left">
+                        <th scope="col" className="border border-gray-400 p-2 text-left">
                           내용
                         </th>
-                        <th scope="col" className="border border-gray-300 p-2 text-left">
+                        <th scope="col" className="border border-gray-400 p-2 text-left">
                           분류
                         </th>
                       </tr>
@@ -448,7 +448,7 @@ export default function Response() {
                     <tbody>
                       {manualItems.map((it, i) => (
                         <tr key={i}>
-                          <td className="border border-gray-300 p-1">
+                          <td className="border border-gray-400 p-1">
                             <input
                               value={it.항목}
                               aria-label={`${i + 1}번째 항목 이름`}
@@ -460,7 +460,7 @@ export default function Response() {
                               className="w-full p-1"
                             />
                           </td>
-                          <td className="border border-gray-300 p-1">
+                          <td className="border border-gray-400 p-1">
                             <input
                               value={it.내용}
                               aria-label={`${i + 1}번째 항목 내용`}
@@ -472,7 +472,7 @@ export default function Response() {
                               className="w-full p-1"
                             />
                           </td>
-                          <td className="border border-gray-300 p-1">
+                          <td className="border border-gray-400 p-1">
                             <select
                               value={it.분류}
                               aria-label={`${i + 1}번째 항목 분류`}
@@ -513,7 +513,7 @@ export default function Response() {
 
           {/* (1) 무엇을 받았고 무엇을 못 받았나 */}
           <div data-tour="coverage">
-            <h2 className="mb-3 text-xl font-bold text-gray-900">무엇을 받았나요</h2>
+            <h2 className="mb-3 text-[1.375rem] font-semibold text-gray-900">무엇을 받았나요</h2>
             <ul className="space-y-2">
               {RESPONSE_TYPES.map((t) => (
                 <TypeRow key={t.id} type={t} got={interpretation.covered.includes(t.id)} />
@@ -535,7 +535,7 @@ export default function Response() {
               ★ 서식 본문을 확인하지 못했으므로 담는 내용을 설명하지 않는다.
               ★ 형식이 다르다고 위법이라고 단정하지 않는다.
             */}
-            <div className="mt-4 rounded-md border border-gray-300 bg-gray-50 p-4">
+            <div className="mt-4 rounded-md border border-gray-400 bg-gray-50 p-4">
               <p className="font-bold text-gray-900">회신에도 정해진 서식이 있습니다</p>
               <p className="mt-2 text-gray-700">{RESPONSE_FORM.notice}</p>
               <p className="mt-2 text-gray-700">
@@ -559,10 +559,10 @@ export default function Response() {
             className={
               excluded
                 ? 'rounded-lg border-2 border-amber-600 bg-amber-50 p-5'
-                : 'rounded-lg border border-gray-300 bg-white p-5'
+                : 'rounded-lg border border-gray-400 bg-white p-5'
             }
           >
-            <h2 className="flex items-baseline gap-2 text-xl font-bold text-gray-900">
+            <h2 className="flex items-baseline gap-2 text-[1.375rem] font-semibold text-gray-900">
               {excluded && (
                 <span
                   aria-hidden="true"
@@ -585,7 +585,7 @@ export default function Response() {
                     {interpretation.provisoText}
                   </blockquote>
                 )}
-                <p className="mt-3 rounded-md border border-gray-200 bg-white p-3 text-gray-800">
+                <p className="mt-3 rounded-md border border-gray-400 bg-white p-3 text-gray-800">
                   {RESPONSE_LIMITATION.notRefusalNote}
                 </p>
               </>
@@ -604,7 +604,7 @@ export default function Response() {
 
           {/* (3) 받은 기초정보 검토 */}
           <div>
-            <h2 className="mb-3 text-xl font-bold text-gray-900">
+            <h2 className="mb-3 text-[1.375rem] font-semibold text-gray-900">
               받은 <Term id="baseInfo">기초정보</Term>를 확인하세요
             </h2>
             {items.length === 0 ? (
@@ -634,7 +634,7 @@ export default function Response() {
                             className={`rounded-md border p-3 ${
                               errors.includes(i)
                                 ? 'border-amber-500 bg-amber-50'
-                                : 'border-gray-200 bg-white'
+                                : 'border-gray-400 bg-white'
                             }`}
                           >
                             <label className="flex cursor-pointer items-start gap-3">
@@ -677,7 +677,7 @@ export default function Response() {
                                       return next
                                     })
                                   }
-                                  className="rounded border border-gray-300 bg-white px-2 py-1 text-sm"
+                                  className="rounded-md border border-gray-400 bg-white px-2 py-1 text-sm"
                                 >
                                   {BASE_INFO_CATEGORIES.map((c) => (
                                     <option key={c.id} value={c.label}>
@@ -694,7 +694,7 @@ export default function Response() {
                                 )}
                                 {/* ★ 두 분류에 모두 걸리는 항목. 코드가 정하지 않고 사용자가 고른다. */}
                                 {isAmbiguousCategoryItem(it.항목) && (
-                                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+                                  <div className="mt-2 rounded-md border border-amber-400 bg-amber-50 p-2 text-sm text-amber-900">
                                     <p>
                                       <span aria-hidden="true">※ </span>
                                       {AMBIGUOUS_CATEGORY_ITEMS.notice}
@@ -726,7 +726,7 @@ export default function Response() {
           {/* (4) 거절당한 경우 */}
           {interpretation.refused && (
             <div className="rounded-lg border-2 border-amber-600 bg-amber-50 p-5">
-              <h2 className="flex items-baseline gap-2 text-xl font-bold text-gray-900">
+              <h2 className="flex items-baseline gap-2 text-[1.375rem] font-semibold text-gray-900">
                 <span
                   aria-hidden="true"
                   className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-amber-600 text-sm font-bold text-amber-800"
@@ -736,14 +736,14 @@ export default function Response() {
                 <span>거절된 회신입니다</span>
               </h2>
               {interpretation.refusalReasonText ? (
-                <div className="mt-3 rounded-md border border-gray-200 bg-white p-3">
+                <div className="mt-3 rounded-md border border-gray-400 bg-white p-3">
                   <p className="font-bold text-gray-900">회신에 적힌 사유</p>
                   <p className="mt-1 whitespace-pre-line text-gray-700">
                     {interpretation.refusalReasonText}
                   </p>
                 </div>
               ) : (
-                <p className="mt-3 rounded-md border border-gray-200 bg-white p-3 text-gray-800">
+                <p className="mt-3 rounded-md border border-gray-400 bg-white p-3 text-gray-800">
                   회신에서 거절 사유를 찾지 못했습니다. 사업자는 거절의 근거와 사유를 안내할
                   의무가 있습니다. 사유를 받지 못하셨다면 다시 요구할 수 있습니다.
                 </p>
@@ -753,7 +753,7 @@ export default function Response() {
               </p>
               <ul className="mt-2 space-y-2">
                 {REFUSAL_GROUNDS.map((d) => (
-                  <li key={d.id} className="rounded-md border border-gray-200 bg-white p-3">
+                  <li key={d.id} className="rounded-md border border-gray-400 bg-white p-3">
                     <p className="text-gray-800">{d.text}</p>
                     <p className="mt-2">
                       <Basis chain prefix="근거 체인">
@@ -770,7 +770,7 @@ export default function Response() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-3 rounded-md border border-gray-200 bg-white p-3">
+              <div className="mt-3 rounded-md border border-gray-400 bg-white p-3">
                 <p className="text-gray-800">{REFUSAL_NOTICE_DUTY.text}</p>
                 <p className="mt-2">
                   <Basis prefix="근거">{REFUSAL_NOTICE_DUTY.basis}</Basis>
@@ -783,7 +783,7 @@ export default function Response() {
           {action && (
             <div className="rounded-lg border-2 border-ink-700 bg-white p-5" role="region" aria-live="polite">
               <p className="text-sm font-semibold tracking-wide text-ink-600">다음 행동</p>
-              <h2 className="mt-1 text-xl font-bold text-gray-900">{action.title}</h2>
+              <h2 className="mt-1 text-[1.375rem] font-semibold text-gray-900">{action.title}</h2>
               <p className="mt-2 text-gray-700">{action.detail}</p>
               {action.rights.length > 0 && (
                 <ul className="mt-3 space-y-2">

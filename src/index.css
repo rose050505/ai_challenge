@@ -65,6 +65,45 @@
   --color-amber-700: #6f4714;
   --color-amber-800: #543511;
   --color-amber-900: #3a240c;
+
+  /* ──────────────────────────────────────────────────────────
+   * 모서리 반경 — **하나(6px)로 통일한다.** 칩(rounded-full)만 예외.
+   * 감사 전에는 배지 4px / 버튼 6px / 카드 8px / 칩 full 이 한 화면에 섞여 있었다.
+   * Tailwind 의 rounded-* 단계를 전부 같은 값으로 묶어, JSX 를 손대지 않고 통일한다.
+   * ★ 인쇄 서식(.print-sheet) 안은 0 이다 — 파일 끝의 @media print 규칙이 지운다.
+   * ────────────────────────────────────────────────────────── */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.375rem;
+  --radius-3xl: 0.375rem;
+  --radius-4xl: 0.375rem;
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * 테두리 기본값 — **반드시 @layer base 안에 둔다.**
+ *
+ * Tailwind v4 의 border 기본값은 currentColor 라, 지정하지 않으면 본문색이 새어나온다.
+ * 그래서 기본값을 하나 정해 두는데, 이 규칙을 **레이어 밖**에 두면 안 된다.
+ * CSS 캐스케이드 레이어는 특정도보다 **먼저** 평가되므로, 레이어 밖의 `*` 가
+ * @layer components 의 `.card`(특정도 0,1,0)를 이긴다. 실제로 그렇게 되어 있었고
+ * .card·.panel·.panel-accent·.basis·.btn-secondary 가 선언한 색이 전부 죽어 있었다.
+ *
+ * base 로 내리면 components·utilities 가 정상적으로 이긴다.
+ *
+ * 값은 gray-300(흰 바탕 1.56:1) 에서 **gray-400(2.85:1)** 으로 올렸다.
+ * 1.5:1 대의 실선은 화면 밝기를 낮춘 실제 기기에서 사라진다.
+ * ────────────────────────────────────────────────────────────── */
+@layer base {
+  @media screen {
+    *,
+    ::before,
+    ::after {
+      border-color: var(--color-gray-400);
+    }
+  }
 }
 
 /*
@@ -120,8 +159,15 @@ body {
   body {
     font-size: var(--app-font-size, 1.0625rem);
     line-height: 1.75;
-    color: var(--color-gray-800);
-    background: var(--color-gray-50);
+    /* 본문은 gray-700, 제목은 gray-900 — 색으로도 층을 만든다 */
+    color: var(--color-gray-700);
+    /*
+     * ★ 배경을 gray-50(#faf9f7) 에서 gray-100(#f3f2ef) 으로 한 단계 낮췄다.
+     *   카드가 순백(#fff)인데 배경이 #faf9f7 이면 둘의 대비가 1.05:1 이라
+     *   "종이 위의 카드"가 아니라 그냥 한 장의 흰 화면으로 보인다.
+     *   배경을 낮추면 카드가 살짝 떠 보이고, 순백 면적도 줄어든다.
+     */
+    background: var(--color-gray-100);
   }
 
   /* 글자 크기 조절 — 인쇄에는 영향을 주지 않는다(이 블록이 screen 전용이므로) */
@@ -137,12 +183,10 @@ body {
     letter-spacing: -0.01em;
   }
 
-  /* 기본 테두리색. Tailwind v4 의 border 기본값은 currentColor 라 본문색이 새어나온다. */
-  *,
-  ::before,
-  ::after {
-    border-color: var(--color-gray-300);
-  }
+  /* ★ 기본 테두리색은 @layer base 로 옮겼다 (파일 아래 "테두리 기본값" 블록).
+     여기(레이어 밖)에 두었을 때 캐스케이드 레이어 규칙상 레이어 밖 선언이
+     @layer components 를 이겨, .card·.panel·.basis 가 선언한 테두리색 일곱 가지가
+     전부 gray-300 하나로 덮어써지고 있었다. 2026-08-31 감사에서 실측으로 확인. */
 
   /* ★ 포커스 링을 지우지 않는다. 키보드 사용자의 유일한 위치 표시다. */
   :focus-visible {
@@ -171,7 +215,7 @@ body {
       gap: 0.5rem;
       min-height: 2.75rem;
       padding: 0.625rem 1.25rem;
-      border-radius: 0.375rem;
+      border-radius: var(--radius-md);
       border: 1px solid transparent;
       font-size: 1rem;
       font-weight: 600;
@@ -190,12 +234,13 @@ body {
 
     .btn-secondary {
       background: #fff;
-      border-color: var(--color-ink-300);
+      /* 조작부의 경계선은 3:1 을 넘겨야 한다 (ink-300 은 흰 바탕 2.08:1 이었다) */
+      border-color: var(--color-ink-400); /* 흰 바탕 3.52:1 */
       color: var(--color-ink-800);
     }
     .btn-secondary:hover {
       background: var(--color-ink-50);
-      border-color: var(--color-ink-500);
+      border-color: var(--color-ink-600);
     }
 
     .btn-quiet {
@@ -224,14 +269,19 @@ body {
       gap: 0.3em;
       max-width: 100%;
       padding: 0.1em 0.5em;
-      border: 1px solid var(--color-ink-200);
-      border-radius: 0.25rem;
+      border: 1px solid var(--color-ink-400); /* ink-50 바탕 3.24:1 */
+      border-radius: var(--radius-md);
       background: var(--color-ink-50);
       color: var(--color-ink-800);
       font-size: 0.8125rem;
       line-height: 1.5;
       font-variant-numeric: tabular-nums;
       word-break: break-all;
+      /* 조문 번호가 이 서비스의 신뢰 근거다. 숫자만 고정폭으로 또렷하게 (위 .numeric 주석 참조) */
+      font-family:
+        ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+        'DejaVu Sans Mono', monospace, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR',
+        'Malgun Gothic', sans-serif;
     }
     .basis::before {
       content: '§';
@@ -262,21 +312,24 @@ body {
     }
 
     /* 카드 / 패널 */
+    /* ★ 테두리색은 각자의 배경 위에서 3:1 근처가 되게 고른다(2026-08-31 실측).
+       선언해도 죽어 있던 값들(gray-200 / ink-100 / seal-200)은 각각
+       1.27 / 1.13 / 1.78 : 1 이라 되살려 봐야 여전히 보이지 않는다. 한 단계씩 올렸다. */
     .card {
-      border: 1px solid var(--color-gray-200);
-      border-radius: 0.5rem;
+      border: 1px solid var(--color-gray-400); /* 흰 바탕 2.85:1 */
+      border-radius: var(--radius-md);
       background: #fff;
       padding: 1rem;
     }
     .panel {
-      border: 1px solid var(--color-ink-100);
-      border-radius: 0.5rem;
+      border: 1px solid var(--color-ink-400); /* ink-50 바탕 3.25:1 */
+      border-radius: var(--radius-md);
       background: var(--color-ink-50);
       padding: 1rem;
     }
     .panel-accent {
-      border: 1px solid var(--color-seal-200);
-      border-radius: 0.5rem;
+      border: 1px solid var(--color-seal-400); /* seal-50 바탕 2.62:1 */
+      border-radius: var(--radius-md);
       background: var(--color-seal-50);
       padding: 1rem;
     }

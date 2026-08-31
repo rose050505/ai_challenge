@@ -190,7 +190,7 @@ export function PrePrintPanel({ issues = [], onPrint, onCancel }) {
           </p>
           <ul className="mt-2 space-y-2">
             {issues.map((it) => (
-              <li key={it.id} className="rounded-md border border-amber-300 bg-amber-50 p-3">
+              <li key={it.id} className="rounded-md border border-amber-400 bg-amber-50 p-3">
                 <span className="block text-amber-900">{it.text}</span>
                 {it.hint && <span className="mt-1 block text-sm text-amber-900">{it.hint}</span>}
               </li>

@@ -58,7 +58,7 @@ export default function CaseSwitcher({ activeCase, isForm1 }) {
 
   return (
     <section className="no-print panel" aria-labelledby="case-heading">
-      <h2 id="case-heading" className="font-bold text-gray-900">
+      <h2 id="case-heading" className="text-lg font-bold text-gray-900">
         이 요구서를 받을 곳
       </h2>
 
@@ -77,7 +77,7 @@ export default function CaseSwitcher({ activeCase, isForm1 }) {
                 className={`flex-1 rounded-md border px-4 py-3 text-left ${
                   activeCase === id
                     ? 'border-ink-700 bg-ink-700 text-white'
-                    : 'border-gray-300 bg-white hover:border-ink-400'
+                    : 'border-gray-400 bg-white hover:border-ink-400'
                 }`}
               >
                 <span className="block font-bold">
@@ -134,7 +134,7 @@ export function TwoFormsNote() {
   const { journey } = useJourney()
   const branch = CORRECTION_ROUTING_BY_ID[journey.diagnosis?.routingBranchId]
   return (
-    <div className="no-print rounded-md border border-gray-300 bg-white p-3 text-gray-700">
+    <div className="no-print rounded-md border border-gray-400 bg-white p-3 text-gray-700">
       <p>
         <b>설명요구서</b>는 개인신용평가회사와 금융회사 <b>양쪽에 각각</b> 낼 수 있습니다.{' '}
         <b>정정·재산출 요청서</b>는 <b>그 정보를 보유한 곳</b>에 냅니다.
@@ -198,7 +198,7 @@ export function Form2CaseSwitcher() {
 
   return (
     <section className="no-print panel" aria-labelledby="form2-case-heading">
-      <h2 id="form2-case-heading" className="font-bold text-gray-900">
+      <h2 id="form2-case-heading" className="text-lg font-bold text-gray-900">
         정정 요청서를 낼 회사
       </h2>
       <p className="mt-2 text-gray-700">
@@ -217,7 +217,7 @@ export function Form2CaseSwitcher() {
               className={`flex-1 rounded-md border px-3 py-2 text-left ${
                 index === i
                   ? 'border-ink-700 bg-ink-700 text-white'
-                  : 'border-gray-300 bg-white hover:border-ink-400'
+                  : 'border-gray-400 bg-white hover:border-ink-400'
               }`}
             >
               <span className="block font-bold">
@@ -262,7 +262,7 @@ function CbLimitNote() {
   const actB = r1.targetActs.find((a) => a.code === 'b')
   if (!actB) return null
   return (
-    <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+    <div className="mt-3 rounded-md border border-amber-400 bg-amber-50 p-3">
       <p className="font-bold text-amber-900">
         <span aria-hidden="true">※ </span>
         개인신용평가회사에는 물을 수 없는 것이 하나 있습니다

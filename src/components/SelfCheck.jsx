@@ -27,7 +27,7 @@ export default function SelfCheck() {
 
   return (
     <section aria-labelledby="self-check-heading" className="panel" data-tour="selfcheck">
-      <h2 id="self-check-heading" className="text-xl font-bold text-gray-900">
+      <h2 id="self-check-heading" className="text-[1.375rem] font-semibold text-gray-900">
         혹시 이런 일이 있으셨나요?
       </h2>
       <p className="mt-2 text-gray-700">
@@ -43,7 +43,7 @@ export default function SelfCheck() {
             <li key={item.id}>
               <label
                 className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 ${
-                  on ? 'border-ink-600 bg-ink-50' : 'border-gray-300 bg-white'
+                  on ? 'border-ink-600 bg-ink-50' : 'border-gray-400 bg-white'
                 }`}
               >
                 <input

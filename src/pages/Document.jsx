@@ -149,7 +149,7 @@ function Sheet({ title, subtitle, children }) {
   return (
     <article
       className={`print-sheet bg-white ${
-        measuring ? 'rounded-none border-0 p-0' : 'rounded border p-6'
+        measuring ? 'rounded-none border-0 p-0' : 'rounded-md border p-6'
       } print:rounded-none print:border-0 print:p-0`}
     >
       <h2
@@ -927,7 +927,7 @@ function DocumentSheet({ activeCase, form2Index }) {
           aria-labelledby="afterprint-heading"
         >
           <p className="text-sm font-semibold tracking-wide text-ink-600">인쇄했습니다</p>
-          <h2 id="afterprint-heading" className="mt-1 text-xl font-bold text-gray-900">
+          <h2 id="afterprint-heading" className="mt-1 text-[1.375rem] font-semibold text-gray-900">
             제출 전에 확인하세요
           </h2>
           <p className="mt-1 text-gray-600">
@@ -937,7 +937,7 @@ function DocumentSheet({ activeCase, form2Index }) {
 
           <ul className="mt-4 space-y-2">
             {checklist.map((c) => (
-              <li key={c.id} className="rounded-md border border-gray-200 p-3">
+              <li key={c.id} className="rounded-md border border-gray-400 p-3">
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
                     type="checkbox"
@@ -983,7 +983,7 @@ function DocumentSheet({ activeCase, form2Index }) {
           </div>
 
           {/* 제출은 우리가 대행하지 않으므로 날짜를 자동으로 알 수 없다 */}
-          <div className="mt-6 border-t border-gray-200 pt-4">
+          <div className="mt-6 border-t border-gray-300 pt-4">
             <label htmlFor="submitted-at" className="block font-bold text-gray-900">
               제출한 날짜를 기록해 두세요
             </label>
@@ -999,7 +999,7 @@ function DocumentSheet({ activeCase, form2Index }) {
                 value={milestone.submittedAt ?? ''}
                 aria-describedby="submitted-at-help"
                 onChange={(e) => setMilestone(milestoneKey, { submittedAt: e.target.value || null })}
-                className="rounded-md border border-gray-300 px-3 py-2"
+                className="rounded-md border border-gray-400 px-3 py-2"
               />
               {milestone.submittedAt && (
                 <span className="text-gray-700">
@@ -1071,7 +1071,7 @@ function DocumentSheet({ activeCase, form2Index }) {
             className={`flex-1 rounded-md border px-4 py-3 text-left ${
               tab === f.id
                 ? 'border-ink-700 bg-ink-700 text-white'
-                : 'border-gray-300 bg-white hover:border-ink-400'
+                : 'border-gray-400 bg-white hover:border-ink-400'
             }`}
           >
             <span className="block font-bold">
@@ -1096,11 +1096,11 @@ function DocumentSheet({ activeCase, form2Index }) {
        * ★ 인쇄만 하고 닫았다가 며칠 뒤 돌아오는 것이 정상 사용 패턴이다.
        *   그래서 불러오기는 항상 보이는 자리에 둔다.
        */}
-      <details className="no-print rounded-lg border border-gray-200 bg-white">
+      <details className="no-print rounded-lg border border-gray-400 bg-white">
         <summary className="cursor-pointer rounded-lg px-4 py-3 font-bold text-gray-900">
           작성 중인 내용 불러오기 · 파일로 보관하기
         </summary>
-        <div className="space-y-3 border-t border-gray-200 p-4">
+        <div className="space-y-3 border-t border-gray-300 p-4">
           <p className="text-gray-700">
             {journey.updatedAt
               ? `이 브라우저에 저장된 내용을 자동으로 불러왔습니다 (마지막 저장 ${formatWhen(
@@ -1211,7 +1211,7 @@ function DocumentSheet({ activeCase, form2Index }) {
 
       <div className="no-print space-y-3">
         {/* 서식 출처 — 어느 실물을 보고 재현했는지 밝힌다 */}
-        <p className="rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-700">
+        <p className="rounded-md border border-gray-400 bg-white p-3 text-sm text-gray-700">
           <b>서식 출처</b> — 이 서식은 {currentForm.source}을 기준으로 재현했습니다.{' '}
           {currentForm.sourceNote ?? currentForm.sourceCaveat}{' '}
           <Basis>{currentForm.basis}</Basis>
@@ -1231,7 +1231,7 @@ function DocumentSheet({ activeCase, form2Index }) {
           />
         ) : null}
         {/* 인쇄 글자 크기 — 고령층이 자기가 낸 서류를 읽을 수 있어야 한다 */}
-        <div className="rounded-md border border-gray-300 bg-white p-3">
+        <div className="rounded-md border border-gray-400 bg-white p-3">
           <p className="font-bold text-gray-900" id="print-scale-label">
             인쇄 글자 크기
           </p>
@@ -1249,7 +1249,7 @@ function DocumentSheet({ activeCase, form2Index }) {
                 className={`flex-1 rounded-md border px-3 py-2 text-left ${
                   printScale.scale === sc.id
                     ? 'border-ink-700 bg-ink-700 text-white'
-                    : 'border-gray-300 bg-white hover:border-ink-400'
+                    : 'border-gray-400 bg-white hover:border-ink-400'
                 }`}
               >
                 <span className="block font-bold">

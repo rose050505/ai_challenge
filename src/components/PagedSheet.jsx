@@ -254,7 +254,7 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
       </div>
 
       {/* ── 실제로 보이고 인쇄되는 서식 ────────────────────────── */}
-      <article className="print-sheet print-paged rounded border bg-white p-6 print:rounded-none print:border-0 print:p-0">
+      <article className="print-sheet print-paged rounded-md border bg-white p-6 print:rounded-none print:border-0 print:p-0">
         {pageIdLists.map((ids, i) => (
           <section key={i} className="paged-page">
             {i === 0 ? (

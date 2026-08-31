@@ -81,7 +81,7 @@ function TermBody({ entry, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded px-2 text-sm text-gray-500 hover:bg-gray-100"
+            className="shrink-0 rounded-md px-2 text-sm text-gray-500 hover:bg-gray-100"
             aria-label="용어 풀이 닫기"
           >
             닫기
@@ -93,13 +93,13 @@ function TermBody({ entry, onClose }) {
         <span className="mt-2 block text-sm leading-relaxed text-gray-600">{entry.extra}</span>
       )}
       {entry.statutory && (
-        <span className="mt-2 block rounded border-l-2 border-ink-300 bg-ink-50 px-2 py-1 text-sm leading-relaxed text-gray-700">
+        <span className="mt-2 block rounded-md border-l-2 border-ink-300 bg-ink-50 px-2 py-1 text-sm leading-relaxed text-gray-700">
           <span className="block text-xs font-semibold text-ink-700">법령 원문</span>
           {entry.statutory}
         </span>
       )}
       {entry.unverifiedNote && (
-        <span className="mt-2 block rounded bg-amber-50 px-2 py-1 text-sm leading-relaxed text-amber-900">
+        <span className="mt-2 block rounded-md bg-amber-50 px-2 py-1 text-sm leading-relaxed text-amber-900">
           {entry.unverifiedNote}
         </span>
       )}
@@ -117,17 +117,17 @@ function TermBody({ entry, onClose }) {
  */
 export function GlossaryList() {
   return (
-    <details className="no-print rounded-lg border border-gray-200 bg-white">
+    <details className="no-print rounded-lg border border-gray-400 bg-white">
       <summary className="cursor-pointer rounded-lg px-4 py-3 font-bold text-gray-900">
         이 서비스에 나오는 말들 ({GLOSSARY.length}개)
       </summary>
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-gray-300 p-4">
         <p className="mb-3 text-sm text-gray-600">
           법령의 정의를 쉬운 말로 옮긴 것입니다. 각 항목에 근거 조문을 함께 표시합니다.
         </p>
         <dl className="space-y-4">
           {GLOSSARY.map((g) => (
-            <div key={g.id} className="border-t border-gray-100 pt-3 first:border-t-0 first:pt-0">
+            <div key={g.id} className="border-t border-gray-300 pt-3 first:border-t-0 first:pt-0">
               <dt className="font-bold text-gray-900">
                 {g.term}
                 {g.aliases?.length > 0 && (

@@ -40,7 +40,7 @@ function Fallback({ onRetry }) {
   return (
     <div className="py-10">
       <div className="rounded-lg border-2 border-amber-500 bg-white p-5">
-        <h1 className="text-2xl font-bold text-gray-900">이 화면에서 문제가 생겼습니다</h1>
+        <h1 className="text-[1.75rem] font-bold text-gray-900 sm:text-[2.125rem]">이 화면에서 문제가 생겼습니다</h1>
         <p className="mt-3 text-lg text-gray-900">
           <b>진행 기록은 보존되어 있습니다.</b>{' '}
           {storageAvailable

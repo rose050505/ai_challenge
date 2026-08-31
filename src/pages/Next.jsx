@@ -46,7 +46,7 @@ function PostRefusal({ defaultOpen }) {
     >
       <ul className="space-y-4">
         {p.items.map((it) => (
-          <li key={it.id} className="rounded-md border border-gray-200 p-4">
+          <li key={it.id} className="rounded-md border border-gray-400 p-4">
             <p className="font-bold text-gray-900">{it.title}</p>
             <p className="mt-2 text-gray-700">{it.text}</p>
             {it.amount && <p className="mt-2 font-bold text-ink-800">{it.amount}</p>}
@@ -58,7 +58,7 @@ function PostRefusal({ defaultOpen }) {
 
             {/* ★ 과태료의 적용 범위 — 빼면 거짓이 된다 */}
             {it.scopeWarning && (
-              <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+              <div className="mt-3 rounded-md border border-amber-400 bg-amber-50 p-3">
                 <p className="text-amber-900">
                   <span aria-hidden="true">※ </span>
                   {it.scopeWarning}
@@ -173,7 +173,7 @@ export default function Next() {
               <li key={s.order}>
                 <span className="mr-2 font-bold">{s.order}.</span>
                 {s.description}
-                <span className="ml-2 inline-block rounded bg-white px-2 py-0.5 text-sm">
+                <span className="ml-2 inline-block rounded-md bg-white px-2 py-0.5 text-sm">
                   {FORMS_BY_ID[s.formId].title} · {s.rights.join(', ')}
                 </span>
               </li>
@@ -199,7 +199,7 @@ export default function Next() {
       >
         <ul className="grid gap-2 sm:grid-cols-2">
           {EXERCISE_CHANNELS.map((c) => (
-            <li key={c.id} className="rounded-md border border-gray-200 p-3">
+            <li key={c.id} className="rounded-md border border-gray-400 p-3">
               <span className="block font-bold text-gray-900">{c.label}</span>
               <span className="mt-2 block">
                 <Basis>{c.basis}</Basis>
@@ -276,7 +276,7 @@ export default function Next() {
           내용(3유형)에 앞서 형식을 먼저 짚는다.
           ★ 서식 본문은 확인하지 못했다. 담는 내용을 설명하지 않는다.
         */}
-        <div className="mb-4 rounded-md border border-gray-300 bg-gray-50 p-4">
+        <div className="mb-4 rounded-md border border-gray-400 bg-gray-50 p-4">
           <p className="font-bold text-gray-900">회신에도 정해진 서식이 있습니다</p>
           <p className="mt-2 text-gray-700">{RESPONSE_FORM.notice}</p>
           <p className="mt-2 text-gray-700">
@@ -295,7 +295,7 @@ export default function Next() {
 
         <ul className="space-y-3">
           {EXPLANATION_METHODS.map((m) => (
-            <li key={m.id} className="rounded-md border border-gray-200 p-3">
+            <li key={m.id} className="rounded-md border border-gray-400 p-3">
               <div className="font-bold text-gray-900">
                 <Term>{m.label}</Term>
               </div>
@@ -306,7 +306,7 @@ export default function Next() {
                 </p>
               )}
               {m.proviso && (
-                <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+                <div className="mt-3 rounded-md border border-amber-400 bg-amber-50 p-3">
                   <p className="font-bold text-amber-900">{m.proviso}</p>
                   <p className="mt-2 text-sm text-amber-900">
                     금융회사가 <b>직접 입수한</b> 정보는 받을 수 있지만, 금융회사가 자체적으로
@@ -335,7 +335,7 @@ export default function Next() {
       >
         <ul className="space-y-3">
           {REFUSAL_GROUNDS.map((d) => (
-            <li key={d.id} className="rounded-md border border-gray-200 p-3">
+            <li key={d.id} className="rounded-md border border-gray-400 p-3">
               <div className="font-bold text-gray-900">{d.text}</div>
               <p className="mt-2 text-gray-700">{d.description}</p>
               <p className="mt-2">
@@ -344,7 +344,7 @@ export default function Next() {
                 </Basis>
               </p>
               {d.uiCaution && (
-                <p className="mt-3 rounded bg-amber-50 p-2 text-sm text-amber-900">
+                <p className="mt-3 rounded-md bg-amber-50 p-2 text-sm text-amber-900">
                   <span aria-hidden="true">※ </span>
                   횟수만으로 자동 거절되는 것이 아닙니다. &ldquo;정당한 사유 없이&rdquo;가 함께
                   요구되는 요건입니다.

@@ -28,7 +28,7 @@ function Step({ n, title, children, hint }) {
   return (
     <Card as="section" aria-label={`${n}단계 ${title}`}>
       <h2 className="flex items-baseline gap-2 text-lg font-bold text-gray-900">
-        <span className="tabular shrink-0 rounded bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
+        <span className="tabular shrink-0 rounded-md bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
           {n}단계
         </span>
         <span>{title}</span>
@@ -222,7 +222,7 @@ export default function Diagnose() {
               className={`rounded-md border bg-white p-3 text-left ${
                 sampleId === s.id
                   ? 'border-ink-700 ring-2 ring-ink-200'
-                  : 'border-gray-300 hover:border-ink-400'
+                  : 'border-gray-400 hover:border-ink-400'
               }`}
             >
               <span className="block font-bold text-gray-900">
@@ -304,7 +304,7 @@ export default function Diagnose() {
             id="sector"
             value={institutionSectorId}
             onChange={(e) => edit({ institutionSectorId: e.target.value, limitKind: null })}
-            className="w-full rounded-md border border-gray-300 bg-white p-3"
+            className="w-full rounded-md border border-gray-400 bg-white p-3"
           >
             <option value="">선택하세요</option>
             {INSTITUTION_OPTIONS.map((o) => (
@@ -335,7 +335,7 @@ export default function Diagnose() {
                 value={customInstitution}
                 onChange={(e) => edit({ customInstitution: e.target.value })}
                 placeholder="예: 상호금융조합"
-                className="mt-1 w-full rounded-md border border-gray-300 p-3"
+                className="mt-1 w-full rounded-md border border-gray-400 p-3"
               />
             </>
           )}
@@ -381,7 +381,7 @@ export default function Diagnose() {
           maxLength={REASON_MAX}
           aria-describedby="reason-help"
           placeholder="예: 이직한 지 얼마 안 됐고 카드 사용 이력이 거의 없습니다."
-          className="w-full rounded-md border border-gray-300 p-3"
+          className="w-full rounded-md border border-gray-400 p-3"
         />
         <p className="mt-1 text-right text-sm tabular text-gray-600" aria-live="polite">
           {reason.length.toLocaleString()} / {REASON_MAX.toLocaleString()}자
@@ -418,7 +418,7 @@ function RoutingDisclosure({ withDiagram = false }) {
 
   return (
     <details
-      className="mt-4 rounded-md border border-amber-300 bg-amber-50"
+      className="mt-4 rounded-md border border-amber-400 bg-amber-50"
       open={Boolean(branch)}
     >
       <summary className="cursor-pointer p-3 font-bold text-amber-900">
@@ -451,7 +451,7 @@ function RoutingDisclosure({ withDiagram = false }) {
         </div>
 
         {branch && (
-          <div className="mt-4 rounded-md border border-gray-200 bg-white p-3">
+          <div className="mt-4 rounded-md border border-gray-400 bg-white p-3">
             {branch.requiresPrecedingStep && (
               <p className="mb-2 font-bold text-gray-900">
                 두 단계로 나눠 진행해야 합니다. 순서가 중요합니다.
@@ -462,7 +462,7 @@ function RoutingDisclosure({ withDiagram = false }) {
                 <li key={s.order} className="text-gray-800">
                   <span className="mr-2 font-bold">{s.order}.</span>
                   {s.description}
-                  <span className="ml-2 inline-block rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-700">
+                  <span className="ml-2 inline-block rounded-md bg-gray-100 px-2 py-0.5 text-sm text-gray-700">
                     {FORMS_BY_ID[s.formId].title} · {s.rights.join(', ')}
                   </span>
                 </li>
@@ -498,7 +498,7 @@ function RightCard({ right, counterparty }) {
   return (
     <Card as="li">
       <div className="flex items-baseline gap-2">
-        <span className="tabular shrink-0 rounded bg-ink-100 px-2 py-0.5 text-sm font-bold text-ink-800">
+        <span className="tabular shrink-0 rounded-md bg-ink-100 px-2 py-0.5 text-sm font-bold text-ink-800">
           {right.id}
         </span>
         <span className="font-bold text-gray-900">{right.label}</span>
@@ -516,7 +516,7 @@ function RightCard({ right, counterparty }) {
         <Term id="noticedForm">{form.title}</Term>
       </p>
       {restricted.map((a) => (
-        <p key={a.code} className="mt-3 rounded bg-amber-50 p-2 text-sm text-amber-900">
+        <p key={a.code} className="mt-3 rounded-md bg-amber-50 p-2 text-sm text-amber-900">
           <span aria-hidden="true">※ </span>
           {a.text} — {a.note} 지금 고른 상대방({counterparty.label})에는 이 대상 행위가 적용되지
           않습니다. ({a.basis})
@@ -532,8 +532,8 @@ function Result({ counterparty, transaction, sectionRef }) {
   const p2 = RIGHTS.filter((r) => r.paragraph === 2 && r.counterparties.includes(counterparty.id))
 
   return (
-    <section ref={sectionRef} className="space-y-6 border-t border-gray-200 pt-8">
-      <h2 className="text-2xl font-bold text-gray-900">행사할 수 있는 권리</h2>
+    <section ref={sectionRef} className="space-y-6 border-t border-gray-300 pt-8">
+      <h2 className="text-[1.375rem] font-semibold text-gray-900">행사할 수 있는 권리</h2>
 
       {/* 사건 유형 × 업권 조합 판정. 애매하면 하위 호를 특정하지 않는다. */}
       <div className="panel" data-tour="basis">
@@ -557,13 +557,13 @@ function Result({ counterparty, transaction, sectionRef }) {
           <p className="mt-1 text-sm text-gray-700">{transaction.delegated.text}</p>
         )}
         {transaction.needsMoreInfo && (
-          <p className="mt-3 rounded bg-amber-50 p-2 text-sm text-amber-900">
+          <p className="mt-3 rounded-md bg-amber-50 p-2 text-sm text-amber-900">
             위 &ldquo;{LIMIT_KIND_QUESTION.question}&rdquo;에 답하면 근거 조문을 특정할 수
             있습니다.
           </p>
         )}
         {transaction.caveat && !transaction.needsMoreInfo && (
-          <p className="mt-3 rounded bg-amber-50 p-2 text-sm text-amber-900">
+          <p className="mt-3 rounded-md bg-amber-50 p-2 text-sm text-amber-900">
             {transaction.caveat}
           </p>
         )}
@@ -589,7 +589,7 @@ function Result({ counterparty, transaction, sectionRef }) {
       </p>
 
       <div>
-        <h3 className="mb-3 border-l-4 border-ink-600 pl-3 text-base font-bold text-ink-800">
+        <h3 className="mb-3 border-l-4 border-ink-600 pl-3 text-lg font-bold text-ink-800">
           제1항 — 설명 요구
         </h3>
         <ul className="space-y-3">
@@ -600,7 +600,7 @@ function Result({ counterparty, transaction, sectionRef }) {
       </div>
 
       <div>
-        <h3 className="mb-3 border-l-4 border-ink-600 pl-3 text-base font-bold text-ink-800">
+        <h3 className="mb-3 border-l-4 border-ink-600 pl-3 text-lg font-bold text-ink-800">
           제2항 — 능동적 대응
         </h3>
         <ul className="space-y-3">

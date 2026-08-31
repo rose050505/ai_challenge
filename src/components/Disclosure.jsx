@@ -33,7 +33,7 @@ export default function Disclosure({ n, title, summary, defaultOpen = false, chi
   }, [])
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white">
+    <section className="rounded-lg border border-gray-400 bg-white">
       <h2>
         <button
           type="button"
@@ -45,7 +45,7 @@ export default function Disclosure({ n, title, summary, defaultOpen = false, chi
           <span className="min-w-0 flex-1">
             <span className="flex items-baseline gap-2">
               {n != null && (
-                <span className="tabular shrink-0 rounded bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
+                <span className="tabular shrink-0 rounded-md bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
                   {n}
                 </span>
               )}
@@ -59,7 +59,7 @@ export default function Disclosure({ n, title, summary, defaultOpen = false, chi
         </button>
       </h2>
       {open && (
-        <div id={panelId} className="border-t border-gray-200 p-4">
+        <div id={panelId} className="border-t border-gray-300 p-4">
           {children}
         </div>
       )}

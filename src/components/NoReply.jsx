@@ -67,7 +67,7 @@ export default function NoReply({ defaultOpen = false }) {
   }
 
   return (
-    <section className="rounded-lg border border-ink-200 bg-white" aria-labelledby="noreply-heading">
+    <section className="rounded-lg border border-ink-400 bg-white" aria-labelledby="noreply-heading">
       <h2 id="noreply-heading">
         <button
           type="button"
@@ -91,7 +91,7 @@ export default function NoReply({ defaultOpen = false }) {
       </h2>
 
       {open && (
-        <div id="noreply-panel" className="space-y-4 border-t border-gray-200 p-4">
+        <div id="noreply-panel" className="space-y-4 border-t border-gray-300 p-4">
           {submitted && submitted.days != null && (
             <p className="rounded-md bg-ink-50 p-3 text-ink-900">
               제출한 지 <b className="tabular">{submitted.days}일</b> 지났습니다.
@@ -145,7 +145,7 @@ export default function NoReply({ defaultOpen = false }) {
               value={body}
               onChange={(e) => setEdited(e.target.value)}
               rows={16}
-              className="mt-2 w-full rounded-md border border-gray-300 p-3 font-mono text-sm leading-relaxed"
+              className="mt-2 w-full rounded-md border border-gray-400 p-3 font-mono text-sm leading-relaxed"
             />
           </div>
 

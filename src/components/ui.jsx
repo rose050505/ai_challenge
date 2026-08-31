@@ -17,11 +17,11 @@ import { basisLink } from '../data/law.js'
  */
 export function PageHeader({ kicker, title, description, children }) {
   return (
-    <header className="no-print border-b border-gray-200 pb-5">
+    <header className="no-print border-b border-gray-300 pb-5">
       {kicker && (
         <p className="mb-1 text-sm font-semibold tracking-wide text-ink-600">{kicker}</p>
       )}
-      <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{title}</h1>
+      <h1 className="text-[1.75rem] font-bold text-gray-900 sm:text-[2.125rem]">{title}</h1>
       {description && <p className="mt-2 max-w-prose text-gray-600">{description}</p>}
       {children}
     </header>
@@ -119,7 +119,7 @@ export function Choice({ selected, onClick, children, className = '' }) {
       className={`flex w-full items-start gap-2 rounded-md border p-3 text-left transition-colors ${
         selected
           ? 'border-ink-700 bg-ink-700 text-white'
-          : 'border-gray-300 bg-white hover:border-ink-400 hover:bg-ink-50'
+          : 'border-gray-400 bg-white hover:border-ink-400 hover:bg-ink-50'
       } ${className}`}
     >
       <span

@@ -102,7 +102,7 @@ export default function Landing() {
             제목은 다섯 사건의 공통점(= AI 가 정한 심사 결과)을 말하고,
             사건 이름은 부제에서 늘어놓는다.
         */}
-        <h1 className="text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">
+        <h1 className="text-[1.75rem] font-bold leading-tight text-gray-900 sm:text-[2.125rem]">
           <Plain id="landing.hero">
             AI가 내린 심사 결과,
             <br />
@@ -217,14 +217,14 @@ export default function Landing() {
 
       {/* ── 6. 무엇을 해 주는가 ──────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-900">무엇을 해 드리나요</h2>
+        <h2 className="text-[1.375rem] font-semibold text-gray-900">무엇을 해 드리나요</h2>
         {/* 세 단계를 글로 읽기 전에 고리 하나로 먼저 보인다 */}
-        <LoopDiagram className="rounded-lg border border-gray-200 bg-white p-4" />
+        <LoopDiagram className="rounded-lg border border-gray-400 bg-white p-4" />
         <ol className="space-y-3">
           {STEPS.map((s) => (
             <Card as="li" key={s.n}>
               <div className="flex items-baseline gap-2">
-                <span className="tabular shrink-0 rounded bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
+                <span className="tabular shrink-0 rounded-md bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
                   {s.n}
                 </span>
                 <span className="font-bold text-gray-900">{s.title}</span>
@@ -237,7 +237,7 @@ export default function Landing() {
 
       {/* ── 7. 권리 목록 — 제도를 이해한 뒤에 읽는 자리 ───────── */}
       <section className="space-y-6">
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className="text-[1.375rem] font-semibold text-gray-900">
           행사할 수 있는 권리 {RIGHTS.length}가지
         </h2>
         <p className="max-w-prose text-gray-700">
@@ -248,14 +248,14 @@ export default function Landing() {
         </p>
         {[1, 2].map((p) => (
           <div key={p}>
-            <h3 className="mb-3 border-l-4 border-ink-600 pl-3 text-base font-bold text-ink-800">
+            <h3 className="mb-3 border-l-4 border-ink-600 pl-3 text-lg font-bold text-ink-800">
               {p === 1 ? '제1항 — 설명을 요구할 권리' : '제2항 — 능동적으로 대응할 권리'}
             </h3>
             <ul className="space-y-3">
               {byParagraph(p).map((r) => (
                 <Card as="li" key={r.id}>
                   <div className="flex items-baseline gap-2">
-                    <span className="tabular shrink-0 rounded bg-ink-100 px-2 py-0.5 text-sm font-bold text-ink-800">
+                    <span className="tabular shrink-0 rounded-md bg-ink-100 px-2 py-0.5 text-sm font-bold text-ink-800">
                       {r.id}
                     </span>
                     <span className="font-bold text-gray-900">{r.label}</span>
@@ -275,7 +275,7 @@ export default function Landing() {
 
       {/* ── 용어집 ────────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-2xl font-bold text-gray-900">말이 어렵다면</h2>
+        <h2 className="text-[1.375rem] font-semibold text-gray-900">말이 어렵다면</h2>
         <p className="text-gray-700">
           이 제도의 진짜 장벽은 권리가 없는 것이 아니라 용어입니다. 화면 곳곳의 점선 밑줄 친 말을
           누르면 그 자리에서 뜻을 볼 수 있고, 아래에 전부 모아 두었습니다.
@@ -285,7 +285,7 @@ export default function Landing() {
 
       {/* ── 기록 보관 ─────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-2xl font-bold text-gray-900">기록은 어디에 남나요</h2>
+        <h2 className="text-[1.375rem] font-semibold text-gray-900">기록은 어디에 남나요</h2>
         <p className="text-gray-700">{STORAGE_SCOPE_TEXT}</p>
         <BackupPanel />
         <WhyNoLogin />
@@ -295,7 +295,7 @@ export default function Landing() {
       {/* ★ 문구를 여기 적지 않는다. SERVICE_FACTS 한 곳에서만 고친다.
              (감사 지적: "서버로 전송되지 않습니다"가 사실과 달랐다 — 저장과 전송은 다른 말이다) */}
       <section className="card">
-        <h2 className="font-bold text-gray-900">이 서비스에 대해</h2>
+        <h2 className="text-lg font-bold text-gray-900">이 서비스에 대해</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-gray-700">
           {SERVICE_FACTS.map((t) => (
             <li key={t}>{t}</li>
