@@ -7,8 +7,8 @@ APP_URL="${APP_URL:-http://localhost:4400}"
 CDP="${CDP:-http://127.0.0.1:9444}"
 export APP_URL CDP
 
-UNIT="tp tj t1 tpre treason safari"
-BROWSER="rename thero tlaw phase1 phase2 phase3 phase4 phase5 phase8 e2e4 journey private afterprint kbd tnext tstrategy tform2 trform ta11y tfacts tour tourkbd tdiag mail samplenote"
+UNIT="tp tj t1 tpre treason safari tmatrix"
+BROWSER="rename thero tlong tlaw phase1 phase2 phase3 phase4 phase5 phase8 e2e4 journey private afterprint kbd tnext tstrategy tform2 trform ta11y tfacts tour tourkbd tdiag mail samplenote"
 
 case "${1:-all}" in
   unit)    LIST="$UNIT"; NEED_BROWSER=0 ;;

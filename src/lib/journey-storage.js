@@ -18,6 +18,11 @@
  * **기능이 죽지 않아야 한다.** 모든 접근을 try/catch 로 감싸고 실패는 값으로 돌려준다.
  */
 
+import { BASE_INFO_CATEGORIES, RESPONSE_TYPE_IDS } from '../data/law.js'
+
+/** 섹션 2 표가 그리는 분류 다섯 (법 제2조 제1호 가~마목). 이 밖의 값은 기타 정보로 보낸다. */
+const CORRECTION_CATEGORY_IDS = BASE_INFO_CATEGORIES.map((c) => c.id)
+
 /** 저장 형식 버전. 형식이 바뀌면 올리고 migrate() 에 경로를 추가한다. */
 export const SCHEMA_VERSION = 1
 
@@ -53,7 +58,7 @@ export const EMPTY_JOURNEY = {
   updatedAt: null,
   diagnosis: EMPTY_DIAGNOSIS,
   /** /strategy 결과. 다시 들어와도 후보를 새로 만들지 않아도 되게 한다. */
-  strategy: { notice: null, candidates: [], picked: [], source: null },
+  strategy: { notice: null, candidates: [], picked: [], source: null, basedOn: null },
   /** 서식 작성 내용. 주민등록번호는 여기에도 없다. */
   form: {
     tab: null,
@@ -128,11 +133,27 @@ function normalizeCandidate(raw) {
   return c['정보명'] || c['세부내용'] ? c : null
 }
 
-/** /response → 서식 2 섹션 2로 넘어가는 정정 행 */
+/**
+ * /response → 서식 2 섹션 2로 넘어가는 정정 행.
+ *
+ * ★ 모르는 분류는 버리지 말고 **기타 정보**로 보낸다. (2026-08-31)
+ *   섹션 2 표는 법이 정한 다섯 분류만 그린다. 그래서 그 다섯에 없는 분류가 붙은 행은
+ *   저장소에는 남아 있는데 표에는 나타나지 않고, 사용자는 그 사실을 알 수 없었다.
+ *   ("사용자가 적은 것이 조용히 사라지는" 자리다 — 되돌리기 감사에서 찾았다)
+ *   buildCorrectionRows() 가 정상 경로에서 쓰는 것과 같은 귀속처다. 정상 경로의
+ *   결과는 달라지지 않는다 — 다섯 분류 중 하나면 그대로 통과한다.
+ */
+const CORRECTION_FALLBACK_CATEGORY = 'other'
+
 function normalizeCorrectionRow(raw) {
   if (!isObj(raw)) return null
-  const row = { categoryId: text(raw.categoryId), current: text(raw.current) }
-  return row.categoryId ? row : null
+  const current = text(raw.current)
+  const claimed = text(raw.categoryId)
+  if (!claimed && !current) return null
+  const categoryId = CORRECTION_CATEGORY_IDS.includes(claimed)
+    ? claimed
+    : CORRECTION_FALLBACK_CATEGORY
+  return { categoryId, current }
 }
 
 /**
@@ -153,11 +174,40 @@ function normalizeInterpretation(raw) {
       .filter(isObj)
       .map((it) => pickText(it, ['항목', '내용', '분류', 'correctedFrom', 'correctionBasis']))
       .filter((it) => it['항목'] || it['내용']),
-    refused: bool(raw.refused),
-    refusalReasonText: text(raw.refusalReasonText),
-    excludedByProviso: bool(raw.excludedByProviso),
-    provisoText: text(raw.provisoText),
+    ...refusalConsistency(raw, ids(raw.covered)),
   }
+}
+
+/**
+ * ★ 거절 판정은 저장소를 믿지 않는다. (2026-08-31)
+ *
+ * 서버(api/interpret.js `applyInterpretGuards`)가 이미 같은 검사를 한다:
+ *   **세 유형을 모두 설명한 회신은 어떤 경우에도 요구를 거절한 것이 아니다.**
+ *   (법 제36조의2 제3항의 "거절"은 요구 자체에 응하지 않은 것이다)
+ * 그런데 저장소와 불러온 파일은 그 경로를 거치지 않는다. 거치지 않은 값이
+ * 화면에 "요구를 거절했습니다"로 그려지면, 사용자는 없는 권리를 주장하게 된다.
+ * 그래서 복원할 때 한 번 더 건다. 서버를 거친 값은 이미 이 조건을 만족하므로
+ * **정상 경로의 결과는 달라지지 않는다.**
+ *
+ * 거절이 아니라고 판정되면, 거절 사유라던 문장은 버리지 않고
+ * 법정 제외(시행령 제31조의2 제8항 제3호 단서) 쪽으로 옮긴다. 서버와 같은 처리다.
+ */
+function refusalConsistency(raw, covered) {
+  let refused = bool(raw.refused)
+  let refusalReasonText = text(raw.refusalReasonText)
+  let excludedByProviso = bool(raw.excludedByProviso)
+  let provisoText = text(raw.provisoText)
+
+  const allCovered = RESPONSE_TYPE_IDS.every((id) => covered.includes(id))
+  if (refused && allCovered) {
+    refused = false
+    if (refusalReasonText) {
+      if (!provisoText) provisoText = refusalReasonText
+      excludedByProviso = true
+      refusalReasonText = ''
+    }
+  }
+  return { refused, refusalReasonText, excludedByProviso, provisoText }
 }
 
 /** 사용자가 손으로 바꾼 분류. 키는 항목 번호, 값은 분류 라벨. */
@@ -232,6 +282,21 @@ export function normalizeJourney(raw) {
       picked: arr(s.picked).filter((x) => Number.isInteger(x)),
       /** 후보가 어디서 왔는지. 화면이 'AI가 고른 것'과 '일반 목록'을 구분해 말한다. */
       source: STRATEGY_SOURCES.includes(s.source) ? s.source : null,
+      /**
+       * 이 후보를 **무엇을 읽고** 만들었는지. (2026-08-31)
+       *
+       * ★ 없으면 null 이다. 옛 기록에는 없고, 그때는 낡았다고 단정하지 않는다.
+       *   있는데 지금 진단과 다르면, 화면이 "그 전 서술로 만든 것"이라고 밝힌다.
+       *   이 값이 없던 동안 /strategy 는 진단이 바뀐 뒤에도
+       *   "적어주신 상황을 읽고 고른 목록입니다"라고 말했다 — 사실이 아니게 된 문장이다.
+       */
+      basedOn: isObj(s.basedOn)
+        ? {
+            reason: str(s.basedOn.reason),
+            eventId: typeof s.basedOn.eventId === 'string' ? s.basedOn.eventId : null,
+            institutionSectorId: str(s.basedOn.institutionSectorId),
+          }
+        : null,
     },
     form: {
       tab: typeof f.tab === 'string' ? f.tab : null,
@@ -471,17 +536,26 @@ export function parseImport(text) {
 
 /* ── 표시용 ──────────────────────────────────────────────────── */
 
-/** "오늘 22:14" / "8월 26일 22:14" — 상대 시각 대신 사실만 적는다 */
+/**
+ * "오늘 22:14" / "8월 26일 22:14" / "2025년 7월 27일 22:14"
+ * — 상대 시각 대신 사실만 적는다.
+ *
+ * ★ 해가 다르면 연도를 붙인다. (2026-08-31)
+ *   이 서비스의 한 건은 몇 주가 걸린다. 서식을 내고, 몇 주 뒤 회신을 읽고,
+ *   다시 정정을 요구한다. 해를 넘겨 돌아오는 사람이 "7월 27일"만 보면
+ *   그것이 올해인지 작년인지 알 수 없다. (오래 쓰는 사용자 감사에서 확인)
+ */
 export function formatWhen(iso, now = new Date()) {
   if (!iso) return null
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return null
   const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  const sameYear = d.getFullYear() === now.getFullYear()
   const sameDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  return sameDay ? `오늘 ${time}` : `${d.getMonth() + 1}월 ${d.getDate()}일 ${time}`
+    sameYear && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+  if (sameDay) return `오늘 ${time}`
+  const day = `${d.getMonth() + 1}월 ${d.getDate()}일`
+  return sameYear ? `${day} ${time}` : `${d.getFullYear()}년 ${day} ${time}`
 }
 
 /**
@@ -500,11 +574,13 @@ function parseDay(value) {
 }
 
 /** "8월 26일" */
-export function formatDate(value) {
+export function formatDate(value, now = new Date()) {
   if (!value) return null
   const d = parseDay(value)
   if (Number.isNaN(d.getTime())) return null
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`
+  const day = `${d.getMonth() + 1}월 ${d.getDate()}일`
+  // 해가 다르면 연도를 붙인다 (formatWhen 과 같은 이유)
+  return d.getFullYear() === now.getFullYear() ? day : `${d.getFullYear()}년 ${day}`
 }
 
 /**

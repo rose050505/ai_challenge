@@ -62,9 +62,16 @@ eq('[6] 경과일 0', daysSince('2026-08-26', now), 0)
 eq('[6] 경과일 3', daysSince('2026-08-23', now), 3)
 eq('[6] 미래 날짜는 null', daysSince('2026-09-01', now), null)
 eq('[6] 없는 값은 null', daysSince(null, now), null)
-eq('[6] 날짜 표기', formatDate('2026-08-26'), '8월 26일')
+eq('[6] 날짜 표기', formatDate('2026-08-26', now), '8월 26일')
 eq('[6] 오늘 표기', formatWhen('2026-08-26T22:14:00', now), '오늘 22:14')
 eq('[6] 다른 날 표기', formatWhen('2026-08-23T09:05:00', now), '8월 23일 09:05')
+// ★ 한 건이 몇 주 걸리는 서비스다. 해를 넘겨 돌아오면 연도가 붙어야 한다.
+//   (2026-08-31 "오래 쓰는 사용자" 감사에서 400일 전 기록이 "7월 27일"로만 보였다)
+eq('[6] 해가 다르면 연도', formatWhen('2025-07-27T22:14:00', now), '2025년 7월 27일 22:14')
+eq('[6] 해가 다르면 연도(날짜)', formatDate('2025-07-27', now), '2025년 7월 27일')
+eq('[6] 같은 해면 연도 없음', formatDate('2026-01-02', now), '1월 2일')
+// 12월 31일 → 1월 1일 처럼 하루 차이로 해가 갈리는 경우도 연도가 붙는다
+eq('[6] 하루 차이로 해가 갈려도', formatWhen('2025-12-31T23:59:00', new Date('2026-01-01T00:30:00')), '2025년 12월 31일 23:59')
 ok('[6] 파일명에 날짜', /삼육이-기록-20260826-\d{4}\.json/.test(exportFileName(now)), exportFileName(now))
 eq('[6] date input 값', todayInputValue(now), '2026-08-26')
 
@@ -107,7 +114,37 @@ ok('[6-2] 서식 이름도 내용 있음', hasSavedContent(normalizeJourney({for
   ok('[6-3] refused 는 불리언', poisoned.response.interpretation.refused === false)
   ok('[6-3] catOverrides 는 객체', typeof poisoned.response.catOverrides === 'object')
   ok('[6-3] enabled 는 불리언만', poisoned.form.form2.enabled.s2 === false)
-  ok('[6-3] 값이 객체인 정정 행은 버린다', poisoned.diagnosis.correctionRows.length === 0)
+  // 2026-08-31 바꿈: 분류가 망가진 행을 **버리지 않고** 기타 정보로 보낸다.
+  // 사용자가 적은 '현행 정보'가 버려지면 화면에 아무 말 없이 사라진다.
+  // (섹션 2 표는 법정 다섯 분류만 그리므로, 모르는 분류는 표에 나타나지도 않았다)
+  ok('[6-3] 분류가 망가진 정정 행은 기타 정보로 간다',
+     poisoned.diagnosis.correctionRows.length === 1 &&
+     poisoned.diagnosis.correctionRows[0].categoryId === 'other' &&
+     poisoned.diagnosis.correctionRows[0].current === 'x')
+  ok('[6-3] 내용도 분류도 없는 행은 여전히 버린다',
+     normalizeJourney({ diagnosis: { correctionRows: [{ categoryId: {}, current: {} }, {}, null] } })
+       .diagnosis.correctionRows.length === 0)
+  ok('[6-3] 멀쩡한 분류는 그대로 통과',
+     normalizeJourney({ diagnosis: { correctionRows: [{ categoryId: 'capacity', current: '연소득' }] } })
+       .diagnosis.correctionRows[0].categoryId === 'capacity')
+  // ★ 저장소를 믿지 않는다 — 서버(applyInterpretGuards)와 같은 검사를 복원할 때도 건다.
+  //   세 유형을 모두 설명한 회신은 거절일 수 없다. 손으로 고친 저장소가 이 검사를
+  //   비껴가면 화면이 "요구를 거절했습니다"라고 말하게 되고, 사용자는 없는 권리를 주장한다.
+  {
+    const all = { covered: ['result', 'criteria', 'baseInfo'], missing: [], baseInfoItems: [],
+      refused: true, refusalReasonText: '반복 요구라 응할 수 없습니다',
+      excludedByProviso: false, provisoText: '' }
+    const g = normalizeJourney({ response: { interpretation: all } }).response.interpretation
+    ok('[6-4] 전부 설명받았으면 거절일 수 없다', g.refused === false)
+    ok('[6-4] 거절 사유라던 문장은 버리지 않고 법정 제외로 옮긴다',
+       g.excludedByProviso === true && g.provisoText === '반복 요구라 응할 수 없습니다' &&
+       g.refusalReasonText === '')
+    const part = { ...all, covered: ['result'], missing: ['criteria', 'baseInfo'] }
+    const h = normalizeJourney({ response: { interpretation: part } }).response.interpretation
+    ok('[6-4] 일부만 받았으면 거절 판정을 건드리지 않는다',
+       h.refused === true && h.refusalReasonText === '반복 요구라 응할 수 없습니다' &&
+       h.excludedByProviso === false)
+  }
   ok('[6-3] 서식 2 표의 값은 문자열', typeof poisoned.form.form2.rows.capacity.current === 'string')
   ok('[6-3] 섹션 3 행의 값은 문자열', typeof poisoned.form.form2.favorable[0].infoName === 'string' && poisoned.form.form2.favorable[0].detail === '5')
 }

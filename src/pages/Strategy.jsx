@@ -40,8 +40,27 @@ function PickReason({ text }) {
  *   'cached'  — 샘플 시나리오의 준비된 예시 (result.notice 가 이미 말한다)
  *   'fallback'— 상황과 무관한 일반 목록. 선정이유가 없다.
  */
-function SourceBanner({ source, hasSituation }) {
+function SourceBanner({ source, hasSituation, stale }) {
   if (source === 'ai') {
+    /*
+     * ★ 진단이 바뀌었으면 이 문장은 더 이상 사실이 아니다. (2026-08-31)
+     *   "적어주신 상황을 읽고 고른 목록입니다"라고 말하는데, 정작 항목의 선정이유는
+     *   지금 진단에 없는 말을 인용하고 있게 된다.
+     *   이 서비스의 차별점이 "인용을 서버가 대조한다"인데, 그 인용이 지금 화면의
+     *   서술과 어긋나 보이면 그 주장까지 같이 흔들린다. 그래서 먼저 밝힌다.
+     */
+    if (stale) {
+      return (
+        <div className="rounded-md border-l-4 border-seal-400 bg-seal-50 p-4">
+          <p className="font-bold text-gray-900">진단을 바꾸신 뒤의 목록입니다</p>
+          <p className="mt-2 text-gray-800">
+            아래 목록은 <b>지금 진단에 적혀 있는 상황이 아니라, 그 전에 적으셨던 서술</b>을 읽고
+            만든 것입니다. 각 항목의 선정이유가 인용하는 말도 그때의 서술에서 온 것입니다.
+            지금 상황으로 다시 만드시려면 아래 [다시 만들기]를 누르세요.
+          </p>
+        </div>
+      )
+    }
     return (
       <p className="rounded-md border-l-4 border-ink-600 bg-ink-50 p-3 text-ink-900">
         <b>적어주신 상황을 읽고 고른 목록입니다.</b> 각 항목에 어느 대목 때문에 골랐는지
@@ -109,6 +128,19 @@ export default function Strategy() {
   )
   const [picked, setPicked] = useState(saved.picked ?? [])
 
+  /**
+   * 저장된 후보가 **지금 진단**으로 만든 것인가.
+   *
+   * basedOn 이 없으면(옛 기록) 알 수 없다 → 낡았다고 단정하지 않는다.
+   * 상황 서술·사건 유형·업권 중 하나라도 다르면 낡은 것으로 본다.
+   */
+  const stale =
+    saved.source === 'ai' &&
+    saved.basedOn != null &&
+    ((saved.basedOn.reason ?? '') !== (diagnosis.reason ?? '') ||
+      (saved.basedOn.eventId ?? null) !== (diagnosis.eventId ?? null) ||
+      (saved.basedOn.institutionSectorId ?? '') !== (diagnosis.institutionSectorId ?? ''))
+
   const right = RIGHTS_BY_ID[R3_SCOPE.rightId]
   const event = EVENT_TYPES_BY_ID[diagnosis.eventId]
   const sector = INSTITUTION_OPTIONS.find((o) => o.id === diagnosis.institutionSectorId)
@@ -146,6 +178,12 @@ export default function Strategy() {
           notice: r.notice ?? null,
           picked: all,
           source: r.source ?? null,
+          // 무엇을 읽고 만들었는지 함께 남긴다. 진단이 나중에 바뀌면 이것으로 알아챈다.
+          basedOn: {
+            reason: diagnosis.reason ?? '',
+            eventId: diagnosis.eventId ?? null,
+            institutionSectorId: diagnosis.institutionSectorId ?? '',
+          },
         },
         { immediate: true },
       )
@@ -256,7 +294,11 @@ export default function Strategy() {
             </Notice>
           )}
 
-          <SourceBanner source={result.source} hasSituation={Boolean(diagnosis.reason?.trim())} />
+          <SourceBanner
+            source={result.source}
+            hasSituation={Boolean(diagnosis.reason?.trim())}
+            stale={stale && result.source === saved.source}
+          />
 
           <p className="rounded-md border border-gray-300 bg-white p-3 text-gray-700">
             이 제안은 참고용이며, 실제 제출 여부는 본인이 판단합니다. 법률 자문이 아닙니다.
