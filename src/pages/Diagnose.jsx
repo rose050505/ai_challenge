@@ -58,11 +58,16 @@ function DownstreamNotice({ changed }) {
   if (journey.response?.interpretation) kept.push('회신 해석 결과')
   if (kept.length === 0) return null
 
-  return (
-    <Notice
-      title={changed ? '진단을 바꾸셨습니다' : '이후 단계에 저장된 내용이 있습니다'}
-      mark={changed ? '!' : 'i'}
-    >
+  /*
+   * ★ 두 순간을 같은 크기로 말하지 않는다. (2026-09-01 사용자 지적 — 되돌아온 화면)
+   *   - 아직 아무것도 안 바꿨다: **알림**이다. 되돌아온 사람은 자기 기록이 있다는 것을
+   *     이미 안다. 큰 상자로 폼 위를 덮을 값어치가 없다 → 한 줄로 접는다.
+   *   - 진단을 실제로 바꿨다: **경고**다. 앞서 만든 전략 후보가 지금 진단과 어긋난다.
+   *     지우고 다시 만들 단추가 함께 있어야 한다 → 지금 크기 그대로 둔다.
+   *   정보는 하나도 줄이지 않았다. 접은 줄을 펴면 같은 내용이 나온다.
+   */
+  const inner = (
+    <>
       <p>
         지금 저장돼 있는 것: <b>{kept.join(', ')}</b>.
       </p>
@@ -86,7 +91,24 @@ function DownstreamNotice({ changed }) {
           전략 후보 지우고 다시 만들기
         </button>
       )}
-    </Notice>
+    </>
+  )
+
+  if (changed) {
+    return (
+      <Notice title="진단을 바꾸셨습니다" mark="!">
+        {inner}
+      </Notice>
+    )
+  }
+  return (
+    <details className="rounded-md border border-gray-400 bg-white">
+      <summary className="cursor-pointer p-3 text-gray-800">
+        이후 단계에 저장된 내용이 있습니다 —{' '}
+        <b className="text-gray-900">{kept.join(', ')}</b>. 진단을 바꿔도 지우지 않습니다.
+      </summary>
+      <div className="border-t border-gray-300 p-3">{inner}</div>
+    </details>
   )
 }
 
@@ -132,8 +154,14 @@ export default function Diagnose() {
       limitKind: s.limitKind ?? null,
     })
 
-  /** 샘플 목록을 펼쳐 둘지. 샘플로 들어왔거나 샘플을 쓰는 중이면 펼친다. */
-  const [sampleOpen, setSampleOpen] = useState(Boolean(params.get('sample')) || Boolean(sampleId))
+  /*
+   * 샘플 **목록**을 펼쳐 둘지.
+   * ★ 예시를 고르고 막 들어왔으면 펼친다(무엇을 골랐는지 보여야 한다).
+   *   다시 들어온 사람에게는 접어 둔다 — 고르는 일은 이미 끝났고,
+   *   지금 필요한 것은 "무엇이 채워져 있고 어떻게 비우는가"다.
+   *   그 둘은 접기 **밖**에 둔다. (2026-09-01)
+   */
+  const [sampleOpen, setSampleOpen] = useState(Boolean(params.get('sample')))
 
   // 랜딩의 [샘플 시나리오로 체험하기] 진입 시 입력을 미리 채운다.
   useEffect(() => {
@@ -226,9 +254,12 @@ export default function Diagnose() {
           >
             <span>
               샘플 시나리오로 바로 채우기
-              <span className="ml-2 text-sm font-normal text-gray-600">
-                직접 겪은 일이 없어도 전체 흐름을 볼 수 있습니다 (3종)
-              </span>
+              {/* 이미 하나가 채워져 있으면 권유 문구는 자리만 먹는다 */}
+              {!activeSample && (
+                <span className="ml-2 text-sm font-normal text-gray-600">
+                  직접 겪은 일이 없어도 전체 흐름을 볼 수 있습니다 (3종)
+                </span>
+              )}
             </span>
             <span aria-hidden="true" className="shrink-0 text-gray-600">
               {sampleOpen ? '▲' : '▼'}
@@ -257,18 +288,24 @@ export default function Diagnose() {
             </button>
           ))}
         </div>
+        </div>
+
+        {/*
+          ★ 지금 무엇이 채워져 있는가 + 어떻게 비우는가 는 **접기 밖**이다. (2026-09-01)
+            목록을 접어 두면 고르는 일은 안 보여도 되지만, 이 둘은 늘 보여야 한다.
+            둘러보기를 중간에 건너뛴 사람, 예시를 보고 온 사람, 다시 들어온 사람은
+            모두 남의 상황이 적힌 화면을 만난다. 첫 화면의 [처음부터]까지 가지 않고
+            이 자리에서 비울 수 있어야 한다. 지우는 것은 이 화면의 답뿐이다.
+        */}
         {activeSample && (
-          <>
-            <p className="mt-3 text-sm text-gray-700">
+          <div className="mt-3 rounded-md border border-ink-400 bg-white p-3">
+            <p className="text-gray-900">
+              지금 채워진 것은 <b>샘플 「{activeSample.title}」</b> 입니다.
+            </p>
+            <p className="mt-1 text-sm text-gray-700">
               <span className="font-bold">이 샘플이 보여주는 것: </span>
               {activeSample.demonstrates}
             </p>
-            {/*
-              ★ 샘플이 채워진 채로 남아 있을 때 **빠져나갈 문**을 여기 둔다. (2026-09-01)
-                둘러보기를 중간에 건너뛴 사람, 예시를 보고 온 사람, 다시 들어온 사람은
-                모두 남의 상황이 적힌 화면을 만난다. 첫 화면의 [처음부터]까지 가지 않고
-                이 자리에서 비울 수 있어야 한다. 지우는 것은 이 화면의 답뿐이다.
-            */}
             <button
               type="button"
               onClick={() =>
@@ -286,9 +323,8 @@ export default function Diagnose() {
             >
               지우고 내 상황으로 시작하기
             </button>
-          </>
+          </div>
         )}
-        </div>
       </section>
 
       <Step n={1} title="무슨 일이 있었나요?">
