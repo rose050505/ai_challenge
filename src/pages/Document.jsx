@@ -149,7 +149,9 @@ function Sheet({ title, subtitle, children }) {
   return (
     <article
       className={`print-sheet bg-white ${
-        measuring ? 'rounded-none border-0 p-0' : 'rounded-md border p-6'
+        /* 화면에서는 테두리를 두지 않는다 — 바깥 껍데기(.sheet-shell)가 종이의 가장자리다.
+           둘 다 그리면 카드 안의 카드로 보인다. 측정(p-0)·인쇄(print:p-0)에는 영향이 없다. */
+        measuring ? 'rounded-none border-0 p-0' : 'rounded-none border-0 p-0'
       } print:rounded-none print:border-0 print:p-0`}
     >
       <h2
@@ -1170,7 +1172,7 @@ function DocumentSheet({ activeCase, form2Index }) {
       )}
 
       {/* SheetScroll 은 @media screen 에서만 동작한다. 인쇄에는 영향이 없다. */}
-      <SheetScroll label={currentForm.shortTitle ?? '서식'}>
+      <SheetScroll shell label={currentForm.shortTitle ?? '서식'}>
       {isForm1 ? (
         <>
           <Form1
@@ -1211,7 +1213,7 @@ function DocumentSheet({ activeCase, form2Index }) {
 
       <div className="no-print space-y-3">
         {/* 서식 출처 — 어느 실물을 보고 재현했는지 밝힌다 */}
-        <p className="rounded-md border border-gray-400 bg-white p-3 text-sm text-gray-700">
+        <p className="text-sm text-gray-700">
           <b>서식 출처</b> — 이 서식은 {currentForm.source}을 기준으로 재현했습니다.{' '}
           {currentForm.sourceNote ?? currentForm.sourceCaveat}{' '}
           <Basis>{currentForm.basis}</Basis>

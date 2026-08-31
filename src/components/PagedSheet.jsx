@@ -254,7 +254,8 @@ export default function PagedSheet({ title, subtitle, applicantName, blocks, gro
       </div>
 
       {/* ── 실제로 보이고 인쇄되는 서식 ────────────────────────── */}
-      <article className="print-sheet print-paged rounded-md border bg-white p-6 print:rounded-none print:border-0 print:p-0">
+      <article /* 테두리·여백은 바깥 껍데기(.sheet-shell)가 갖는다. Document.jsx 의 서식 1과 같은 이유. */
+      className="print-sheet print-paged bg-white">
         {pageIdLists.map((ids, i) => (
           <section key={i} className="paged-page">
             {i === 0 ? (

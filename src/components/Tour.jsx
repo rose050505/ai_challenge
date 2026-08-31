@@ -207,8 +207,20 @@ export default function Tour() {
         aria-modal="true"
         aria-labelledby="tour-title"
         tabIndex={-1}
-        className={`fixed inset-x-0 z-50 mx-auto max-h-[60vh] w-full max-w-2xl overflow-y-auto border-2 border-ink-700 bg-white p-5 shadow-2xl outline-none sm:rounded-xl ${
-          placeTop ? 'top-0 rounded-b-xl sm:top-4' : 'bottom-0 rounded-t-xl sm:bottom-4'
+        /*
+         * ★ 자리 (2026-08-31 디자인 감사)
+         *   정거장에서는 강조된 요소를 가리면 안 되므로 위/아래로 붙인다.
+         *   그런데 **강조할 요소가 없는 첫 화면·마무리**에서도 아래에 붙어 있었고,
+         *   375×667 에서 그 위 가장자리가 부제 한 줄을 가로로 잘랐다.
+         *   가릴 것이 없을 때는 화면 가운데에 카드로 띄운다 — 자른 것이 아니라
+         *   덮은 것으로 읽힌다.
+         */
+        className={`fixed z-50 mx-auto max-h-[80vh] overflow-y-auto rounded-md border-2 border-ink-700 bg-white p-5 shadow-2xl outline-none ${
+          rects.length === 0
+            ? 'inset-x-3 top-1/2 max-h-[76vh] w-auto max-w-2xl -translate-y-1/2 sm:inset-x-0 sm:w-full'
+            : `inset-x-0 max-h-[60vh] w-full max-w-2xl ${
+                placeTop ? 'top-0 sm:top-4' : 'bottom-0 sm:bottom-4'
+              }`
         }`}
       >
         <div className="flex items-baseline justify-between gap-3">

@@ -82,7 +82,7 @@ export default function Landing() {
   }, [shouldAutoOpen, start])
 
   return (
-    <div className="space-y-12 pb-8 pt-5 sm:py-12">
+    <div className="space-y-10 pb-8 pt-3 sm:space-y-12 sm:py-12">
       {/* ── 이어서 하기 — 기록이 있을 때만 맨 위에 뜬다 ──────────
           ★ 여기서는 얇은 형태로 띄운다. 되돌아온 사람에게도 아래의
             [내 상황으로 시작하기]가 첫 화면 밖으로 밀려나면 안 된다. */}
@@ -92,7 +92,16 @@ export default function Landing() {
       <ResumeCard compact />
 
       {/* ── 1. 무슨 서비스인가 ───────────────────────────────── */}
-      <section className="space-y-4">
+      {/*
+        ★ 어두운 구간은 이 서비스에서 **여기 하나뿐**이다. (2026-08-31 디자인 감사)
+          모든 화면·구획이 같은 밝기·같은 밀도이면 "따로 설계했다"는 인상이 생기지 않는다.
+          그렇다고 아무 데나 어둡게 할 수는 없다 — /document 는 화면이 곧 인쇄물이고,
+          권리 목록·서식·회신 해석은 읽어야 하는 본문이다.
+          첫인상을 만드는 히어로 하나만 어둡게 하고, 나머지는 전부 밝게 둔다.
+        ★ 인쇄 대비: 파일 끝의 @media print 가 이 블록을 흰 바탕·검은 글자로 되돌린다.
+          배경 인쇄를 끈 채로 인쇄하면 흰 바탕에 흰 글자가 되기 때문이다.
+      */}
+      <section className="hero-dark on-dark -mx-4 space-y-4 px-4 py-6 sm:rounded-md sm:px-8 sm:py-10">
         {/* 서비스 부제는 화면 맨 위 머리말에 이미 있다. 여기서 되풀이하지 않는다. */}
         {/*
           ★ 제목을 사건 하나에 묶지 않는다. (2026-08-31)
@@ -102,26 +111,26 @@ export default function Landing() {
             제목은 다섯 사건의 공통점(= AI 가 정한 심사 결과)을 말하고,
             사건 이름은 부제에서 늘어놓는다.
         */}
-        <h1 className="text-[1.75rem] font-bold leading-tight text-gray-900 sm:text-[2.125rem]">
+        <h1 className="text-[1.75rem] font-bold leading-tight text-white sm:text-[2.125rem]">
           <Plain id="landing.hero">
             AI가 내린 심사 결과,
             <br />
-            이유를 <span className="text-ink-700">물을 수 있습니다</span>.
+            이유를 <span className="text-ink-200">물을 수 있습니다</span>.
           </Plain>
         </h1>
         {/* 부제 — 어느 사건이 해당되는지, 무엇을 근거로 하는지, 우리가 무엇을 하는지.
             근거 배지는 이 문단 안에 인라인으로 둔다. 줄을 따로 만들면
             375×667 에서 버튼이 첫 화면 밖으로 밀린다(측정해서 정한 자리다). */}
-        <p className="flex max-w-prose flex-wrap items-baseline gap-x-2 gap-y-1 text-lg text-gray-800 sm:text-xl">
+        <p className="flex max-w-prose flex-wrap items-baseline gap-x-2 gap-y-1 text-lg text-ink-100 sm:text-xl">
           <span>
             <Plain id="landing.heroSub">
               대출·카드 거절, 한도 축소, 금리 인상 —{' '}
-              <b className="text-ink-800">
+              <b className="text-white">
                 {LAW_META.act.shortName} {LAW_META.act.article}
               </b>
               가 정한 권리입니다.
             </Plain>{' '}
-            <b>삼육이는 그 요구서를 대신 만들어 드립니다.</b>
+            <b className="text-white">삼육이는 그 요구서를 대신 만들어 드립니다.</b>
           </span>
           <Basis prefix="근거">{`${LAW_META.act.shortName} ${LAW_META.act.article}`}</Basis>
         </p>
@@ -145,9 +154,9 @@ export default function Landing() {
             머리말의 [회신 해석]만이 길인데, 사용자가 쓰는 말은 "회신"이 아니라 "답변서"다.
             (2026-08-31 실사용 시뮬레이션 시나리오 C) 그래서 여기 한 줄을 둔다.
         */}
-        <p className="text-gray-800">
-          이미 금융회사에서 <b>답변(회신)</b>을 받으셨나요?{' '}
-          <Link to="/response" className="font-bold text-ink-700 underline">
+        <p className="text-ink-100">
+          이미 금융회사에서 <b className="text-white">답변(회신)</b>을 받으셨나요?{' '}
+          <Link to="/response" className="font-bold text-white underline">
             받은 답변을 읽어 드립니다
           </Link>
         </p>
@@ -200,7 +209,7 @@ export default function Landing() {
       </section>
 
       {/* ── 5. 자동화평가란 ──────────────────────────────────── */}
-      <section className="panel">
+      <section className="border-l-4 border-ink-600 pl-4">
         <h2 className="text-lg font-bold text-gray-900">
           <Term id="automatedEvaluation">{DEFINITION_AUTOMATED_EVALUATION.term}</Term>란
         </h2>
@@ -219,18 +228,21 @@ export default function Landing() {
       <section className="space-y-4">
         <h2 className="text-[1.375rem] font-semibold text-gray-900">무엇을 해 드리나요</h2>
         {/* 세 단계를 글로 읽기 전에 고리 하나로 먼저 보인다 */}
-        <LoopDiagram className="rounded-lg border border-gray-400 bg-white p-4" />
-        <ol className="space-y-3">
+        <LoopDiagram className="py-2" />
+        {/* ★ 상자를 없앴다. 세 단계는 카드가 아니라 목록이다 —
+               한 화면에 상자가 서른 개 넘게 쌓이면 무엇이 중요한지 보이지 않는다.
+               카드로 남기는 것은 히어로·자가진단·권리 5종뿐이다. */}
+        <ol className="space-y-4">
           {STEPS.map((s) => (
-            <Card as="li" key={s.n}>
-              <div className="flex items-baseline gap-2">
-                <span className="tabular shrink-0 rounded-md bg-ink-700 px-2 py-0.5 text-sm font-bold text-white">
-                  {s.n}
-                </span>
-                <span className="font-bold text-gray-900">{s.title}</span>
-              </div>
-              <p className="mt-2 text-gray-700">{s.text}</p>
-            </Card>
+            <li key={s.n} className="flex gap-3">
+              <span className="numeric mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-ink-700 text-sm font-bold text-white">
+                {s.n}
+              </span>
+              <span className="min-w-0">
+                <span className="block font-bold text-gray-900">{s.title}</span>
+                <span className="mt-1 block text-gray-700">{s.text}</span>
+              </span>
+            </li>
           ))}
         </ol>
       </section>
@@ -294,7 +306,7 @@ export default function Landing() {
       {/* ── 서비스 고지 ───────────────────────────────────────── */}
       {/* ★ 문구를 여기 적지 않는다. SERVICE_FACTS 한 곳에서만 고친다.
              (감사 지적: "서버로 전송되지 않습니다"가 사실과 달랐다 — 저장과 전송은 다른 말이다) */}
-      <section className="card">
+      <section>
         <h2 className="text-lg font-bold text-gray-900">이 서비스에 대해</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-gray-700">
           {SERVICE_FACTS.map((t) => (

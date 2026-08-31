@@ -25,7 +25,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *   넘칠 때만 `tabindex=0` + `role="region"` 을 준다. 넘치지 않을 때 탭 정거장을
  *   하나 더 만들면 그건 그것대로 방해다.
  */
-export default function SheetScroll({ children, label = '서식' }) {
+export default function SheetScroll({ children, label = '서식', shell = false }) {
   const ref = useRef(null)
   const [state, setState] = useState({ scrollable: false, atStart: true, atEnd: true })
 
@@ -65,7 +65,7 @@ export default function SheetScroll({ children, label = '서식' }) {
 
   return (
     <div
-      className="sheet-scroll-wrap"
+      className={`sheet-scroll-wrap${shell ? ' sheet-shell' : ''}`}
       data-scrollable={scrollable ? 'true' : 'false'}
       data-at-start={atStart ? 'true' : 'false'}
       data-at-end={atEnd ? 'true' : 'false'}
