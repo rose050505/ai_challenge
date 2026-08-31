@@ -192,12 +192,28 @@ export default function Response() {
     }
   }
 
+  /** [회신 해석하기] 단추. 샘플을 고른 뒤 여기로 데려간다. */
+  const runBtnRef = useRef(null)
+
   const pickSample = (s) => {
     setSampleId(s.id)
     setText(s.text)
     setState('idle')
     setResult(null)
     setCatOverrides({})
+    /*
+     * ★ 375px 완주에서 나온 것: 샘플을 고르면 붙여넣기 칸이 채워지는데
+     *   그 칸이 길어 [회신 해석하기]가 y=1164 로 내려간다. 두 번 스크롤해야 다음 행동에
+     *   닿는다. 진단 화면이 결과로 데려가는 것과 같은 처리를 한다.
+     *   block:'center' 라 채워진 내용도 함께 보인다.
+     */
+    requestAnimationFrame(() => {
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      runBtnRef.current?.scrollIntoView({
+        behavior: reduce ? 'auto' : 'smooth',
+        block: 'center',
+      })
+    })
   }
 
   /**
@@ -342,6 +358,7 @@ export default function Response() {
               {text.length.toLocaleString()} / {RESPONSE_MAX.toLocaleString()}자
             </p>
             <button
+              ref={runBtnRef}
               type="button"
               onClick={run}
               disabled={!text.trim()}
