@@ -1,10 +1,22 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Notice } from './ui.jsx'
+import { useState } from 'react'
 
 /**
- * 인쇄 설정 안내 + 첫 인쇄 확인 단계.
+ * 인쇄 설정 안내.
  *
- * ── 왜 안내밖에 할 수 없는가 (2026-08-26 실측) ───────────────────────
+ * ── 2026-08-31: 안내를 대폭 줄였다 (사용자 지적) ─────────────────────
+ * 브라우저 주소가 인쇄되는 것은 **거슬리는 것이지 실제 문제가 아니다.**
+ * 서식의 법적 효력에 영향이 없고, 금융회사가 접수를 거부할 사유도 아니다.
+ * 그런 것을 경고 상자로 띄우고 첫 인쇄 때 확인 단계까지 두는 것은
+ * 사용자에게 절차를 하나 더 요구하는 것이고, 그만한 값어치가 없다.
+ *   - 경고 상자 → 인쇄 버튼 옆 한 줄
+ *   - 브라우저별 경로 → 접어 둔다
+ *   - "브라우저가 제어하므로 자동으로 끌 수 없습니다" → 삭제.
+ *     우리가 못 한 것을 변명하는 문단이었다.
+ *   - 첫 인쇄 확인 단계(wy-print-ack) → 삭제. 마찰만 만든다.
+ * 빈 칸 점검(PrePrintPanel)은 남긴다 — 그건 서식의 내용에 관한 것이다.
+ * ────────────────────────────────────────────────────────────────────
+ *
+ * ── 왜 안내밖에 할 수 없는가 (2026-08-26 실측, 개발 참고) ─────────────
  * 브라우저가 그리는 머리글·바닥글은 **브라우저의 여백 영역**에 그려지고,
  * 종이 끝에서 그 글자까지의 거리는 브라우저가 고정한다. CSS 로 옮길 수 없다.
  *
@@ -22,38 +34,7 @@ import { Notice } from './ui.jsx'
  * ────────────────────────────────────────────────────────────────────
  */
 
-/** 이 브라우저에서 안내를 이미 확인했는지 (개인정보가 아니므로 여정과 분리해 둔다) */
-const ACK_KEY = 'wy-print-ack'
-
-export function usePrintAck() {
-  const [acked, setAcked] = useState(false)
-  useEffect(() => {
-    try {
-      setAcked(localStorage.getItem(ACK_KEY) === '1')
-    } catch {
-      /* 저장소를 못 쓰면 매번 확인 단계를 보여준다 — 안내를 놓치는 쪽보다 낫다 */
-    }
-  }, [])
-  const remember = useCallback(() => {
-    setAcked(true)
-    try {
-      localStorage.setItem(ACK_KEY, '1')
-    } catch {
-      /* 무시 */
-    }
-  }, [])
-  const forget = useCallback(() => {
-    setAcked(false)
-    try {
-      localStorage.removeItem(ACK_KEY)
-    } catch {
-      /* 무시 */
-    }
-  }, [])
-  return { acked, remember, forget }
-}
-
-/** 브라우저별 끄는 경로. 두 곳(안내·확인 단계)에서 같은 문구를 쓴다. */
+/** 브라우저별 끄는 경로. 접힌 안에서만 쓴다. */
 export function HeaderFooterSteps() {
   return (
     <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -137,44 +118,60 @@ export function isOldSafariPrint(nav = typeof navigator === 'undefined' ? null :
   return major < 18 || (major === 18 && minor < 2)
 }
 
-/** 인쇄 버튼 위에 놓는 안내. 버튼보다 먼저 눈에 들어와야 한다. */
+/**
+ * 인쇄 버튼 옆에 놓는 한 줄.
+ *
+ * ★ 경고가 아니다. 끄지 않아도 서식은 유효하다. 그래서 상자도 색도 쓰지 않는다.
+ *   브라우저별 경로는 접어 두고, 원하는 사람만 편다.
+ */
 export function PrintSetupNotice() {
+  const [open, setOpen] = useState(false)
+  const panelId = 'print-hf-steps'
   return (
-    <Notice title="인쇄하기 전에 — 머리글·바닥글을 꺼 주세요">
+    <div className="text-sm text-gray-700">
       <p>
-        브라우저는 인쇄물 맨 위와 맨 아래에 페이지 제목·주소·날짜·쪽수를 자동으로 넣습니다. 끄지
-        않으면 금융회사에 내는 서식에 이 서비스의 인터넷 주소가 함께 인쇄됩니다.
+        브라우저 설정에서 <b>머리글·바닥글</b>을 끄면 서식만 깔끔하게 나옵니다.{' '}
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls={open ? panelId : undefined}
+          className="font-bold text-ink-700 underline"
+        >
+          끄는 방법
+          <span aria-hidden="true">{open ? ' ▴' : ' ▾'}</span>
+        </button>
       </p>
-      <HeaderFooterSteps />
-      <p className="mt-2 text-sm">
-        <b>이 설정은 브라우저가 제어하므로 서비스에서 자동으로 끌 수 없습니다.</b> 글자가 놓이는
-        위치도 브라우저가 정해서, 서식 여백을 넓혀도 종이 끝에 붙어 인쇄됩니다.
-      </p>
-      <p className="mt-2 text-sm">
+      {open && (
+        <div id={panelId} className="text-gray-800">
+          <HeaderFooterSteps />
+        </div>
+      )}
+      {/* ★ 쪽 번호는 남긴다. 브라우저 것을 꺼도 서식 안의 쪽 번호는 그대로라는 사실은
+             실제로 유용하다 — 이걸 모르면 끄기를 망설인다. */}
+      <p className="mt-1">
         쪽 번호는 이 서비스가 서식 안에 직접 넣습니다. 브라우저 것을 꺼도 쪽 번호는 남습니다.
       </p>
       {pageCountUncertain() && (
-        <p className="mt-2 text-sm">
-          <b>이 브라우저에서는 예상 페이지 수가 실제와 다를 수 있습니다.</b> 서식이 지정한 A4
-          여백이 적용되지 않기 때문입니다. 내용이 잘리지는 않으니 인쇄 미리보기에서 쪽 수를
-          확인해 주세요. Safari 는 18.2 이상, Chrome·Firefox 는 최신 버전이면 정확합니다.
+        <p className="mt-1">
+          <b>이 브라우저에서는 예상 페이지 수가 실제와 다를 수 있습니다.</b> 내용이 잘리지는
+          않으니 인쇄 미리보기에서 쪽 수를 확인해 주세요.
         </p>
       )}
-    </Notice>
+    </div>
   )
 }
 
 /**
- * 인쇄 직전 단계 — 제출 전 검토 + 머리글·바닥글 확인.
+ * 인쇄 직전 단계 — **빈 칸이 있을 때만** 뜬다.
  *
- * 두 가지를 한 화면에서 끝낸다. 관문을 두 번 통과하게 만들면
- * 사용자는 두 번째 것을 읽지 않는다.
+ * 머리글·바닥글 확인은 여기서 뺐다(2026-08-31). 이 패널이 말하는 것은
+ * 서식의 내용이지 브라우저 설정이 아니다.
  *
  * ★ 진행을 막지 않는다. [이대로 인쇄하기] 는 언제나 활성 상태다.
  *   빠뜨린 것이 의도일 수도 있고, 그 판단은 사용자의 것이다.
  */
-export function PrePrintPanel({ issues = [], needAck, onPrint, onCancel, onRemember }) {
-  const [dontAsk, setDontAsk] = useState(true)
+export function PrePrintPanel({ issues = [], onPrint, onCancel }) {
   return (
     <div
       role="group"
@@ -210,37 +207,12 @@ export function PrePrintPanel({ issues = [], needAck, onPrint, onCancel, onRemem
         </p>
       )}
 
-      {needAck && (
-        <div className="mt-4 border-t border-gray-200 pt-4">
-          <p className="font-bold text-gray-900">인쇄 설정에서 머리글·바닥글을 끄셨나요?</p>
-          <p className="mt-1 text-gray-700">
-            인쇄 대화상자가 열리면 아래를 먼저 확인하세요. 이 서비스가 대신 꺼 드릴 수 없는
-            설정입니다.
-          </p>
-          <div className="text-gray-800">
-            <HeaderFooterSteps />
-          </div>
-          <label className="mt-3 flex items-center gap-2 text-gray-800">
-            <input
-              type="checkbox"
-              checked={dontAsk}
-              onChange={(e) => setDontAsk(e.target.checked)}
-              className="h-5 w-5 accent-ink-700"
-            />
-            이 브라우저에서 다시 묻지 않기
-          </label>
-        </div>
-      )}
-
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
           autoFocus
           className="btn btn-primary"
-          onClick={() => {
-            if (needAck && dontAsk) onRemember()
-            onPrint()
-          }}
+          onClick={onPrint}
         >
           이대로 인쇄하기
         </button>

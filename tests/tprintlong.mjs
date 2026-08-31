@@ -72,7 +72,10 @@ const JOURNEY = {
   strategy: {}, form: {}, response: {}, milestones: {},
 }
 
-const SEL = '.print-sheet input:not([type=checkbox]):not([type=date])'
+// 2026-08-31: 표의 값 칸은 여러 줄이 될 수 있어 textarea 로 바뀌었다.
+// 둘 다 잡지 않으면 채워지는 칸이 줄어 시험이 조용히 약해진다.
+const SEL =
+  '.print-sheet input:not([type=checkbox]):not([type=date]), .print-sheet textarea'
 
 const setup = async (formId, scale) => {
   const { identifier } = (await send('Page.addScriptToEvaluateOnNewDocument', {
@@ -93,9 +96,11 @@ const fillAll = async (kind) => {
     // 칸마다 길이를 다르게 준다. 한 칸만 잘려도 합계가 어긋나게.
     const v = make(kind, KINDS[kind].len + i)
     total += v.length
-    await ev(`(()=>{const set=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;
-      const el=document.querySelectorAll(${JSON.stringify(SEL)})[${i}];
-      if(!el) return false; set.call(el, ${JSON.stringify(v)}); el.dispatchEvent(new Event('input',{bubbles:true})); return true})()`)
+    await ev(`(()=>{const el=document.querySelectorAll(${JSON.stringify(SEL)})[${i}];
+      if(!el) return false;
+      const proto = el.tagName==='TEXTAREA' ? window.HTMLTextAreaElement : window.HTMLInputElement
+      const set=Object.getOwnPropertyDescriptor(proto.prototype,'value').set
+      set.call(el, ${JSON.stringify(v)}); el.dispatchEvent(new Event('input',{bubbles:true})); return true})()`)
     await sleep(90)
   }
   await sleep(1200)

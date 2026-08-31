@@ -27,13 +27,13 @@ import EmailDraft from '../components/EmailDraft.jsx'
 import {
   PrintSetupNotice,
   PrePrintPanel,
-  usePrintAck,
   pageCountUncertain,
 } from '../components/PrintSetup.jsx'
 import { preflightIssues } from '../lib/preflight.js'
 import { usePrintScale, PRINT_SCALES } from '../lib/print-scale.js'
 import PagedSheet from '../components/PagedSheet.jsx'
 import SheetHeightProbe from '../components/SheetHeightProbe.jsx'
+import SheetScroll from '../components/SheetScroll.jsx'
 import { useSheetMode } from '../lib/sheet-mode.js'
 import { BackupPanel, STORAGE_SCOPE_TEXT } from '../components/Journey.jsx'
 import CaseSwitcher, { Form2CaseSwitcher, TwoFormsNote } from '../components/CaseSwitcher.jsx'
@@ -85,8 +85,24 @@ function Checkbox({ checked, onChange, disabled, children }) {
  *   서식의 칸은 표의 행·열 제목으로만 뜻이 정해져 있어, 눈으로 보면 알 수 있지만
  *   스크린리더로는 "편집 창"이라고만 읽힌다. 어느 칸인지 함께 읽히게 한다.
  */
-function Field({ value, onChange, placeholder, label, className = '' }) {
+/**
+ * ★ multiline — 표 칸은 여러 줄이 될 수 있다. (2026-08-31)
+ *   섹션 2의 "현행 정보"는 같은 분류에 여러 건이 들어오면 줄바꿈으로 합쳐진다.
+ *   그런데 <input> 은 줄바꿈을 그리지 못하고, 칸보다 긴 값은 잘라서 보여준다.
+ *   인쇄물(span)은 줄바꿈해 전부 나가므로 **화면과 종이가 서로 다른 것을 보여줬다.**
+ *   좁은 화면에서 열 폭을 줄인 뒤로는 더 심해진다. 그래서 그런 칸은 늘어나는
+ *   textarea 로 그린다. 인쇄와 측정은 그대로 span 을 쓰므로 쪽 수는 달라지지 않는다.
+ */
+function Field({ value, onChange, placeholder, label, className = '', multiline = false }) {
   const measuring = useSheetMode() === 'measure'
+  const ref = useRef(null)
+  // 내용에 맞춰 높이를 늘린다. 스크롤이 생기면 사용자는 나머지가 있는 줄 모른다.
+  useEffect(() => {
+    const el = ref.current
+    if (!multiline || !el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value, multiline])
   // 측정 영역에는 인쇄에 실제로 나가는 모양(줄바꿈되는 span)만 그린다.
   // 입력칸을 그대로 두면 여러 줄로 접히는 긴 값의 높이를 놓친다.
   if (measuring) {
@@ -96,13 +112,25 @@ function Field({ value, onChange, placeholder, label, className = '' }) {
   }
   return (
     <>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        aria-label={label}
-        className={`${className} placeholder:text-gray-500 print:hidden`}
-      />
+      {multiline ? (
+        <textarea
+          ref={ref}
+          rows={1}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          aria-label={label}
+          className={`${className} resize-none overflow-hidden placeholder:text-gray-500 print:hidden`}
+        />
+      ) : (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          aria-label={label}
+          className={`${className} placeholder:text-gray-500 print:hidden`}
+        />
+      )}
       <span className="sheet-value hidden whitespace-pre-wrap print:inline">{value}</span>
     </>
   )
@@ -404,6 +432,7 @@ function form2Blocks({
                 onChange={(v) => setRow(cat.id, 'current', v)}
                 label={`${formLabel} — ${s2.table.columns[1].label}`}
                 className="w-full"
+                multiline
               />
             </td>
             <td className="border p-1">
@@ -412,6 +441,7 @@ function form2Blocks({
                 onChange={(v) => setRow(cat.id, 'correction', v)}
                 label={`${formLabel} — ${s2.table.columns[2].label}`}
                 className="w-full"
+                multiline
               />
             </td>
           </tr>
@@ -468,6 +498,7 @@ function form2Blocks({
                 placeholder={i === 0 ? s3.table.example.detail : ''}
                 label={`${i + 1}번째 ${s3.table.columns[1].label}`}
                 className="w-full"
+                multiline
               />
             </td>
           </tr>
@@ -756,7 +787,6 @@ function DocumentSheet({ activeCase, form2Index }) {
    */
   const [stage, setStage] = useState('form') // form | afterPrint
   const [confirming, setConfirming] = useState(false)
-  const printAck = usePrintAck()
   const printScale = usePrintScale()
   const [emailOpen, setEmailOpen] = useState(false)
   const [checked, setChecked] = useState({})
@@ -800,7 +830,12 @@ function DocumentSheet({ activeCase, form2Index }) {
   })
 
   const handlePrint = () => {
-    if (!printAck.acked || issues.length > 0) {
+    /*
+     * ★ 빈 칸이 있을 때만 멈춘다. (2026-08-31)
+     *   전에는 이 브라우저에서 처음 인쇄할 때도 멈춰 세워 머리글·바닥글을 확인시켰다.
+     *   끄지 않아도 서식은 유효하다. 유효한 것을 위해 관문을 세우면 마찰만 남는다.
+     */
+    if (issues.length > 0) {
       setConfirming(true)
       return
     }
@@ -989,13 +1024,15 @@ function DocumentSheet({ activeCase, form2Index }) {
         </div>
       )}
 
-      {/* 모바일 안내 — 서식은 A4 고정이므로 작은 화면에서는 축소돼 보이는 것이 정상이다 */}
+      {/* 모바일 안내.
+          ★ "표는 좌우로 밀어 볼 수 있습니다"는 뺐다 (2026-08-31).
+            375px 이상에서는 이제 밀지 않아도 세 열이 다 보인다. 밀 필요가 있는
+            좁은 화면에서만 SheetScroll 이 그때 말한다 — 늘 적어 두면 거짓이 된다. */}
       <div className="no-print md:hidden">
         <Notice title="인쇄는 PC를 권장합니다">
           <p>
             서식은 A4 크기에 맞춰 조판돼 있어 이 화면에서는 작게 보입니다. 내용은 여기서 채우고,
-            인쇄는 PC에서 하시거나 아래 [이메일로 제출하기]를 쓰세요. 표는 좌우로 밀어 볼 수
-            있습니다.
+            인쇄는 PC에서 하시거나 아래 [이메일로 제출하기]를 쓰세요.
           </p>
         </Notice>
       </div>
@@ -1132,8 +1169,8 @@ function DocumentSheet({ activeCase, form2Index }) {
         </div>
       )}
 
-      {/* .sheet-scroll 은 @media screen 에서만 동작한다. 인쇄에는 영향이 없다. */}
-      <div className="sheet-scroll">
+      {/* SheetScroll 은 @media screen 에서만 동작한다. 인쇄에는 영향이 없다. */}
+      <SheetScroll label={currentForm.shortTitle ?? '서식'}>
       {isForm1 ? (
         <>
           <Form1
@@ -1170,7 +1207,7 @@ function DocumentSheet({ activeCase, form2Index }) {
           onPageCount={handlePageCount}
         />
       )}
-      </div>
+      </SheetScroll>
 
       <div className="no-print space-y-3">
         {/* 서식 출처 — 어느 실물을 보고 재현했는지 밝힌다 */}
@@ -1186,15 +1223,11 @@ function DocumentSheet({ activeCase, form2Index }) {
           <b>원본과 대조하지 못했습니다</b> — {FORM_ORIGINAL_UNVERIFIED.note}{' '}
           <Basis>{FORM_ORIGINAL_UNVERIFIED.basis}</Basis>
         </p>
-        {/* ★ 안내가 버튼보다 먼저 눈에 들어와야 한다. 누른 뒤에 읽으면 늦다. */}
-        <PrintSetupNotice />
         {confirming ? (
           <PrePrintPanel
             issues={issues}
-            needAck={!printAck.acked}
             onPrint={doPrint}
             onCancel={() => setConfirming(false)}
-            onRemember={printAck.remember}
           />
         ) : null}
         {/* 인쇄 글자 크기 — 고령층이 자기가 낸 서류를 읽을 수 있어야 한다 */}
@@ -1246,6 +1279,8 @@ function DocumentSheet({ activeCase, form2Index }) {
             출력했다면, 이후 절차 보기
           </Link>
         </div>
+        {/* 머리글·바닥글 안내 — 경고가 아니라 버튼 옆의 한 줄이다 */}
+        <PrintSetupNotice />
         <p role="status" aria-live="polite" className="text-gray-800" data-tour="pagecount">
           {isForm1 ? (
             <>

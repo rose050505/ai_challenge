@@ -277,7 +277,13 @@ export function LoopDiagram({ className = '' }) {
   )
 }
 
-/* ══ B. 판정 구조 — AI를 쓰되 믿지 않는다 ═══════════════════ */
+/* ══ B. 판정 구조 — 무엇을 AI가, 무엇을 코드가 ═══════════════
+ *
+ * ★ 이 그림은 사용자의 질문("법조문도 AI가 지어낸 것 아닌가")에 답하는 자리다.
+ *   우리가 무엇을 잘했는지 자랑하는 자리가 아니다. (2026-08-31 사용자 지적)
+ *   슬로건("AI를 쓰되, 믿지 않는다")과 구현 예시 두 줄을 걷어냈다.
+ *   남은 것은 흐름과 캡션 한 줄이다.
+ */
 
 const ARCH_DESC =
   '사용자가 쓴 상황 서술은 LLM 이 받아 맥락만 번역합니다. 법조문, 거절 사유, 서식 문구, 절차는 ' +
@@ -325,20 +331,12 @@ export function ArchitectureDiagram({ className = '' }) {
         </Box>
         <Arrow d="M 554 268 H 730 V 326" tone="gray" dashed />
 
-        <Caption x={440} y={208} weight={700} tone="#294061" size={15}>
-          AI를 쓰되, 믿지 않는다
-        </Caption>
-        <Caption x={32} y={368} anchor="start" size={13}>
-          예: 세 유형을 다 설명했으면 “거절”일 수 없다
-        </Caption>
-        <Caption x={32} y={386} anchor="start" size={13}>
-          예: 서술에 없는 말을 인용한 “선정이유”는 버린다
-        </Caption>
       </>
     ),
   }
   const tall = {
-    viewBox: '0 0 360 640',
+    /* 마지막 상자 바닥이 y=476 이다. 캡션을 걷어낸 만큼 아래 여백을 줄인다. */
+    viewBox: '0 0 360 492',
     children: (
       <>
         <Box x={60} y={8} w={240} h={56} tone="gray" sub="자유 서술 · 회신문">
@@ -364,21 +362,6 @@ export function ArchitectureDiagram({ className = '' }) {
           버린다
         </Box>
         <Arrow d="M 268 388 V 416" tone="gray" dashed />
-        <Caption x={180} y={520} weight={700} tone="#294061" size={15}>
-          AI를 쓰되, 믿지 않는다
-        </Caption>
-        <Caption x={180} y={548} size={13}>
-          예: 세 유형을 다 설명했으면
-        </Caption>
-        <Caption x={180} y={566} size={13}>
-          “거절”일 수 없다
-        </Caption>
-        <Caption x={180} y={594} size={13}>
-          예: 서술에 없는 말을 인용한
-        </Caption>
-        <Caption x={180} y={612} size={13}>
-          “선정이유”는 버린다
-        </Caption>
       </>
     ),
   }

@@ -50,24 +50,29 @@ await sleep(900)
 const b2=await body()
 t_('다른 화면은 정상', !b2.includes('이 화면에서 문제가 생겼습니다') && b2.includes('무슨 일이'))
 
-// ── 3. 인쇄 확인 단계 ────────────────────────────────
-console.log('== 인쇄 확인 단계 ==')
+// ── 3. 인쇄 안내 ─────────────────────────────────────
+// 2026-08-31: 경고 상자와 첫 인쇄 확인 단계를 걷어냈다.
+//   브라우저 주소가 인쇄되는 것은 거슬리는 것이지 실제 문제가 아니고,
+//   그것 때문에 사용자에게 절차를 더 요구할 값어치가 없다.
+//   남은 것은 인쇄 버튼 옆 한 줄 + 접어 둔 방법 + 쪽 번호 안내다.
+console.log('== 인쇄 안내 ==')
 await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:inj.result.identifier})
 await send('Page.navigate',{url:BASE+'/document'}); await sleep(1400)
 const b3=await body()
-t_('안내가 화면에 있다', b3.includes('머리글·바닥글을 꺼 주세요'))
-t_('제어 불가 문장', b3.includes('브라우저가 제어하므로 서비스에서 자동으로 끌 수 없습니다'))
-const order = await ev(`(()=>{const n=[...document.querySelectorAll('*')].find(e=>e.textContent.includes('머리글·바닥글을 꺼 주세요')&&e.children.length<6);const btn=[...document.querySelectorAll('button')].find(e=>e.textContent.includes('인쇄 / PDF'));if(!n||!btn)return null;return n.getBoundingClientRect? 'rect':'x'})()`)
-t_('안내와 인쇄 버튼이 함께 있다', order!==null)
-// 이 브라우저에서 이미 확인했다면 머리글 부분은 뜨지 않는다 — 기억을 지우고 본다
-await ev("try{localStorage.removeItem('wy-print-ack')}catch{}")
-await send('Page.reload'); await sleep(1400)
+t_('한 줄 안내가 있다', b3.includes('머리글·바닥글'))
+t_('경고 상자가 아니다', !b3.includes('인쇄하기 전에 — 머리글·바닥글을 꺼 주세요'))
+t_('★ 변명 문단이 사라졌다', !b3.includes('브라우저가 제어하므로'))
+t_('★ 쪽 번호 안내는 남았다', b3.includes('쪽 번호는 이 서비스가 서식 안에 직접 넣습니다'))
+t_('브라우저별 경로는 접혀 있다', !b3.includes('옵션 더보기'))
+console.log('  펼치기:', await click('끄는 방법'))
+t_('펼치면 경로가 보인다', (await body()).includes('옵션 더보기'))
+// 빈 칸이 없으면 곧바로 인쇄된다 — 관문이 뜨지 않는다
+await ev(`window.print=()=>{window.__printed=(window.__printed||0)+1}`)
 console.log('  인쇄 클릭:', await click('인쇄 / PDF로 저장'))
+await sleep(900)
 const b4=await body()
-t_('확인 단계가 뜬다', b4.includes('인쇄하기 전에 확인하세요') && b4.includes('머리글·바닥글을 끄셨나요'))
-t_('다시 묻지 않기', b4.includes('다시 묻지 않기'))
-console.log('  돌아가기:', await click('돌아가서 고치기'))
-t_('취소하면 사라진다', !(await body()).includes('인쇄하기 전에 확인하세요'))
+t_('★ 첫 인쇄에도 확인 단계가 뜨지 않는다', !b4.includes('머리글·바닥글을 끄셨나요'))
+t_('다시 묻지 않기 체크가 없다', !b4.includes('다시 묻지 않기'))
 
 console.log(`\n미처리 예외: ${errs.length}`); errs.slice(0,5).forEach(e=>console.log('   '+e))
 console.log(`통과 ${pass} / 실패 ${fail}`)

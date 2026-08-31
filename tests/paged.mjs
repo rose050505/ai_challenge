@@ -44,10 +44,11 @@ const FILL={
   huge:'2021년 3월 등록된 연체 이력은 통신요금 자동이체 계좌 변경 과정에서 발생한 것으로 실제 채무 불이행이 아니며, 통신사 확인서와 완납 증명서를 첨부합니다. 해당 기록의 삭제와 자동화평가 결과의 재산출을 함께 요구합니다.',
 }
 if(FILL[CASE]){
-  const count=await ev(`document.querySelectorAll('.print-sheet input:not([type=checkbox])').length`)
+  const count=await ev(`document.querySelectorAll('.print-sheet input:not([type=checkbox]), .print-sheet textarea').length`)
   // 한 칸씩 채운다. 한 번에 몰아 넣으면 React 재렌더 사이에 일부가 유실된다.
   for(let i=0;i<count;i++){
-    await ev(`(()=>{const set=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;const el=document.querySelectorAll('.print-sheet input:not([type=checkbox])')[${i}];if(!el)return false;set.call(el,${JSON.stringify(FILL[CASE])});el.dispatchEvent(new Event('input',{bubbles:true}));return true})()`)
+    // 2026-08-31: 표의 값 칸이 textarea 로 바뀌었다. 둘 다 채운다.
+    await ev(`(()=>{const el=document.querySelectorAll('.print-sheet input:not([type=checkbox]), .print-sheet textarea')[${i}];if(!el)return false;const proto=el.tagName==='TEXTAREA'?window.HTMLTextAreaElement:window.HTMLInputElement;const set=Object.getOwnPropertyDescriptor(proto.prototype,'value').set;set.call(el,${JSON.stringify(FILL[CASE])});el.dispatchEvent(new Event('input',{bubbles:true}));return true})()`)
     await sleep(120)
   }
   await sleep(900)

@@ -26,7 +26,6 @@ if ((await body()).includes('처음부터')) {
   await click('지우고 처음부터'); await sleep(800)
 }
 console.log('  초기 상태:', await ev(`(()=>{try{const j=localStorage.getItem('wae:journey:state');return j? '남아있음':'비어있음'}catch{return '?'}})()`))
-await ev("try{localStorage.removeItem('wy-print-ack')}catch{}")
 
 console.log('\n[1. 제출 전 검토]')
 await send('Page.navigate',{url:BASE+'/diagnose'}); await sleep(1000)
@@ -43,22 +42,20 @@ t_('검토 패널이 뜬다', b.includes('인쇄하기 전에 확인하세요'))
 t_('성명 경고', b.includes('신청인 성명이 비어 있습니다'))
 t_('요구 항목 경고', b.includes('요구할 항목을 하나도 고르지 않으셨습니다'))
 t_('막지 않는다', b.includes('이대로 인쇄하기'))
-t_('머리글 확인도 같은 화면', b.includes('머리글·바닥글을 끄셨나요'))
+// 2026-08-31: 머리글 확인 단계는 걷어냈다. 이 패널은 서식의 내용만 말한다.
+t_('★ 머리글 확인은 이 패널에 없다', !b.includes('머리글·바닥글을 끄셨나요'))
 await click('돌아가서 고치기')
 t_('돌아가기로 닫힌다', !(await body()).includes('인쇄하기 전에 확인하세요'))
 // 채우면 경고가 사라진다
 await setName('홍길동')
 await ev(`(()=>{const c=document.querySelector('.print-sheet input[type=checkbox]');if(c&&!c.checked)c.click();return true})()`)
 await sleep(600)
-await click('인쇄 / PDF로 저장')
-b=await body()
-t_('채우면 비어 있는 칸 없음', b.includes('비어 있는 칸은 없습니다'), b.includes('신청인 성명이 비어')?'성명 경고 남음':'')
-await click('이대로 인쇄하기'); await sleep(900)
-t_('인쇄 후 전환', (await body()).includes('제출 전에 확인하세요'))
-// 두 번째부터는 비어 있는 칸이 없으면 곧바로 인쇄된다
-await send('Page.navigate',{url:BASE+'/document?form=explanationRequest'}); await sleep(1200)
+// 2026-08-31: 빈 칸이 없으면 관문 없이 곧바로 인쇄된다.
+//   (전에는 이 브라우저에서 처음 인쇄할 때 머리글 확인 단계가 한 번 더 있었다)
 await click('인쇄 / PDF로 저장'); await sleep(900)
-t_('두 번째 인쇄는 관문 없이', !(await body()).includes('머리글·바닥글을 끄셨나요'))
+b=await body()
+t_('★ 채우면 관문 없이 바로 인쇄', !b.includes('인쇄하기 전에 확인하세요'), b.slice(0,60))
+t_('인쇄 후 전환', b.includes('제출 전에 확인하세요'))
 
 console.log('  (확인) 저장된 성명:', await ev(`(()=>{try{return JSON.parse(localStorage.getItem('wae:journey:state')).form.personal.name}catch{return '?'}})()`))
 console.log('\n[2. 복수 기관 동시 행사]')

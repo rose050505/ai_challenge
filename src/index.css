@@ -321,12 +321,66 @@ body {
        screen 전용이므로 인쇄에는 어떤 영향도 없다. */
     .sheet-scroll {
       overflow-x: auto;
+      /* 겹침 스크롤 막대는 손대기 전에는 보이지 않는다. 얇게라도 늘 보이게 둔다. */
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-gray-400) var(--color-gray-200);
+    }
+    .sheet-scroll::-webkit-scrollbar {
+      height: 10px;
+    }
+    .sheet-scroll::-webkit-scrollbar-track {
+      background: var(--color-gray-200);
+      border-radius: 5px;
+    }
+    .sheet-scroll::-webkit-scrollbar-thumb {
+      background: var(--color-gray-400);
+      border-radius: 5px;
+    }
+    .sheet-scroll:focus-visible {
+      outline: 3px solid var(--color-ink-600);
+      outline-offset: 2px;
+    }
+
+    /* ★ 잘린 것이 아니라 **더 있다**는 것을 가장자리 그림자로 알린다.
+       서식이 흰 바탕이라 컨테이너 배경으로는 보이지 않는다 — 위에 덮어 그린다.
+       끝까지 밀면 그쪽 그림자는 사라진다(SheetScroll 이 data-at-* 를 갱신한다). */
+    .sheet-scroll-wrap {
+      position: relative;
+    }
+    .sheet-scroll-wrap[data-scrollable='true']::before,
+    .sheet-scroll-wrap[data-scrollable='true']::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 14px; /* 스크롤 막대 높이만큼 비운다 */
+      width: 1.5rem;
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+    .sheet-scroll-wrap[data-scrollable='true']::before {
+      left: 0;
+      background: linear-gradient(to right, rgb(0 0 0 / 0.16), rgb(0 0 0 / 0));
+    }
+    .sheet-scroll-wrap[data-scrollable='true']::after {
+      right: 0;
+      background: linear-gradient(to left, rgb(0 0 0 / 0.16), rgb(0 0 0 / 0));
+    }
+    .sheet-scroll-wrap[data-at-start='true']::before,
+    .sheet-scroll-wrap[data-at-end='true']::after {
+      opacity: 0;
     }
   }
 
+  /* ★ 최소 폭 (2026-08-31)
+     33rem(528px) 이었다. 375px 화면에서 컨테이너가 343px 이라 185px 이 잘렸고,
+     하필 잘리는 자리가 "정정 또는 삭제 내용" 열이었다.
+     20rem(320px) 으로 낮추면 375px 이상에서는 **잘리지 않는다.**
+     열이 좁아지지만(105/186/186 → 64/114/114) 셋 다 보이는 쪽이 낫다 —
+     한 열이 통째로 화면 밖에 있는 것보다.
+     그보다 좁은 화면에서는 여전히 넘치고, 그때는 SheetScroll 이 밀 수 있다고 알린다. */
   @media screen and (max-width: 47.9375rem) {
     .sheet-scroll > * {
-      min-width: 33rem;
+      min-width: 20rem;
     }
   }
 }
@@ -453,6 +507,7 @@ body {
   /* ★ 페이지 상자가 인쇄 영역과 정확히 같은 높이이므로, 그 위에 붙는 여백이
      1px 라도 있으면 통째로 다음 장으로 밀린다. 서식 주변 여백을 전부 죽인다. */
   .print-root,
+  .print-root .sheet-scroll-wrap,
   .print-root .sheet-scroll {
     margin: 0 !important;
     padding: 0 !important;
