@@ -1,3 +1,4 @@
+import { noCache, checkBundle } from './deputil.mjs'
 // 산출물(스크린샷·PDF)은 tests/out/ 에 떨어진다. .gitignore 에 걸려 있다.
 const OUT = new URL('./out/', import.meta.url).pathname
 await (await import('node:fs/promises')).mkdir(OUT, { recursive: true })
@@ -8,6 +9,7 @@ let id=0; const pend=new Map()
 ws.onmessage=e=>{const m=JSON.parse(e.data); if(m.id&&pend.has(m.id)){pend.get(m.id)(m);pend.delete(m.id)}}
 const send=(m,p={})=>new Promise(res=>{const i=++id;pend.set(i,res);ws.send(JSON.stringify({id:i,method:m,params:p}))})
 await send('Page.enable'); await send('Runtime.enable')
+await noCache(send)   // ★ 캐시 오탐 방지 (deputil.mjs)
 const ev=async x=>(await send('Runtime.evaluate',{expression:x,awaitPromise:true,returnByValue:true})).result?.result?.value
 const sleep=ms=>new Promise(r=>setTimeout(r,ms)); const fs=await import('node:fs')
 const D=OUT+''
@@ -56,4 +58,7 @@ for(const w of [375,768,1280]){
   }
   console.log(w,'완료 — 위에 ⚠ 가 없으면 잘린 곳 없음')
 }
+const B = await checkBundle(ev)
+console.log('검사한 번들:', B.name ?? '(못 찾음)', B.ok ? '' : `✘ 기대 ${B.expect}`)
+if (!B.ok) { ws.close(); process.exit(1) }
 ws.close()

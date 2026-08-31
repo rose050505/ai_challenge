@@ -21,20 +21,33 @@ echo "대상: $URL"
 echo
 
 # ── 0. 살아 있는가 (브라우저 없이) ──────────────────────────────
-code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$URL/")
+code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -H 'Cache-Control: no-cache' "$URL/?cb=$(date +%s)")
 printf '  %s 접속 %s\n' "$([ "$code" = 200 ] && echo ✔ || echo ✘)" "$code"
 [ "$code" = 200 ] || { echo; echo "✘ 열리지 않는다. 여기서 멈춘다."; exit 1; }
 
 # 보안 헤더 — 배포 설정이 살아 있는지
-hdr=$(curl -sI --max-time 20 "$URL/" | tr 'A-Z' 'a-z')
+hdr=$(curl -sI --max-time 20 -H 'Cache-Control: no-cache' "$URL/" | tr 'A-Z' 'a-z')
 for h in x-content-type-options x-frame-options referrer-policy permissions-policy strict-transport-security; do
   printf '  %s %s\n' "$(printf '%s' "$hdr" | grep -q "^$h:" && echo ✔ || echo '·')" "$h"
 done
 
+# ── 어느 판을 검사하는가 ────────────────────────────────────────
+# ★ 캐시 오탐 방지 (2026-09-01). 배포 직후 첫 실행이 옛 번들을 잡아 13건 실패했고,
+#   두 번째에 새 번들로 통과했다. 배포는 정상이었고 검사가 캐시를 봤다.
+#   여기서 캐시를 우회해 **지금 서버가 주는 판**을 확정하고, 브라우저 검사들이
+#   그 판을 물었는지 대조하게 한다(tests/deputil.mjs).
+CB=$(date +%s)
+NOCACHE=(-H 'Cache-Control: no-cache, no-store, max-age=0' -H 'Pragma: no-cache')
+index=$(curl -s --max-time 30 "${NOCACHE[@]}" "$URL/?cb=$CB")
+js=$(printf '%s' "$index" | grep -o '/assets/[^"]*\.js' | head -1)
+css=$(printf '%s' "$index" | grep -o '/assets/[^"]*\.css' | head -1)
+DEPLOY_JS="${js##*/}"
+export DEPLOY_JS
+printf '  · 지금 서버가 주는 판: %s / %s\n' "${js##*/}" "${css##*/}"
+
 # 번들에 키가 새지 않았는가 — 배포본에서 직접 확인한다
-js=$(curl -s --max-time 30 "$URL/" | grep -o '/assets/[^"]*\.js' | head -1)
 if [ -n "$js" ]; then
-  body=$(curl -s --max-time 60 "$URL$js")
+  body=$(curl -s --max-time 60 "${NOCACHE[@]}" "$URL$js?cb=$CB")
   if printf '%s' "$body" | grep -qE 'sk-ant|ANTHROPIC_API_KEY'; then
     echo "  ✘ ★ 번들에 API 키 흔적이 있다 — 즉시 중단하고 확인할 것"; exit 1
   else
@@ -68,5 +81,6 @@ run "375 / 768 / 1280 스크린샷" depshots.mjs "$URL"
 
 echo
 echo "────────────────────────"
+echo "검사한 판: $DEPLOY_JS"
 if [ "$fail" -eq 0 ]; then echo "배포본 점검 통과"; else echo "실패 $fail 건"; fi
 [ "$fail" -eq 0 ]

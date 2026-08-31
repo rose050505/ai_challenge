@@ -88,8 +88,9 @@ console.log('[E] 375px — 정거장이 바뀌면 패널이 맨 위부터 보인
 /* ★ 실기에서 나온 버그: 패널은 overflow-y-auto 라, 앞 정거장에서 안쪽을 내려 두면
      그 scrollTop 이 남아 다음 정거장의 글이 중간부터 보였다. */
 await send('Emulation.setDeviceMetricsOverride',{width:375,height:667,deviceScaleFactor:1,mobile:true})
-const scrollTop=()=>ev(`document.querySelector('[role=dialog][aria-modal]')?.scrollTop ?? -1`)
-const scrollable=()=>ev(`(()=>{const p=document.querySelector('[role=dialog][aria-modal]');return p?p.scrollHeight-p.clientHeight:-1})()`)
+/* ★ 스크롤되는 것은 패널이 아니라 그 **안의 내용 영역**이다 (시트 바닥에 단추가 붙어 있다) */
+const scrollTop=()=>ev(`document.querySelector('[data-tour-body]')?.scrollTop ?? -1`)
+const scrollable=()=>ev(`(()=>{const p=document.querySelector('[data-tour-body]');return p?p.scrollHeight-p.clientHeight:-1})()`)
 const nextVisible=()=>ev(`(()=>{const p=document.querySelector('[role=dialog][aria-modal]');if(!p)return false;
   const b=[...p.querySelectorAll('button')].find(b=>['다음','시작하기','닫기'].includes(b.textContent.trim()));
   if(!b)return false; const r=b.getBoundingClientRect();
@@ -104,17 +105,65 @@ for (let n=1; n<=N; n++) {
   const room = await scrollable()
   t_(`${n}/${N}: 패널이 맨 위부터`, (await scrollTop())===0, String(await scrollTop()))
   t_(`${n}/${N}: [다음]이 스크롤 없이 보인다`, await nextVisible(), `여유 ${room}px`)
-  /* 배경 화면도 강조 대상으로 스크롤돼야 한다 — 패널 안쪽 스크롤과는 별개다 */
+  /*
+   * 배경 화면도 강조 대상으로 스크롤돼야 한다 — 패널 안쪽 스크롤과는 별개다.
+   * ★ "뷰포트 안에 있다"로는 부족하다. (2026-09-01)
+   *   375px 에서 시트가 화면 아래 절반을 덮으므로, **시트 뒤에 숨어 있어도**
+   *   앞선 검사는 통과했다. 시트 윗변까지를 실제 가시 영역으로 보고 다시 잰다.
+   */
   const first = TOUR_STATIONS[n-1].targets[0]
-  t_(`${n}/${N}: 강조 대상이 화면 안에 있다`, await ev(
-    `(()=>{const e=document.querySelector('[data-tour=${first}]');if(!e)return false;`+
-    `const r=e.getBoundingClientRect();return r.top<innerHeight && r.bottom>0})()`), first)
-  await ev(`(()=>{const p=document.querySelector('[role=dialog][aria-modal]');if(p)p.scrollTop=p.scrollHeight})()`)
+  const vis = JSON.parse(await ev(`JSON.stringify((()=>{
+    const e=document.querySelector('[data-tour=${first}]');
+    const p=document.querySelector('[data-tour-panel]');
+    if(!e||!p) return null;
+    const r=e.getBoundingClientRect(), s=p.getBoundingClientRect();
+    const top=Math.max(r.top,0), bottom=Math.min(r.bottom, innerHeight, s.top);
+    return {seen:Math.round(bottom-top), full:Math.round(r.height),
+            topOK: r.top>=0 && r.top < s.top,
+            sheetH:Math.round(s.height), sheetBottom:Math.round(s.bottom), vh:innerHeight}
+  })())`) || 'null')
+  t_(`${n}/${N}: 강조 대상의 윗변이 시트 위에 보인다`, !!vis && vis.topOK, JSON.stringify(vis))
+  t_(`${n}/${N}: ★ 시트에 가리지 않고 실제로 보이는 높이`,
+     !!vis && vis.seen >= Math.min(vis.full, 120), JSON.stringify(vis))
+  await ev(`(()=>{const p=document.querySelector('[data-tour-body]');if(p)p.scrollTop=p.scrollHeight})()`)
 }
+// 시트가 화면의 절반을 넘지 않는다 — 위 절반은 배경이 보여야 한다
+const sheet = JSON.parse(await ev(`JSON.stringify((()=>{const p=document.querySelector('[data-tour-panel]');
+  if(!p)return null; const r=p.getBoundingClientRect();
+  return {h:Math.round(r.height), bottom:Math.round(r.bottom), vh:innerHeight}})())`) || 'null')
+t_('★ 375px 시트가 화면 절반 이하', !!sheet && sheet.h <= sheet.vh*0.5+2, JSON.stringify(sheet))
+t_('★ 375px 시트가 화면 아래에 붙는다', !!sheet && Math.abs(sheet.bottom-sheet.vh)<=1, JSON.stringify(sheet))
+
 // [이전] 으로 돌아갈 때도 같다
 await clickIn('이전'); await sleep(1500)
 t_('[이전] 뒤에도 패널이 맨 위', (await scrollTop())===0, String(await scrollTop()))
 await clickIn('건너뛰기')
+
+console.log('[F] prefers-reduced-motion: reduce — 움직임이 없어야 한다')
+/* ★ 움직임은 전정기관 장애가 있는 사람에게 실제 어지럼증을 준다.
+     "넣었다"가 아니라 "끌 수 있다"까지가 우리 약속이다. */
+const anim = async () => JSON.parse(await ev(`JSON.stringify((()=>{
+  const p=document.querySelector('[data-tour-panel]'); if(!p) return null;
+  const page=p.querySelector('.tour-page');
+  const hole=document.querySelector('svg mask#tour-mask rect + rect');
+  const g=e=>e?getComputedStyle(e):null;
+  return {sheet:g(p)?.animationName, page:g(page)?.animationName,
+          holeT:hole?getComputedStyle(hole).transitionProperty:null,
+          holeD:hole?getComputedStyle(hole).transitionDuration:null}
+})())`) || 'null')
+await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]})
+await wipe('/')
+const A1 = await anim()
+t_('reduce: 시트 애니메이션 없음', !!A1 && A1.sheet==='none', JSON.stringify(A1))
+t_('reduce: 내용 전환 애니메이션 없음', !!A1 && (A1.page==='none'||A1.page==null), JSON.stringify(A1))
+t_('reduce: 강조 표시 transition 0s', !!A1 && (A1.holeD==='0s'||A1.holeT==='all'&&A1.holeD==='0s'||A1.holeD==null), JSON.stringify(A1))
+await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]})
+await wipe('/')
+const A2 = await anim()
+t_('평소에는 시트가 올라온다', !!A2 && A2.sheet==='tour-rise', JSON.stringify(A2))
+t_('평소에는 내용이 방향을 갖고 들어온다', !!A2 && A2.page==='tour-in', JSON.stringify(A2))
+await clickIn('건너뛰기')
+await send('Emulation.setEmulatedMedia',{features:[]})
 await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false})
 
 console.log(`\ntour: ${pass}/${pass+fail} 통과`)

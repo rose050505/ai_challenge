@@ -1,3 +1,4 @@
+import { noCache, checkBundle } from './deputil.mjs'
 const BASE = process.argv[2] || process.env.APP_URL || 'http://localhost:4400'
 const t=(await (await fetch((process.env.CDP || 'http://127.0.0.1:9444') + '/json/list')).json()).find(x=>x.type==='page')
 const ws=new WebSocket(t.webSocketDebuggerUrl); await new Promise(r=>ws.onopen=r)
@@ -6,6 +7,7 @@ ws.onmessage=e=>{const m=JSON.parse(e.data); if(m.id&&pend.has(m.id)){pend.get(m
   if(m.method==='Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description||m.params.exceptionDetails.text)}
 const send=(m,p={})=>new Promise(res=>{const i=++id;pend.set(i,res);ws.send(JSON.stringify({id:i,method:m,params:p}))})
 await send('Page.enable'); await send('Runtime.enable')
+await noCache(send)   // ★ 캐시 오탐 방지 (deputil.mjs)
 const ev=async x=>(await send('Runtime.evaluate',{expression:x,awaitPromise:true,returnByValue:true})).result?.result?.value
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 const click=async txt=>{const ok=await ev(`(()=>{const e=[...document.querySelectorAll('button,a,summary')].reverse().find(e=>e.textContent.trim().includes(${JSON.stringify(txt)})&&e.offsetParent!==null);if(!e)return false;e.click();return true})()`);await sleep(700);return ok}
@@ -47,6 +49,8 @@ ck('8) ★ 회신 해석도 동작', (await body()).includes('무엇을 받았�
 ck('9) 처리되지 않은 예외 없음', errors.length===0, errors.slice(0,2).join(' | ') || '0건')
 
 await send('Page.removeScriptToEvaluateOnNewDocument',{identifier})
+const B = await checkBundle(ev)
+ck(`★ 배포된 그 번들을 검사했다 (${B.name ?? '?'})`, B.ok, B.expect ? `기대 ${B.expect}` : '')
 console.log('\n════════════════════════')
 const f=out.filter(([,p])=>!p)
 console.log(`${out.length-f.length}/${out.length} 통과`)

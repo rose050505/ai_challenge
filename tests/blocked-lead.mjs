@@ -1,3 +1,4 @@
+import { noCache, checkBundle } from './deputil.mjs'
 const BASE=process.argv[2]
 const t=(await (await fetch((process.env.CDP || 'http://127.0.0.1:9444') + '/json/list')).json()).find(x=>x.type==='page')
 const ws=new WebSocket(t.webSocketDebuggerUrl); await new Promise(r=>ws.onopen=r)
@@ -5,6 +6,7 @@ let id=0; const pend=new Map()
 ws.onmessage=e=>{const m=JSON.parse(e.data); if(m.id&&pend.has(m.id)){pend.get(m.id)(m);pend.delete(m.id)}}
 const send=(m,p={})=>new Promise(res=>{const i=++id;pend.set(i,res);ws.send(JSON.stringify({id:i,method:m,params:p}))})
 await send('Page.enable'); await send('Runtime.enable')
+await noCache(send)   // ★ 캐시 오탐 방지 (deputil.mjs)
 const ev=async x=>(await send('Runtime.evaluate',{expression:x,awaitPromise:true,returnByValue:true})).result?.result?.value
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 const {result:{identifier}} = await send('Page.addScriptToEvaluateOnNewDocument',{source:`
@@ -13,6 +15,8 @@ const {result:{identifier}} = await send('Page.addScriptToEvaluateOnNewDocument'
 await send('Page.navigate',{url:BASE+'/document'}); await sleep(2200)
 const lead=await ev(`(()=>{const m=document.querySelector('main').innerText;const i=m.indexOf('화면에서 채운');return m.slice(i,i+120).replace(/\\n/g,' ')})()`)
 console.log('저장 차단 리드:', lead)
-console.log('판정:', lead.includes('저장을 막고 있습니다') ? 'OK — 차단 분기' : 'FAIL')
+const B = await checkBundle(ev)
+console.log('검사한 번들:', B.name ?? '(못 찾음)', B.expect ? `(기대 ${B.expect})` : '')
+console.log('판정:', lead.includes('저장을 막고 있습니다') && B.ok ? 'OK — 차단 분기' : 'FAIL')
 await send('Page.removeScriptToEvaluateOnNewDocument',{identifier})
 ws.close()

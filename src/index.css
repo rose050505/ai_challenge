@@ -353,6 +353,49 @@ body {
       background: var(--color-ink-50);
     }
 
+    /* ── 둘러보기 움직임 ──────────────────────────────────────
+     * ★ 장식이 아니다. "여기에서 저기로 옮겨 간다"는 인과를 눈에 보이게 하는 장치다.
+     *   375px 에서 시트가 화면의 절반을 덮으므로, 강조 표시가 **미끄러져 옮겨 가는 것**을
+     *   보지 못하면 투어가 "모달이 연달아 뜨는 것"으로 느껴진다. (2026-09-01 사용자 진단)
+     * ★ **transform 과 opacity 만** 쓴다. layout 을 건드리는 속성(top·height 등)은
+     *   .print-metrics 의 높이 측정과 충돌한다.
+     * ★ 150~250ms 안에서 끝낸다. 그보다 길면 기다림이 된다.
+     * ★ prefers-reduced-motion: reduce 면 **전부 없다.** 움직임은 전정기관 장애가 있는
+     *   사람에게 실제 어지럼증을 준다. 우리는 접근성을 내세우고 있다.
+     * ★ 인쇄에서도 전부 무효화한다 (파일 끝 @media print).
+     */
+    @media (prefers-reduced-motion: no-preference) {
+      /* (1) 강조 표시가 다음 대상으로 미끄러져 이동한다 (정거장이 바뀌는 순간에만) */
+      .tour-hole-move {
+        transition: transform 200ms ease-out;
+      }
+      /* (3) 시트 내용이 방향을 갖고 바뀐다 — [다음]은 오른쪽에서, [이전]은 왼쪽에서 */
+      .tour-page {
+        animation: tour-in 200ms ease-out both;
+      }
+      .tour-page-back {
+        animation-name: tour-in-back;
+      }
+      /* (4) 하단 시트는 아래에서 올라온다 (모바일에서만) */
+      @media (max-width: 39.999rem) {
+        .tour-sheet {
+          animation: tour-rise 220ms ease-out both;
+        }
+      }
+    }
+    @keyframes tour-in {
+      from { opacity: 0; transform: translateX(14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes tour-in-back {
+      from { opacity: 0; transform: translateX(-14px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes tour-rise {
+      from { transform: translateY(100%); }
+      to   { transform: none; }
+    }
+
     /* 용어 풀이 트리거 — 색만으로 구분하지 않는다. 점선 밑줄 + ? 표식. */
     .term-trigger {
       border: 0;
@@ -590,6 +633,17 @@ body {
   /* 화면 전용 UI(네비게이션, 버튼, 안내 패널)는 인쇄에서 제외한다 */
   .no-print {
     display: none !important;
+  }
+
+  /* ★ 움직임은 종이에 없다. (2026-09-01)
+     애니메이션이 진행 중일 때 인쇄하면 요소가 반투명하거나 어긋난 채로 찍힌다.
+     둘러보기는 .no-print 라 어차피 안 나오지만, 앞으로 어디에 움직임을 넣더라도
+     이 한 줄이 종이를 지킨다. transform·opacity 도 여기서 리셋한다. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 
   /* ★ 어두운 히어로를 흰 바탕·검은 글자로 되돌린다.

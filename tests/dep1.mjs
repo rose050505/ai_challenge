@@ -1,3 +1,4 @@
+import { noCache, checkBundle } from './deputil.mjs'
 const BASE = process.argv[2] || 'https://362.parkmiyeong.com'
 const t=(await (await fetch((process.env.CDP || 'http://127.0.0.1:9444') + '/json/list')).json()).find(x=>x.type==='page')
 const ws=new WebSocket(t.webSocketDebuggerUrl); await new Promise(r=>ws.onopen=r)
@@ -8,6 +9,7 @@ ws.onmessage=e=>{const m=JSON.parse(e.data)
   if(m.method==='Runtime.exceptionThrown')exc.push((m.params.exceptionDetails?.exception?.description||'').slice(0,120))}
 const send=(m,p={})=>new Promise(res=>{const i=++id;pend.set(i,res);ws.send(JSON.stringify({id:i,method:m,params:p}))})
 await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable')
+await noCache(send)   // ★ 캐시 오탐 방지 (deputil.mjs)
 const ev=async x=>(await send('Runtime.evaluate',{expression:x,awaitPromise:true,returnByValue:true})).result?.result?.value
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 const click=async txt=>{const r=await ev(`(()=>{const e=[...document.querySelectorAll('button,a')].find(e=>e.textContent.replace(/\\s+/g,' ').includes(${JSON.stringify(txt)})&&e.offsetParent!==null);if(!e)return false;e.click();return true})()`);await sleep(900);return r}
@@ -74,5 +76,9 @@ const og=await fetch(BASE+'/og.png'); ok('og.png 200 + image/png', og.status===2
 const html=await (await fetch(BASE+'/')).text()
 for(const k of ['og:type','og:url','og:title','og:description','og:image','twitter:card']) ok('OG '+k, html.includes(`"${k}"`))
 ok('미처리 예외 없음', exc.length===0, exc.join(' | '))
+/* ★ 어느 판을 검사했는지 남긴다. 옛 번들을 잡고 통과/실패하면 그것이 오탐이다. */
+const B = await checkBundle(ev)
+console.log(`\n검사한 번들: ${B.name ?? '(못 찾음)'}${B.expect ? `  (기대 ${B.expect})` : ''}`)
+ok('★ 배포된 그 번들을 검사했다', B.ok, `${B.name} ≠ ${B.expect}`)
 console.log(`\n통과 ${pass} / 실패 ${fail}`)
 ws.close(); process.exit(fail?1:0)

@@ -51,10 +51,17 @@ function useTargets(targets, step) {
       if (els && els.length > 0) {
         /*
          * ★ 가운데로 스크롤하면 안 된다. 패널이 화면 아래 절반을 덮으므로
-         *   가운데에 놓인 대상은 패널 뒤에 숨는다. 위쪽에 붙인다.
+         *   가운데에 놓인 대상은 패널 뒤에 숨는다. 위쪽(머리말 바로 아래)에 붙인다.
+         * ★ 부드럽게 움직인다 (2026-09-01). 즉시 점프하면 "어디서 어디로 갔는지"가
+         *   보이지 않는다. 움직이는 동안에도 scroll 리스너가 계속 다시 재므로
+         *   강조 표시는 요소에 정확히 붙어 함께 미끄러진다.
+         * ★ prefers-reduced-motion: reduce 면 즉시 이동한다.
          */
         const top = els[0].getBoundingClientRect().top + window.scrollY - 96
-        window.scrollTo({ top: Math.max(0, top), behavior: 'auto' })
+        const reduce =
+          typeof window.matchMedia === 'function' &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' })
         setTimeout(measure, 60)
         return
       }
@@ -92,9 +99,24 @@ function useTargets(targets, step) {
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])'
 
+/** 단위 사각형(1×1)을 그 자리·그 크기로 옮기는 transform. 0 으로 줄어들지 않게 막는다. */
+const holeTransform = (r) =>
+  `translate(${r.x}px, ${r.y}px) scale(${Math.max(r.w, 1)}, ${Math.max(r.h, 1)})`
+
 export default function Tour() {
   const { active, step, demo, begin, goTo, finish, toggleDemo, hasProgress } = useTour()
   const panelRef = useRef(null)
+  /*
+   * ★ 움직임 (2026-09-01 사용자 진단 — 375px 실기)
+   *   "다음을 누를 때 뚝뚝 넘어가서 지금 웹을 설명하는 건지 느껴지지 않는다."
+   *   원인은 **모든 것이 즉시 점프**하는 것이다. 눈이 인과를 따라가지 못한다.
+   *   dir  — 내용이 어느 쪽에서 들어올지 ([다음] 오른쪽 / [이전] 왼쪽)
+   *   moving — 강조 표시가 미끄러지는 짧은 구간. 이때만 transition 을 켠다.
+   *   ★ 항상 켜 두면 안 된다. 배경이 스크롤될 때마다 다시 재는데,
+   *     그때도 transition 이 걸려 있으면 강조 표시가 요소를 **뒤늦게 따라간다.**
+   */
+  const [dir, setDir] = useState(1)
+  const [moving, setMoving] = useState(false)
   const isStation = typeof step === 'number'
   const station = isStation ? TOUR_STATIONS[step] : null
   /*
@@ -115,7 +137,26 @@ export default function Tour() {
      *   [이전]으로 돌아갈 때도 같다. focus() 뒤에 되돌린다 —
      *   focus() 가 스크롤을 건드릴 수 있으므로 순서가 중요하다.
      */
-    if (panelRef.current) panelRef.current.scrollTop = 0
+    const body = panelRef.current?.querySelector('[data-tour-body]')
+    if (body) body.scrollTop = 0
+  }, [active, step])
+
+  /*
+   * 정거장이 바뀐 직후 260ms 동안만 강조 표시에 transition 을 건다.
+   * ★ 배경이 스크롤되기 시작하면 곧바로 끈다. 스크롤 중에는 리스너가 매 프레임
+   *   다시 재는데, 그때 transition 이 남아 있으면 강조 표시가 요소를 **뒤늦게 따라가** 어긋난다.
+   *   (스크롤이 있는 경우의 "이동"은 배경과 함께 미끄러지는 것으로 이미 보인다)
+   */
+  useEffect(() => {
+    if (!active) return
+    setMoving(true)
+    const off = () => setMoving(false)
+    const t = setTimeout(off, 260)
+    window.addEventListener('scroll', off, true)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('scroll', off, true)
+    }
   }, [active, step])
 
   // 포커스 트랩 + Esc
@@ -161,11 +202,13 @@ export default function Tour() {
     rects.length > 0 &&
     Math.min(...rects.map((r) => r.y)) > (typeof window === 'undefined' ? 0 : window.innerHeight) * 0.42
   const prev = () => {
+    setDir(-1)
     if (step === OUTRO) return goTo(total - 1)
     if (isStation && step > 0) return goTo(step - 1)
     return goTo(INTRO) // 소개로 돌아가는 대신 아무것도 하지 않는다
   }
   const next = () => {
+    setDir(1)
     if (step === INTRO) return begin()
     if (isStation && step < total - 1) return goTo(step + 1)
     if (isStation) return goTo(OUTRO)
@@ -183,8 +226,22 @@ export default function Tour() {
         <defs>
           <mask id="tour-mask">
             <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
+            {/*
+              ★ 위치·크기를 x/y/width/height 대신 **transform 으로** 준다.
+                단위 사각형(1×1)을 옮기고 늘린다. 그래야 transform 하나만으로
+                다음 대상까지 미끄러져 갈 수 있다 — layout 을 건드리지 않는다.
+            */}
             {rects.map((r, i) => (
-              <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} rx="8" fill="#000" />
+              <rect
+                key={i}
+                x="0"
+                y="0"
+                width="1"
+                height="1"
+                fill="#000"
+                className={moving ? 'tour-hole-move' : undefined}
+                style={{ transform: holeTransform(r), transformOrigin: '0 0' }}
+              />
             ))}
           </mask>
         </defs>
@@ -199,14 +256,17 @@ export default function Tour() {
         {rects.map((r, i) => (
           <rect
             key={i}
-            x={r.x}
-            y={r.y}
-            width={r.w}
-            height={r.h}
-            rx="8"
+            x="0"
+            y="0"
+            width="1"
+            height="1"
             fill="none"
             stroke="currentColor"
             strokeWidth="3"
+            /* 늘려도 선 굵기는 그대로여야 한다 */
+            vectorEffect="non-scaling-stroke"
+            className={moving ? 'tour-hole-move' : undefined}
+            style={{ transform: holeTransform(r), transformOrigin: '0 0' }}
           />
         ))}
       </svg>
@@ -217,22 +277,38 @@ export default function Tour() {
         aria-modal="true"
         aria-labelledby="tour-title"
         tabIndex={-1}
+        data-tour-panel="1"
         /*
-         * ★ 자리 (2026-08-31 디자인 감사)
-         *   정거장에서는 강조된 요소를 가리면 안 되므로 위/아래로 붙인다.
-         *   그런데 **강조할 요소가 없는 첫 화면·마무리**에서도 아래에 붙어 있었고,
-         *   375×667 에서 그 위 가장자리가 부제 한 줄을 가로로 잘랐다.
-         *   가릴 것이 없을 때는 화면 가운데에 카드로 띄운다 — 자른 것이 아니라
-         *   덮은 것으로 읽힌다.
+         * ★ 자리
+         *   (2026-08-31) 강조할 것이 없으면 화면 가운데 카드로 띄운다.
+         *   (2026-09-01) **모바일은 하단 시트다.** 375px 에서 패널이 화면을 거의 다
+         *     덮어, 강조된 배경이 보이지 않았다. 그래서 "화면 안의 이 부분"이라는
+         *     투어의 전제가 전달되지 않고 모달만 연달아 뜨는 것으로 느껴졌다.
+         *     → 아래에 붙이고 높이를 48vh 로 묶는다. **위 절반은 배경이 보인다.**
+         *     데스크톱(sm 이상)은 화면이 넓어 문제가 없으므로 현행 그대로 둔다.
          */
-        className={`fixed z-50 mx-auto max-h-[80vh] overflow-y-auto rounded-md border-2 border-ink-700 bg-white p-5 shadow-2xl outline-none ${
+        className={`fixed z-50 mx-auto flex flex-col overflow-hidden rounded-md border-2 border-ink-700 bg-white p-4 shadow-2xl outline-none sm:p-5 ${
           rects.length === 0
             ? 'inset-x-3 top-1/2 max-h-[76vh] w-auto max-w-2xl -translate-y-1/2 sm:inset-x-0 sm:w-full'
-            : `inset-x-0 max-h-[60vh] w-full max-w-2xl ${
-                placeTop ? 'top-0 sm:top-4' : 'bottom-0 sm:bottom-4'
+            : `tour-sheet inset-x-0 bottom-0 max-h-[48vh] w-full max-w-2xl sm:max-h-[60vh] ${
+                placeTop ? 'sm:bottom-auto sm:top-4' : 'sm:bottom-4'
               }`
         }`}
       >
+        {/*
+          ★ key 가 바뀌면 다시 마운트되고, 그때 tour-in 애니메이션이 돈다.
+            [다음]이면 오른쪽에서, [이전]이면 왼쪽에서 들어온다.
+          ★ **스크롤은 이 안에서만** 일어난다. (2026-09-01)
+            시트 높이를 48vh 로 묶으면 정거장 1(시연 버튼이 있는 칸)은 넘친다.
+            패널 전체가 스크롤되면 [다음]이 아래로 밀려 보이지 않는다 —
+            내용만 스크롤하고 단추 줄은 시트 바닥에 붙여 둔다.
+            다시 마운트되므로 앞 정거장의 스크롤 위치도 따라오지 않는다.
+        */}
+        <div
+          key={String(step)}
+          data-tour-body="1"
+          className={`tour-page min-h-0 flex-1 overflow-y-auto${dir < 0 ? ' tour-page-back' : ''}`}
+        >
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-sm font-semibold tracking-wide text-ink-600">{TOUR_TITLE}</p>
           {isStation && (
@@ -269,7 +345,10 @@ export default function Tour() {
           </div>
         )}
 
-        <div className="mt-5 flex flex-wrap items-center gap-2">
+        </div>
+
+        <div className="mt-3 shrink-0 border-t border-gray-300 pt-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={next} className="btn btn-primary">
             {step === INTRO ? '시작하기' : step === OUTRO ? '닫기' : '다음'}
           </button>
@@ -287,11 +366,12 @@ export default function Tour() {
         {/* ★ 안내 줄은 소개에서 한 번만 길게 말한다. (2026-08-31, 375px 실기)
             정거장마다 두 줄을 되풀이하면 그만큼 패널이 커지고, 커진 패널이
             정작 이 정거장이 비추는 것을 덮는다. */}
-        <p className="mt-3 text-sm text-gray-600">
+        <p className="mt-2 text-sm text-gray-600">
           {step === INTRO
             ? '건너뛰셔도 지금 보시던 화면에서 그대로 이어서 쓰실 수 있습니다. Esc 로도 닫힙니다.'
             : 'Esc 로도 닫힙니다.'}
         </p>
+        </div>
       </div>
     </div>
   )
