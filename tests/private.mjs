@@ -32,6 +32,11 @@ await send('Page.navigate',{url:BASE+'/document'}); await sleep(1500)
 const d=await body()
 ck('4) 서식 화면이 뜬다', d.includes('고시 서식을 채워 인쇄하세요'))
 ck('5) ★ 저장 불가를 알리고 대안을 준다', d.includes('이 브라우저에서는 자동 저장이 안 됩니다') && d.includes('파일로 내보내'))
+/* ★ 2026-08-31 뮤테이션 시험: STORAGE_FACTS.blocked 를 "저장돼 이어집니다"(=거짓)로
+     바꿔 봤는데 private 도 tfacts 도 잡지 못했다. 위 5)는 다른 문구를 보고 있었다.
+     저장이 막힌 환경에서 "저장된다"고 말하면 사용자가 작성 내용을 잃는다. */
+ck('5-2) ★ 사라진다는 사실을 그대로 말한다',
+   d.includes('화면을 닫거나 새로고침하면 사라집니다') && !d.includes('다시 오셔도 이어집니다'))
 await ev(`(()=>{const el=document.querySelector('.print-sheet input');Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(el,'시크릿테스트');el.dispatchEvent(new Event('input',{bubbles:true}));return true})()`)
 await sleep(2200)
 ck('6) ★ 입력이 그대로 동작', (await ev(`[...document.querySelectorAll('.print-sheet input')].some(i=>i.value==='시크릿테스트')`)))

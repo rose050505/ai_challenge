@@ -26,4 +26,15 @@ t('[10] 끈 섹션 3도 마찬가지', r.length===0, ids(r))
 t('[11] 모든 항목에 안내 문구', preflightIssues({isForm1:true,personal:{},selectedItems:[]}).every(i=>i.text&&i.hint))
 r = preflightIssues({isForm1:true, personal:{name:'홍'}, selectedItems:[]})
 t('[12] 근거 조문을 붙이지 않는다', !JSON.stringify(r).includes('제') || !/제\d+조/.test(JSON.stringify(r)))
+// [13] ★ 사용자가 적은 값이 **종이에 나가는 경로**가 살아 있는가.
+//      화면의 input/textarea 는 print:hidden 이고, 옆의 span 이 print:inline 으로 값을 그린다.
+//      그 span 을 지우면 사용자가 적은 내용이 말없이 인쇄에서 빠진다.
+//      2026-08-31 뮤테이션 시험에서 지워 봤더니 run.sh 안에서는 아무도 잡지 못했다
+//      (run-print.sh 의 tprintlong 만 잡았다 — 그건 몇 분 걸리는 별도 스크립트다).
+//      그래서 여기에 소스 수준의 빠른 대역을 둔다.
+{
+  const src = (await import('node:fs')).readFileSync('../src/pages/Document.jsx','utf8')
+  t('[13] 값이 인쇄에 나가는 span 이 있다', /sheet-value[^"]*print:inline/.test(src))
+  t('[13] 화면 입력칸은 인쇄에서 숨는다', /print:hidden/.test(src))
+}
 console.log(bad?`\n실패 ${bad}`:'\n모두 통과'); process.exit(bad?1:0)

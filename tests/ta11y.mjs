@@ -92,6 +92,11 @@ const AUDIT = `(()=>{
   out.svgNoName = [...document.querySelectorAll('main svg')].filter(vis)
     .filter(s=>s.getAttribute('aria-hidden')!=='true' && !s.getAttribute('aria-label') && !s.querySelector('title')).length
   out.live = [...document.querySelectorAll('main [aria-live],main [role=status],main [role=alert]')].length
+  /* ★ 접힘 컨트롤은 열림/닫힘을 낭독해야 한다.
+     2026-08-31 뮤테이션 시험에서 Disclosure 의 aria-expanded 를 지웠는데
+     ta11y 도 kbd 도 잡지 못했다. 닫힌 패널은 aria-controls 도 없으므로
+     aria-expanded 가 사라지면 상태를 알릴 방법이 **하나도 남지 않는다.** */
+  out.expandable = [...document.querySelectorAll('main button[aria-expanded]')].filter(vis).length
   return JSON.stringify(out)
 })()`
 
@@ -113,6 +118,11 @@ for (const [name, path] of SCREENS) {
   t_(`${name}: aria-controls 대상 존재`, r.badControls.length === 0, JSON.stringify(r.badControls))
   t_(`${name}: th 에 scope`, r.thNoScope === 0, `${r.thNoScope}개`)
   t_(`${name}: 이름 없는 svg 없음`, r.svgNoName === 0, `${r.svgNoName}개`)
+  // 화면마다 접힘 컨트롤이 몇 개 이상 있어야 하는지 (0 이면 검사하지 않는다)
+  const MIN_EXPANDABLE = { '이후 절차': 7, '서식1': 1, '서식2': 1, '랜딩': 1 }[name] ?? 0
+  if (MIN_EXPANDABLE)
+    t_(`${name}: 접힘 컨트롤이 aria-expanded 로 상태를 알린다`,
+       r.expandable >= MIN_EXPANDABLE, `${r.expandable}개 (최소 ${MIN_EXPANDABLE})`)
 }
 
 // 동적으로 바뀌는 영역이 낭독되는가 — 각 화면에 live region 이 있어야 하는 곳

@@ -1,4 +1,5 @@
 import { paginate, buildChunks } from '../src/lib/paginate.js'
+import { readFileSync } from 'node:fs'
 let fail=0
 const eq=(n,g,w)=>{const ok=JSON.stringify(g)===JSON.stringify(w);if(!ok)fail++;console.log(`${ok?'PASS':'FAIL'}  ${n}${ok?'':`\n   got  ${JSON.stringify(g)}\n   want ${JSON.stringify(w)}`}`)}
 const ids=(pages)=>pages.map(p=>p.blocks.map(b=>b.id))
@@ -62,5 +63,35 @@ eq('[10] 문서명 높이 반영', ids(paginate({
   blocks:[{id:'a'},{id:'b'}], heights:{a:500,b:400}, pageHeight:1000, firstHeadHeight:200,
 })), [['a'],['b']])
 
+
+/*
+ * ★ [P] 쪽 높이 상수가 **세 곳**에 흩어져 있다. 어긋나면 예고와 실제가 갈린다.
+ *
+ *   - `@page { margin: 20mm }`                      → A4 297mm 에서 본문은 257mm
+ *   - `.paged-page { min-height: calc(255mm/...) }` → 실제 인쇄의 페이지 상자
+ *   - `PAGE_CONTENT_HEIGHT_MM = 257`                → 화면이 예고하는 쪽 수의 근거
+ *
+ *   CSS 가 255 인 것은 반올림 한 픽셀에 빈 페이지가 끼는 것을 막으려 2mm 뺀 값이다.
+ *   (index.css 의 .paged-page 주석에 그 이유가 적혀 있다)
+ *
+ *   ★ 2026-08-31 뮤테이션 시험: JS 상수를 257 → 210 으로 바꿨는데 `run.sh` 안에서는
+ *     **아무도 잡지 못했다.** 잡은 것은 `run-print.sh`(예고 vs 실제 PDF)뿐인데
+ *     그건 수십 분 걸리는 별도 스크립트다. 그래서 여기에 값싼 검사를 둔다.
+ *   ★ PagedSheet.jsx 는 JSX 라서 이 단위 시험에서 import 할 수 없다. 원문에서 읽는다.
+ */
+{
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8')
+  const jsx = readFileSync(new URL('../src/components/PagedSheet.jsx', import.meta.url), 'utf8')
+  const margin = Number(/@page\s*\{[\s\S]*?margin:\s*([0-9.]+)mm/.exec(css)?.[1])
+  const cssBox = Number(/\.paged-page\s*\{[\s\S]*?min-height:\s*calc\(\s*([0-9.]+)mm/.exec(css)?.[1])
+  const jsMM = Number(/PAGE_CONTENT_HEIGHT_MM\s*=\s*([0-9.]+)/.exec(jsx)?.[1])
+  eq('[P] @page 여백을 읽었다', Number.isFinite(margin), true)
+  eq('[P] .paged-page 높이를 읽었다', Number.isFinite(cssBox), true)
+  eq('[P] JS 쪽 높이 상수를 읽었다', Number.isFinite(jsMM), true)
+  eq('[P] JS 쪽 높이 = 297 − 여백×2', jsMM, 297 - margin * 2)
+  eq('[P] CSS 페이지 상자는 그보다 2mm 작다', jsMM - cssBox, 2)
+}
+
 console.log(fail?`\n${fail} FAILED`:'\n모두 통과')
 process.exit(fail?1:0)
+

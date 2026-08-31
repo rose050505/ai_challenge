@@ -38,6 +38,34 @@ ok('거절 사유 D4 — 원문 표기', d4.text === '정당한 사유 없이 �
 ok('과태료 — 제1항 한정 문구 유지', L.POST_REFUSAL_PATHS.items.find(i=>i.id==='fine').scopeWarning.includes('제1항(설명 요구)을 무시한 경우에만'))
 ok('시행령 제2조 제6항 7호 — "다음 각 목"', L.DELEGATED_CREDIT_TRANSACTIONS.items.find(i=>i.no===7).text.includes('다음 각 목 및 제21조제2항'))
 
+/*
+ * ★ [B-2] 판본과 조문 번호를 **리터럴로** 못 박는다. (2026-08-31 뮤테이션 시험에서 추가)
+ *   위 [B] 는 조문 **본문**을 리터럴과 대조하지만, LAW_META 의 조문 번호·법령명·판본은
+ *   어느 시험도 리터럴로 확인하지 않았다. 화면은 LAW_META 를 읽어 그리므로
+ *   상수를 틀리게 고치면 화면도 같이 틀려지고 **아무도 모른다.**
+ *   실제로 article 을 '제36조의3' 으로 바꿔 봤을 때 tlaw 는 통과했다.
+ *   근거: 국가법령정보센터 원문 (docs/facts.md §6 표와 같은 값이어야 한다)
+ */
+console.log('\n[B-2] 판본·조문 번호 리터럴 대조')
+const META = [
+  ['법', 'act', '신용정보의 이용 및 보호에 관한 법률', '신용정보법', '제36조의2',
+   '법률 제21646호, 2026. 5. 12., 일부개정', '2026-08-13'],
+  ['시행령', 'decree', '신용정보의 이용 및 보호에 관한 법률 시행령', null, '제31조의2',
+   '대통령령 제36574호, 2026. 8. 11., 일부개정', '2026-08-13'],
+  ['금융위설치법', 'fscAct', '금융위원회의 설치 등에 관한 법률', null, '제38조',
+   '법률 제21065호, 2025. 10. 1., 타법개정', '2026-01-02'],
+]
+for (const [ko, key, name, shortName, article, revision, eff] of META) {
+  const m = L.LAW_META[key]
+  ok(`${ko}: 법령명`, m.name === name, m.name)
+  if (shortName) ok(`${ko}: 약칭`, m.shortName === shortName, m.shortName)
+  ok(`${ko}: 조문 번호`, m.article === article, m.article)
+  ok(`${ko}: 판본`, m.revision === revision, m.revision)
+  ok(`${ko}: 시행일`, m.effectiveDate === eff, m.effectiveDate)
+}
+ok('감독규정: 조문 번호', L.LAW_META.supervisionRule.article === '제40조의5', L.LAW_META.supervisionRule.article)
+ok('감독규정: 시행일', L.LAW_META.supervisionRule.effectiveDate === '2026-08-13', L.LAW_META.supervisionRule.effectiveDate)
+
 console.log('\n[C] 근거 배지 링크')
 const cases=[
  ['신용정보의 이용 및 보호에 관한 법률 제36조의2 · 시행 2026-08-13','/제36조의2','신용정보의이용및보호에관한법률'],

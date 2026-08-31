@@ -131,5 +131,46 @@ for (const [sid, d] of Object.entries(DELEGATED_TRANSACTION_BY_SECTOR)) {
   ok(`${sid}: 이름이 있다`, typeof d.short === 'string' && d.short.length > 0)
 }
 
+
+/*
+ * ★ [C] 오라클 — **정답을 못 박는다.**
+ *
+ *   위 [A] 는 판정이 *스스로* 모순되지 않는지만 본다(이 파일 머리말에 그렇게 적혀 있다).
+ *   그래서 사건→업권 분류표 자체를 통째로 바꿔도 [A] 는 전부 통과한다.
+ *   2026-08-31 뮤테이션 시험에서 은행(bank)을 증권류로 옮겼는데 4,042개 검사가
+ *   **하나도 실패하지 않았다.** 일관성 검사는 오라클이 아니다.
+ *
+ *   그래서 법이 명백한 조합만 골라 기대값을 리터럴로 적는다.
+ *   근거: 법 제2조 제1호의3 가목 1)~4) · docs/law/law-reference-addendum.md
+ *   ※ 애매한 조합은 여기 넣지 않는다. 애매함은 [A] 가 다룬다.
+ */
+console.log('[C] 오라클 — 법이 명백한 조합의 정답')
+const ORACLE = [
+  // [사건, 업권, 한도종류, 기대 코드(가목 N) 또는 null=특정 못 함]
+  ['loanRejected',   'bank',           null,   1],
+  ['limitReduced',   'bank',           'loan', 1],
+  ['limitReduced',   'bank',           'card', 2],
+  ['cardRejected',   'creditFinance',  null,   2],
+  // 리스·할부는 「여신전문금융업법」의 시설대여·할부금융이므로 **가목 2)** 다 (3 이 아니다).
+  ['leaseRejected',  'creditFinance',  null,   2],
+  ['loanRejected',   'investment',     null,   3],
+  // 금리 인상은 어느 거래의 금리인지 알 수 없으므로 **하위 호를 특정하지 않는다.**
+  // 이것도 정답이다 — 모르면 모른다고 하는 것이 이 서비스의 규칙이다.
+  ['rateIncreased',  'bank',           null,   null],
+]
+for (const [e, sec, kind, want] of ORACLE) {
+  const r = resolveTransactionBasis(e, sec, kind)
+  const got = r?.item?.code ?? null
+  ok(`오라클 ${e}×${sec}${kind ? '×' + kind : ''} → 가목 ${want})`, got === want,
+     `실제 ${got === null ? '특정 못 함' : '가목 ' + got + ')'}`)
+  if (want !== null) ok(`오라클 ${e}×${sec}: 근거에 호가 들어간다`,
+    typeof r?.basis === 'string' && r.basis.includes(`가목 ${want})`), r?.basis)
+}
+// 분류표가 통째로 뒤바뀌지 않았는지 — 은행은 은행류다
+ok('은행은 은행류로 분류된다 (증권류가 아니다)',
+   resolveTransactionBasis('loanRejected', 'bank', null)?.item?.code === 1)
+ok('증권사는 증권류로 분류된다 (은행류가 아니다)',
+   resolveTransactionBasis('loanRejected', 'investment', null)?.item?.code === 3)
+
 console.log(`\n통과 ${pass} / 실패 ${fail}`)
 process.exit(fail ? 1 : 0)

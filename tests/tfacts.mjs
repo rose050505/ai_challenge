@@ -102,6 +102,41 @@ await send('Page.navigate',{url:BASE+'/'}); await sleep(1300)
 b=await body()
 ok('권리 요약 합니다체', b.includes('요구할 수 있습니다.') && !b.includes('요구할 수 있다.'))
 
+/*
+ * ★ [D-2] 회신 보관 고지는 **세 자리**에 나온다. 그 셋을 다 확인한다.
+ *   2026-08-31 뮤테이션 시험에서 RESPONSE_RETENTION.short 를 옛 거짓말
+ *   ("붙여넣은 회신 원문은 저장하지 않습니다")로 되돌려 봤더니 아무 시험도 잡지 못했다.
+ *   기존 검사는 랜딩의 처리 내역 표(tableCell)만 보고 있었고, 정작 **사용자가 회신을
+ *   붙여넣는 그 자리(short)** 는 아무도 보지 않았다. 거기가 가장 중요한 자리다.
+ *   ★ "원문 전체"와 "원문의 조각"을 나눠 적는 것이 핵심이다 (docs/facts.md §3).
+ */
+console.log('\n[D-2] 회신 보관 고지 — 세 자리 전부')
+await send('Page.navigate',{url:BASE+'/response'}); await sleep(1500)
+b = await body()
+ok('★ 붙여넣기 칸 옆: "원문 전체"라고 적는다', b.includes('원문 전체는 저장하지 않습니다'))
+ok('★ 붙여넣기 칸 옆: 조각은 남는다고 함께 적는다',
+   b.includes('회신문에서 그대로 옮긴 것') && b.includes('브라우저에 남습니다'))
+ok('★ 줄여 쓴 옛 문장이 되살아나지 않았다',
+   !/원문은 저장하지 않습니다/.test(b), b.slice(0,0))
+
+/*
+ * ★ [D-3] 절대 규칙을 화면에서 지키는지. (2026-08-31 뮤테이션 시험에서 추가)
+ *   - 서식의 주민등록번호 칸은 **공란 + "직접 기재" 안내**여야 한다.
+ *     안내를 "여기에 입력하세요"로 바꿔 봤을 때 아무 시험도 잡지 못했다.
+ *     CLAUDE.md 의 절대 규칙(주민등록번호는 절대 입력받지 않는다)이 무방비였다.
+ *   - 외부로 나가는 링크는 색·밑줄만으로 알리지 않는다. ↗ 글리프를 함께 둔다.
+ *     글리프를 지워 봤을 때도 아무도 잡지 못했다.
+ */
+console.log('\n[D-3] 절대 규칙 — 주민등록번호 · 링크 표식')
+await send('Page.navigate',{url:BASE+'/document?form=explanationRequest'}); await sleep(1500)
+b = await body()
+ok('★ 서식에 주민등록번호 입력칸이 없다',
+   await ev(`![...document.querySelectorAll('.print-sheet input,.print-sheet textarea')].some(i=>/주민|rrn/i.test(i.name+i.id+(i.placeholder||'')))`))
+ok('★ 직접 기재 안내가 그대로', b.includes('출력 후 직접 기재하세요'))
+ok('★ "입력하세요"로 뒤바뀌지 않았다', !/주민등록번호를 (여기에 )?입력하세요/.test(b))
+ok('★ 외부 링크에 ↗ 표식', await ev(`[...document.querySelectorAll('a.basis[href^="http"]')].every(a=>a.textContent.includes('↗'))`))
+ok('   그런 링크가 실제로 있다', (await ev(`document.querySelectorAll('a.basis[href^="http"]').length`)) > 0)
+
 console.log('\n[E] 첫인상')
 const fav=await (await fetch(BASE+'/favicon.svg')).text()
 ok('파비콘 교체됨(스캐폴드 아님)', fav.includes('삼육이') && !fav.includes('863bff'))

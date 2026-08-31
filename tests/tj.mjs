@@ -149,9 +149,24 @@ ok('[6-2] 서식 이름도 내용 있음', hasSavedContent(normalizeJourney({for
   ok('[6-3] 섹션 3 행의 값은 문자열', typeof poisoned.form.form2.favorable[0].infoName === 'string' && poisoned.form.form2.favorable[0].detail === '5')
 }
 
+// [8] ★ 저장 키와 파일 표지는 **리터럴로** 못 박는다.
+//     바꾸면 이미 저장된 기록과 이미 내보낸 파일이 열리지 않는다 (CLAUDE.md 절대 규칙).
+//     2026-08-31 뮤테이션 시험에서 키를 'wy:journey:state' 로 바꿨을 때
+//     tj 도 rename 도 잡지 못했다 — 상수를 서로 비교하기만 했기 때문이다.
+{
+  const src = await import('node:fs').then(m => m.readFileSync('../src/lib/journey-storage.js','utf8'))
+  // ★ 키는 `${NS}:state` 로 조립된다. 완성된 문자열은 소스에 없다 —
+  //   처음에 그것을 리터럴로 찾다가 **시험 자체가 틀렸다.** 조립 재료를 본다.
+  ok('[8] 네임스페이스가 wae:journey 그대로', src.includes("const NS = 'wae:journey'"))
+  ok('[8] 상태 키를 NS 로 만든다', /KEY_STATE\s*=\s*`\$\{NS\}:state`/.test(src))
+  ok('[8] 파일 표지가 wae.journey 그대로', src.includes("FILE_MARKER = 'wae.journey'"))
+  ok('[8] 다른 네임스페이스로 바뀌지 않았다', !/['"`]wy[:.]journey/.test(src))
+}
+
 // [7] 스키마 버전이 파일에 들어간다
 ok('[7] 내보낸 파일에 버전', buildExport(EMPTY_JOURNEY).schemaVersion===SCHEMA_VERSION)
 ok('[7] 내보낸 파일에 표지', buildExport(EMPTY_JOURNEY).app==='wae.journey')
+ok('[7] 표지 문자열이 리터럴로 유지', JSON.stringify(buildExport(EMPTY_JOURNEY)).includes('"wae.journey"'))
 
 console.log(fail?`\n${fail} FAILED`:'\n모두 통과')
 process.exit(fail?1:0)
