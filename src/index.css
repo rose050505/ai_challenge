@@ -417,7 +417,13 @@ body {
       border: 1px solid var(--color-gray-500);
       border-radius: var(--radius-md);
       background: #fff;
-      padding: 1.25rem;
+      /*
+       * ★ 좁은 화면에서는 여백을 최소로 둔다.
+       *   375px 에서 컨테이너가 343px 인데 서식의 최소 폭이 320px 이다.
+       *   여기 좌우 여백이 24px 를 넘으면 서식이 밀려나 가로 스크롤이 생긴다
+       *   (2026-08-31 tnarrow 가 실제로 잡았다 — 1.25rem 일 때 375px 에서 넘쳤다).
+       */
+      padding: 0.5rem;
       box-shadow:
         0 1px 2px rgb(0 0 0 / 0.06),
         0 10px 30px rgb(0 0 0 / 0.07);

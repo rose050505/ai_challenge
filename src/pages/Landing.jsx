@@ -82,7 +82,7 @@ export default function Landing() {
   }, [shouldAutoOpen, start])
 
   return (
-    <div className="space-y-10 pb-8 pt-3 sm:space-y-12 sm:py-12">
+    <div className="space-y-6 pb-8 pt-3 sm:space-y-12 sm:py-12">
       {/* ── 이어서 하기 — 기록이 있을 때만 맨 위에 뜬다 ──────────
           ★ 여기서는 얇은 형태로 띄운다. 되돌아온 사람에게도 아래의
             [내 상황으로 시작하기]가 첫 화면 밖으로 밀려나면 안 된다. */}
@@ -101,7 +101,7 @@ export default function Landing() {
         ★ 인쇄 대비: 파일 끝의 @media print 가 이 블록을 흰 바탕·검은 글자로 되돌린다.
           배경 인쇄를 끈 채로 인쇄하면 흰 바탕에 흰 글자가 되기 때문이다.
       */}
-      <section className="hero-dark on-dark -mx-4 space-y-4 px-4 py-6 sm:rounded-md sm:px-8 sm:py-10">
+      <section className="hero-dark on-dark space-y-3 rounded-md px-5 py-4 sm:space-y-4 sm:px-8 sm:py-9">
         {/* 서비스 부제는 화면 맨 위 머리말에 이미 있다. 여기서 되풀이하지 않는다. */}
         {/*
           ★ 제목을 사건 하나에 묶지 않는다. (2026-08-31)
