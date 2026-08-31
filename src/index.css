@@ -396,6 +396,24 @@ body {
       to   { transform: none; }
     }
 
+    /*
+     * 예시 고르기 카드 — 진입 카드와 같은 반응을 주되, 무게는 한 단계 아래다.
+     * (왼쪽 굵은 변을 두지 않는다. 상황이 아니라 "예시"이기 때문이다)
+     * ★ 누를 수 있다는 것을 색으로만 말하지 않는다 — 마지막 줄의 화살표가 함께 말한다.
+     */
+    .pick-card {
+      display: block;
+      height: 100%;
+      border: 1px solid var(--color-gray-400);
+      border-radius: var(--radius-md);
+      background: #fff;
+      padding: 0.75rem 0.875rem;
+    }
+    .pick-card:hover {
+      border-color: var(--color-ink-600);
+      background: var(--color-ink-50);
+    }
+
     /* 용어 풀이 트리거 — 색만으로 구분하지 않는다. 점선 밑줄 + ? 표식. */
     .term-trigger {
       border: 0;

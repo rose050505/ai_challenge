@@ -165,10 +165,13 @@ function EntryCards({ onTour }) {
           <ul className="grid gap-2 md:grid-cols-3">
             {SAMPLE_SCENARIOS.map((sc) => (
               <li key={sc.id}>
-                <Link to={`/diagnose?sample=${sc.id}`} className="card block h-full">
+                <Link to={`/diagnose?sample=${sc.id}`} className="pick-card">
                   <span className="block font-bold text-gray-900">{sc.title}</span>
                   {/* 진단 화면의 "이 샘플이 보여주는 것"과 같은 문장이다 (samples.js 한 곳) */}
                   <span className="mt-1 block text-sm text-gray-700">{sc.demonstrates}</span>
+                  <span className="mt-1 block text-sm font-semibold text-ink-800">
+                    이 예시로 보기 <span aria-hidden="true">→</span>
+                  </span>
                 </Link>
               </li>
             ))}
