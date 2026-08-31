@@ -125,6 +125,25 @@ for (let n=1; n<=N; n++) {
   t_(`${n}/${N}: 강조 대상의 윗변이 시트 위에 보인다`, !!vis && vis.topOK, JSON.stringify(vis))
   t_(`${n}/${N}: ★ 시트에 가리지 않고 실제로 보이는 높이`,
      !!vis && vis.seen >= Math.min(vis.full, 120), JSON.stringify(vis))
+  /*
+   * ★ 구멍이 **그 요소 위에** 있는가. (2026-09-01 뮤테이션 2차)
+   *   구멍은 단위 사각형 + transform 으로 그린다. transform 이 고장 나도
+   *   "대상이 보인다"는 검사는 통과한다 — 구멍만 엉뚱한 자리에 뚫린다.
+   *   화면 좌표로 되돌려 실제 요소 위치와 맞대어 본다.
+   */
+  const hole = JSON.parse(await ev(`JSON.stringify((()=>{
+    const e=document.querySelector('[data-tour=${first}]'); if(!e) return null;
+    const r=e.getBoundingClientRect();
+    const rects=[...document.querySelectorAll('svg mask#tour-mask rect')].slice(1);
+    const near=rects.map(x=>{
+      const m=new DOMMatrixReadOnly(getComputedStyle(x).transform);
+      return {x:m.e, y:m.f, w:m.a, h:m.d}
+    }).map(h=>({dx:Math.round(Math.abs(h.x-(r.left-6))), dy:Math.round(Math.abs(h.y-(r.top-6))),
+                dw:Math.round(Math.abs(h.w-(r.width+12))), dh:Math.round(Math.abs(h.h-(r.height+12)))}))
+    return {count:rects.length, near}
+  })())`) || 'null')
+  const fit = hole && hole.near.some(h => h.dx<=2 && h.dy<=2 && h.dw<=2 && h.dh<=2)
+  t_(`${n}/${N}: ★ 구멍이 강조 대상 위에 정확히 뚫린다`, !!fit, JSON.stringify(hole))
   await ev(`(()=>{const p=document.querySelector('[data-tour-body]');if(p)p.scrollTop=p.scrollHeight})()`)
 }
 // 시트가 화면의 절반을 넘지 않는다 — 위 절반은 배경이 보여야 한다
