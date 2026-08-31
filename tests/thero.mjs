@@ -3,8 +3,8 @@
 // 지키려는 것 (2026-08-31)
 //  1. 제목이 사건 하나("대출 거절")에 묶이지 않는다 — 다섯 사건을 다 다루는 서비스다
 //  2. 부제에 근거 조문 배지가 붙는다
-//  3. 375×667 첫 화면에 [내 상황으로 시작하기]와 자가진단 제목이 남는다
-//  4. 쉬운 말 보기에서도 제목·부제가 바뀌고, 버튼이 첫 화면 안에 남는다
+//  3. 375×667 첫 화면에 진입 카드 두 장이 통째로 들어온다
+//  4. 쉬운 말 보기에서도 제목·부제가 바뀌고, 진입 카드가 첫 화면 안에 남는다
 //  5. 서식 화면이 "고시 별지 원본과 대조하지 못했다"를 밝힌다
 //  6. 진단 결과 앞머리에 다음 화면으로 가는 줄이 있다
 const BASE = process.env.APP_URL || 'http://localhost:4400'
@@ -41,7 +41,9 @@ t_('제목이 무엇을 묻는 서비스인지 말한다', /심사 결과/.test(
 const body = await ev(`document.body.innerText.replace(/\\s+/g,' ')`)
 t_('부제가 다섯 사건을 다 담는다',
    ['대출','카드','한도 축소','금리 인상'].every(w=>body.includes(w)), body.slice(0,200))
-t_('부제에 서비스가 무엇을 하는지 한 줄', body.includes('삼육이는 그 요구서를 대신 만들어 드립니다'))
+/* 이 문장은 히어로 부제에서 "이름의 유래" 단락으로 내려갔다(진입 카드가 그 일을 대신한다).
+   첫 화면 밖이어도 랜딩에 남아 있어야 한다 — 이름을 문장 안에서 한 번은 쓴다. */
+t_('랜딩이 서비스가 무엇을 하는지 한 줄로 말한다', body.includes('삼육이는 그 요구서를 대신 만들어 드립니다'))
 // 근거 배지 — 부제와 같은 문단 안에 있어야 한다(줄을 따로 만들면 버튼이 밀린다)
 const badge = await ev(`(()=>{const p=[...document.querySelectorAll('p')].find(p=>p.textContent.includes('한도 축소'));
   if(!p)return null; const a=p.querySelector('a.basis-link'); return a?JSON.stringify({t:a.textContent.replace(/\\s+/g,' ').trim(),href:a.getAttribute('href')}):null})()`)
@@ -50,10 +52,26 @@ const B = badge && JSON.parse(badge)
 t_('배지가 제36조의2 원문으로 연결', !!B && decodeURIComponent(B.href).includes('제36조의2'), B?.href)
 
 console.log('[A] 375×667 첫 화면')
-const ctaY = await y(`[...document.querySelectorAll('a')].find(e=>e.textContent.includes('내 상황으로 시작하기'))`)
+/*
+ * ★ 첫 화면의 계약이 바뀌었다. (2026-08-31 사용자 지적 — "훑어서 보이게")
+ *   앞서는 [내 상황으로 시작하기] 버튼 하나와 자가진단 제목이 들어오는지를 쟀다.
+ *   지금은 히어로 아래에 **진입 카드**가 있고, 그 카드가 각기 다른 화면으로 들어간다.
+ *   재는 것: 진입 제목과 **카드 두 장이 통째로** 첫 화면 안에 들어오는가.
+ *   (셋째 장은 일부러 걸치게 둔다 — 아래에 더 있다는 신호다)
+ */
+const entryY = await y(`[...document.querySelectorAll('h2')].find(e=>e.textContent.includes('어떤 상황이신가요'))`)
+const cards  = await ev(`JSON.stringify([...document.querySelectorAll('.entry-card')].map(e=>{
+  const r=e.getBoundingClientRect(); return {top:Math.round(r.top+scrollY),bottom:Math.round(r.bottom+scrollY)}}))`)
+const C = JSON.parse(cards)
 const scY  = await y(`[...document.querySelectorAll('h2')].find(e=>e.textContent.includes('혹시 이런 일'))`)
-t_('[내 상황으로 시작하기]가 첫 화면 안', ctaY!==null && ctaY < 667, 'y='+ctaY)
-t_('자가진단 제목이 첫 화면 안', scY!==null && scY < 667, 'y='+scY)
+t_('진입 카드가 셋', C.length===3, String(C.length))
+t_('"지금 어떤 상황이신가요"가 첫 화면 안', entryY!==null && entryY < 667, 'y='+entryY)
+t_('★ 진입 카드 첫 장이 통째로 첫 화면 안', C[0] && C[0].bottom <= 667, JSON.stringify(C[0]))
+t_('★ 진입 카드 둘째 장이 통째로 첫 화면 안', C[1] && C[1].bottom <= 667, JSON.stringify(C[1]))
+t_('셋째 장은 아래에 더 있다는 신호로 남는다', C[2] && C[2].top > 640, JSON.stringify(C[2]))
+t_('카드마다 목적지가 다르다', await ev(`(()=>{const h=[...document.querySelectorAll('.entry-card')].map(a=>a.getAttribute('href'));
+  return new Set(h).size===h.length && h.every(Boolean)})()`))
+t_('자가진단은 진입 카드 아래에 있다', scY!==null && entryY!==null && scY > entryY, 'y='+scY)
 t_('가로 넘침 없음', (await ev(`document.documentElement.scrollWidth<=document.documentElement.clientWidth`)))
 
 console.log('[A] 쉬운 말 보기')
@@ -66,8 +84,9 @@ t_('제목이 쉬운 말로 바뀐다', ph1 !== h1 && ph1.includes('컴퓨터'),
 t_('쉬운 말 제목도 사건 하나에 묶이지 않는다', !/대출이 거절/.test(ph1), ph1)
 const pBody = await ev(`document.body.innerText.replace(/\\s+/g,' ')`)
 t_('부제도 쉬운 말로 바뀐다', pBody.includes('정해 둔 권리입니다'), pBody.slice(0,200))
-const pCtaY = await y(`[...document.querySelectorAll('a')].find(e=>e.textContent.includes('내 상황으로 시작하기'))`)
-t_('쉬운 말에서도 버튼이 첫 화면 안', pCtaY!==null && pCtaY < 667, 'y='+pCtaY)
+const pCards = JSON.parse(await ev(`JSON.stringify([...document.querySelectorAll('.entry-card')].map(e=>{
+  const r=e.getBoundingClientRect(); return Math.round(r.bottom+scrollY)}))`))
+t_('쉬운 말에서도 진입 카드 첫 장이 첫 화면 안', pCards[0] !== undefined && pCards[0] < 667, 'y='+pCards[0])
 
 // ★ 쉬운 말을 켠 채로 끝내면 다음 시험(phase5 "기본은 원문")이 깨진다.
 //   같은 브라우저·같은 localStorage 를 쓰기 때문이다. 여기서 되돌린다.

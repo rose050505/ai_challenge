@@ -132,7 +132,9 @@ await send('Page.navigate',{url:BASE+'/document?form=explanationRequest'}); awai
 b = await body()
 ok('★ 서식에 주민등록번호 입력칸이 없다',
    await ev(`![...document.querySelectorAll('.print-sheet input,.print-sheet textarea')].some(i=>/주민|rrn/i.test(i.name+i.id+(i.placeholder||'')))`))
-ok('★ 직접 기재 안내가 그대로', b.includes('출력 후 직접 기재하세요'))
+/* ★ 서식에 찍히는 문구는 접수 담당자가 읽는다. "이 서비스는 …" 류가 들어가면 안 된다. */
+ok('★ 직접 기재 안내가 그대로', b.includes('출력 후 직접 기재'))
+ok('★ 서식에 "이 서비스" 라는 말이 찍히지 않는다', !b.includes('이 서비스는 주민등록번호'))
 ok('★ "입력하세요"로 뒤바뀌지 않았다', !/주민등록번호를 (여기에 )?입력하세요/.test(b))
 ok('★ 외부 링크에 ↗ 표식', await ev(`[...document.querySelectorAll('a.basis[href^="http"]')].every(a=>a.textContent.includes('↗'))`))
 ok('   그런 링크가 실제로 있다', (await ev(`document.querySelectorAll('a.basis[href^="http"]').length`)) > 0)

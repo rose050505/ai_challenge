@@ -64,6 +64,86 @@ const STEPS = [
   },
 ]
 
+/**
+ * 진입 카드 — 첫 화면에서 **글을 읽지 않고** 자기 자리를 짚게 한다.
+ *
+ * ── 왜 넣었나 (2026-08-31 사용자 지적) ──────────────────────────
+ * 첫 화면이 세로로 긴 글 흐름이라 "내가 지금 무엇을 할 수 있는지"가
+ * 훑어서 보이지 않았다. 정부24 를 예로 드셨지만 **격자를 그대로 흉내 내지 않는다** —
+ * 그쪽은 수백 개 민원 중 하나를 고르는 곳이고, 우리가 할 수 있는 일은 사실상 셋이다.
+ * 가져온 것은 형태가 아니라 원리 둘이다:
+ *   (가) 진입점을 눈으로 나열한다   (나) 폼을 첫 화면에 두지 않는다
+ *
+ * ★ 셋인 이유. 제목이 "지금 어떤 상황이신가요"이므로 **상황에 대한 답만** 넣는다.
+ *   "둘러보고 싶다"는 상황이 아니라 태도라서 카드에서 뺐다(아래 한 줄로 내렸다).
+ *   넷째 카드로 넣으면 격자는 2×2 로 예뻐지지만 묻는 말과 답이 어긋난다.
+ *
+ * ★ 아이콘을 쓰지 않는다. 이 셋을 구별해 줄 그림 기호가 마땅치 않고,
+ *   뜻 없는 아이콘 줄은 장식이다. 대신 카드마다 **다음에 무슨 일이 일어나는지**
+ *   한 줄과 목적지 이름을 둔다. 그것이 구별의 근거다.
+ */
+const ENTRY_CARDS = [
+  {
+    id: 'diagnose',
+    to: '/diagnose',
+    situation: '대출·카드 거절, 한도 축소, 금리 인상을 겪었습니다',
+    next: '무슨 일이 있었는지 고르시면, 행사할 수 있는 권리와 근거 조문을 보여드립니다.',
+    dest: '진단',
+  },
+  {
+    id: 'response',
+    to: '/response',
+    situation: '금융회사에서 답변(회신)을 받았습니다',
+    next: '받은 답변을 붙여넣으시면, 무엇을 받았고 무엇이 빠졌는지 가려 드립니다.',
+    dest: '회신 해석',
+  },
+  {
+    id: 'next',
+    to: '/next',
+    situation: '요구서를 만들었고, 낼 차례입니다',
+    next: '어디에 어떻게 내는지, 답이 오지 않으면 무엇을 할 수 있는지 안내합니다.',
+    dest: '이후 절차',
+  },
+]
+
+function EntryCards({ onTour }) {
+  return (
+    <section aria-labelledby="entry-heading" className="space-y-3">
+      <h2 id="entry-heading" className="text-[1.375rem] font-semibold text-gray-900">
+        지금 어떤 상황이신가요?
+      </h2>
+      {/* 375px 세로 1열, 768px 이상 2열. 셋째 칸이 한 자리 남지만
+          "상황에 대한 답"만 넣기로 한 결과다. 자리를 채우려고 답을 지어내지 않는다. */}
+      {/* 둘러보기 소개가 비추는 자리 — 처음 온 사람에게 "여기서 고르시면 됩니다"를
+          말이 아니라 빛으로 가리킨다. */}
+      <ul className="grid gap-2 md:grid-cols-2 md:gap-3" data-tour="entry">
+        {ENTRY_CARDS.map((c) => (
+          <li key={c.id}>
+            <Link to={c.to} className="entry-card">
+              <span className="block font-bold text-gray-900">{c.situation}</span>
+              <span className="mt-1 block text-sm text-gray-700">{c.next}</span>
+              <span className="mt-1 block text-sm font-semibold text-ink-800">
+                {c.dest} 화면으로 <span aria-hidden="true">→</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {/* 상황이 아닌 두 갈래. 카드와 같은 무게로 두지 않는다.
+          [샘플로 체험하기]는 심사 경로이므로 반드시 남긴다. */}
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-700">
+        <span>어느 것도 아니라면 —</span>
+        <button type="button" onClick={onTour} className="btn btn-secondary">
+          {TOUR_TITLE}
+        </button>
+        <Link to={`/diagnose?sample=${SAMPLE_SCENARIOS[0].id}`} className="btn btn-secondary">
+          샘플로 체험하기
+        </Link>
+      </p>
+    </section>
+  )
+}
+
 export default function Landing() {
   const byParagraph = (n) => RIGHTS.filter((r) => r.paragraph === n)
   const { start, shouldAutoOpen } = useTour()
@@ -101,7 +181,7 @@ export default function Landing() {
         ★ 인쇄 대비: 파일 끝의 @media print 가 이 블록을 흰 바탕·검은 글자로 되돌린다.
           배경 인쇄를 끈 채로 인쇄하면 흰 바탕에 흰 글자가 되기 때문이다.
       */}
-      <section className="hero-dark on-dark space-y-3 rounded-md px-5 py-4 sm:space-y-4 sm:px-8 sm:py-9">
+      <section className="hero-dark on-dark space-y-3 rounded-md px-5 py-3.5 sm:space-y-4 sm:px-8 sm:py-9">
         {/* 서비스 부제는 화면 맨 위 머리말에 이미 있다. 여기서 되풀이하지 않는다. */}
         {/*
           ★ 제목을 사건 하나에 묶지 않는다. (2026-08-31)
@@ -129,60 +209,19 @@ export default function Landing() {
                 {LAW_META.act.shortName} {LAW_META.act.article}
               </b>
               가 정한 권리입니다.
-            </Plain>{' '}
-            <b className="text-white">삼육이는 그 요구서를 대신 만들어 드립니다.</b>
+            </Plain>
           </span>
           <Basis prefix="근거">{`${LAW_META.act.shortName} ${LAW_META.act.article}`}</Basis>
         </p>
 
-        {/* ── 2. 바로 해 보기 — 제목 바로 아래 ─────────────────
-            ★ 셋을 나란히 두지 않는다. (2026-08-31 사용자 지적)
-              같은 크기의 버튼 셋이 세로로 쌓이면 처음 온 사람은 **어느 것을 눌러야
-              할지 정하지 못한다.** 세 개 중 하나만 고르라는 화면이 되고,
-              그만큼 자가진단이 첫 화면 밖으로 밀린다.
-              처음 온 사람이 눌러야 할 것은 [내 상황으로 시작하기] 하나다.
-              나머지 둘은 "둘러보고 싶은 사람"(심사자 포함)의 길이므로
-              한 줄 아래에 작게 나란히 둔다. 없애지는 않는다 — 심사 경로다. */}
-        <div className="space-y-2 pt-1">
-          <Link to="/diagnose" className="btn btn-primary w-full sm:w-auto">
-            내 상황으로 시작하기
-          </Link>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to={`/diagnose?sample=${SAMPLE_SCENARIOS[0].id}`}
-              className="btn btn-secondary"
-            >
-              샘플로 체험하기
-            </Link>
-            {/* 서식 생성기로 오해받는 지점을 여기서 막는다 */}
-            <button type="button" onClick={start} className="btn btn-secondary">
-              {TOUR_TITLE}
-            </button>
-          </div>
-        </div>
-
       </section>
       </div>
 
+      {/* ── 2. 진입 카드 — 글을 읽기 전에 자기 자리를 짚는다 ──── */}
+      <EntryCards onTour={start} />
+
       {/* ── 3. 자가진단 — 나에게 필요한지 여기서 판단된다 ────── */}
       <SelfCheck />
-
-      {/*
-        ★ 이미 답변을 받은 사람에게는 첫 화면에 자기 자리가 없었다.
-          머리말의 [회신 해석]만이 길인데, 사용자가 쓰는 말은 "회신"이 아니라 "답변서"다.
-          (2026-08-31 실사용 시뮬레이션 시나리오 C) 그래서 이 한 줄을 둔다.
-        ★ 자리를 히어로 안에서 자가진단 **아래**로 옮겼다. (2026-08-31, 375px 실기)
-          히어로 안에 있을 때 이 줄이 두 줄을 먹어 자가진단 항목이 첫 화면 밖으로
-          밀렸다. 처음 온 사람이 첫 화면에서 판단해야 하는 것은 "내 일인가"이고,
-          그 판단은 자가진단 항목을 봐야 시작된다. 이 줄은 이미 한 바퀴를 돈
-          사람의 것이므로 자가진단 바로 다음이 제자리다. 없애지 않는다.
-      */}
-      <p className="panel-accent text-gray-800">
-        이미 금융회사에서 <b className="text-gray-900">답변(회신)</b>을 받으셨나요?{' '}
-        <Link to="/response" className="font-bold text-ink-800 underline">
-          받은 답변을 읽어 드립니다
-        </Link>
-      </p>
 
       {/* 제출한 기록이 있으면 여기서 회신 해석으로 이어 준다 */}
       <SubmissionRecord />
@@ -209,7 +248,10 @@ export default function Landing() {
           <Term id="favorableInfo">유리한 정보</Term>를 내고, 틀린 정보를{' '}
           <Term id="correction">고치고</Term>, 다시 계산해 달라고(
           <Term id="recompute">재산출</Term>) 요구할 수도 있습니다.{' '}
-          <b>이 서비스는 그 요구서를 대신 만들어 드립니다.</b>
+          {/* ★ 서비스 이름을 문장 안에서 한 번은 쓴다 — 로고로만 있으면 이름이 남지 않는다.
+              히어로 부제에 있던 문장을 여기로 내렸다(진입 카드가 그 일을 대신하므로
+              부제에 두면 첫 화면만 두 줄 길어진다). */}
+          <b>삼육이는 그 요구서를 대신 만들어 드립니다.</b>
           </Plain>
         </p>
         <p>

@@ -334,6 +334,25 @@ body {
       padding: 1rem;
     }
 
+    /*
+     * 진입 카드 — 첫 화면에서 "지금 내 상황"을 짚어 각기 다른 화면으로 들어가는 자리.
+     * ★ 카드 전체가 누르는 곳이다. 안에 또 다른 링크를 두지 않는다(중첩 링크 금지).
+     * ★ 색만으로 "누를 수 있음"을 말하지 않는다 — 왼쪽 굵은 변 + 마지막 줄의 화살표.
+     */
+    .entry-card {
+      display: block;
+      border: 1px solid var(--color-gray-400);
+      border-left: 4px solid var(--color-ink-600);
+      border-radius: var(--radius-md);
+      background: #fff;
+      padding: 0.75rem 0.875rem;
+      height: 100%;
+    }
+    .entry-card:hover {
+      border-color: var(--color-ink-600);
+      background: var(--color-ink-50);
+    }
+
     /* 용어 풀이 트리거 — 색만으로 구분하지 않는다. 점선 밑줄 + ? 표식. */
     .term-trigger {
       border: 0;

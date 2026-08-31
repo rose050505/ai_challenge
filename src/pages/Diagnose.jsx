@@ -90,6 +90,13 @@ function DownstreamNotice({ changed }) {
   )
 }
 
+/**
+ * 폼 앞에 두는 띠. **잰 값·정해진 값만 적는다.**
+ * 소요 시간을 적지 않는 이유: 재 본 적이 없다. 재지 않은 수를 화면에 쓰지 않는다.
+ * 대신 "고르기만 하면 된다"는 사실이 시간의 답을 대신한다.
+ */
+const DIAGNOSE_META = ['3~5단계', '고르기만 하면 됩니다', '회원가입 없음']
+
 export default function Diagnose() {
   const [params] = useSearchParams()
   const { diagnosis, update } = useDiagnosis()
@@ -173,11 +180,28 @@ export default function Diagnose() {
 
   return (
     <div className="space-y-6 py-6">
+      {/*
+        ★ 폼이 첫 화면의 첫 것이 되지 않게 한다. (2026-08-31 사용자 지적)
+          열자마자 라디오 버튼이면 "무엇을 위해 고르는지" 모르는 채로 고르게 된다.
+          **끝나면 무엇을 얻는지**를 폼 앞에 둔다.
+        ★ 다만 길어지면 안 된다 — 폼이 첫 화면에 걸쳐 보여야 한다.
+          그래서 문장 하나 + 잰 값 세 개짜리 띠 하나로 끝낸다.
+          "3~5단계"는 지어낸 수가 아니다. 고른 답에 따라 3~5단계가 되게 되어 있다
+          (2단계 CB사 = 3단계 / 금융회사 = 4단계 / 은행 × 한도 축소 = 5단계).
+      */}
       <PageHeader
         kicker="진단"
         title="무슨 일이 있었는지 알려주세요"
-        description="몇 가지만 고르면 행사할 수 있는 권리와 근거 조문을 보여드립니다."
-      />
+        description="다 고르시면 지금 행사할 수 있는 권리와 그 근거 조문, 어느 서식을 어디에 내야 하는지까지 보여드립니다."
+      >
+        <ul className="mt-3 flex flex-wrap gap-x-2 gap-y-1 text-sm text-gray-700">
+          {DIAGNOSE_META.map((m) => (
+            <li key={m} className="rounded-md border border-gray-400 bg-white px-2 py-1">
+              {m}
+            </li>
+          ))}
+        </ul>
+      </PageHeader>
 
       <DownstreamNotice changed={changed} />
 

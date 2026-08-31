@@ -19,10 +19,16 @@ t_('4개 항목', ['이유를 정확히 듣지 못했다','하루도 지나지 �
 t_('아무것도 안 고른 상태 안내', b0.includes('해당하는 것이 없어도 괜찮습니다'))
 t_('단정하지 않는다(초기)', !b0.includes('자동화평가입니다'))
 
-// 순서 — 자가진단이 권리 5종보다 위에 있어야 한다
-const order = await ev(`(()=>{const txt=document.body.innerText;return {sc:txt.indexOf('혹시 이런 일이'),rights:txt.indexOf('행사할 수 있는 권리'),cta:txt.indexOf('샘플로 체험하기')}})()`)
-t_('자가진단이 권리 목록보다 앞', order.sc>0 && order.sc < order.rights)
-t_('샘플 CTA 가 자가진단보다 앞', order.cta>0 && order.cta < order.sc)
+/* 순서 — 자가진단이 권리 5종 목록보다 위에 있어야 한다.
+   ★ 글자 위치(indexOf)로 재지 않는다. 진입 카드 본문에도 "행사할 수 있는 권리"라는
+     말이 들어 있어서, 문자열로 재면 카드가 목록으로 잡힌다. 제목 요소로 잰다. */
+const order = await ev(`(()=>{const Y=e=>e?Math.round(e.getBoundingClientRect().top+scrollY):-1;
+  const h=[...document.querySelectorAll('h2')];
+  return {sc:Y(h.find(e=>e.textContent.includes('혹시 이런 일이'))),
+          rights:Y(h.find(e=>e.textContent.trim().startsWith('행사할 수 있는 권리'))),
+          cta:Y(document.querySelector('.entry-card'))}})()`)
+t_('자가진단이 권리 목록보다 앞', order.sc>0 && order.rights>0 && order.sc < order.rights, JSON.stringify(order))
+t_('진입 카드가 자가진단보다 앞', order.cta>0 && order.cta < order.sc, JSON.stringify(order))
 
 // 하나 체크
 const n = await ev(`(()=>{const cbs=[...document.querySelectorAll('input[type=checkbox]')];const c=cbs[0];if(!c)return -1;c.click();return 1})()`)
