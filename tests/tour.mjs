@@ -104,6 +104,11 @@ for (let n=1; n<=N; n++) {
   const room = await scrollable()
   t_(`${n}/${N}: 패널이 맨 위부터`, (await scrollTop())===0, String(await scrollTop()))
   t_(`${n}/${N}: [다음]이 스크롤 없이 보인다`, await nextVisible(), `여유 ${room}px`)
+  /* 배경 화면도 강조 대상으로 스크롤돼야 한다 — 패널 안쪽 스크롤과는 별개다 */
+  const first = TOUR_STATIONS[n-1].targets[0]
+  t_(`${n}/${N}: 강조 대상이 화면 안에 있다`, await ev(
+    `(()=>{const e=document.querySelector('[data-tour=${first}]');if(!e)return false;`+
+    `const r=e.getBoundingClientRect();return r.top<innerHeight && r.bottom>0})()`), first)
   await ev(`(()=>{const p=document.querySelector('[role=dialog][aria-modal]');if(p)p.scrollTop=p.scrollHeight})()`)
 }
 // [이전] 으로 돌아갈 때도 같다
