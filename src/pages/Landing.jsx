@@ -17,7 +17,9 @@ import {
   WhyNoLogin,
   SubmissionRecord,
   STORAGE_SCOPE_TEXT,
+  hasProgress,
 } from '../components/Journey.jsx'
+import { useJourney } from '../lib/diagnosis-context.jsx'
 
 /**
  * 첫 화면.
@@ -108,6 +110,17 @@ const ENTRY_CARDS = [
 
 function EntryCards({ onTour }) {
   /*
+   * ★ 예시를 고르면 **진단이 통째로 예시로 바뀐다.** (2026-09-02 회귀 감사에서 실측)
+   *   덮어써지는 것: 사건 유형 · 상대방 · 업권 · **직접 쓰신 서술**.
+   *   남는 것: 이름·연락처와 서식에 쓰신 내용 (setSection('diagnosis') 만 하므로).
+   *   둘러보기는 시작 전에 이 사실을 말하는데(TOUR_INTRO.overwriteWarning)
+   *   예시 카드는 아무 말도 하지 않고 있었다. 되돌릴 수단도 없다 —
+   *   진단 화면의 [지우고 내 상황으로 시작하기]는 되살리는 것이 아니라 더 지우는 것이다.
+   *   그래서 **기록이 있을 때만** 무엇이 바뀌고 무엇이 남는지 먼저 말한다.
+   */
+  const { journey } = useJourney()
+  const hasRecord = hasProgress(journey)
+  /*
    * ★ 샘플을 **미리 채워 놓지 않는다.** (2026-09-01 사용자 지적)
    *   앞서는 [샘플로 체험하기]가 곧바로 `?sample=<첫 번째>` 로 진단을 채웠다.
    *   처음 온 사람이 남의 상황이 적힌 화면을 만나고, 그것이 자기 것인 줄 안다.
@@ -162,6 +175,14 @@ function EntryCards({ onTour }) {
             고르시면 그 상황이 채워진 채로 진단 화면이 열립니다. 채워진 값은 언제든 고쳐 쓰실 수
             있고, 하나라도 고치시면 그때부터 샘플이 아니라 <b>내 기록</b>이 됩니다.
           </p>
+          {hasRecord && (
+            <p className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900">
+              <span aria-hidden="true">※ </span>
+              지금 <b>진단에 적으신 내용이 예시로 바뀝니다</b> — 겪으신 일, 상대 기관, 직접 쓰신
+              서술. 이름·연락처와 서식에 쓰신 내용은 그대로 남습니다. 되돌리기는 없으니, 남겨
+              두실 내용이 있으면 먼저 아래 <b>[파일로 내보내기]</b>로 저장해 주세요.
+            </p>
+          )}
           <ul className="grid gap-2 md:grid-cols-3">
             {SAMPLE_SCENARIOS.map((sc) => (
               <li key={sc.id}>
