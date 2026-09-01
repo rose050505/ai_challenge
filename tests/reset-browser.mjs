@@ -25,7 +25,13 @@ await j('/json/new?about:blank', 'PUT').catch(() => j('/json/new?about:blank'))
 // 옛 탭을 전부 닫는다
 for (const p of pages) await j('/json/close/' + p.id)
 
-const after = JSON.parse(await j('/json/list')).filter(x => x.type === 'page')
+/* 닫기는 비동기라 곧바로 세면 아직 남아 있을 수 있다. 잠깐 두고 다시 센다. */
+let after = []
+for (let i = 0; i < 10; i++) {
+  await new Promise((r) => setTimeout(r, 200))
+  after = JSON.parse(await j('/json/list')).filter((x) => x.type === 'page')
+  if (after.length === 1) break
+}
 console.log(`  · 탭 정리: ${pages.length}개 닫고 ${after.length}개 남김`)
 if (after.length !== 1) {
   console.log('  ✘ 탭이 하나가 아니다. 시험이 어느 탭을 물지 알 수 없다.')

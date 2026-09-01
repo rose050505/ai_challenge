@@ -195,8 +195,16 @@ node tests/mkdiagrams.mjs routing    # 하나만
 | `jd5-requests.mjs` | 화면마다 나가는 요청 전수. 바깥 요청·함수 호출 시점 | `node jd5-requests.mjs [URL]` |
 | `jd6-links.mjs` | 화면의 외부 링크를 **브라우저로** 열어 조문·판본까지 확인. 국가법령정보센터에 실제로 붙는다 | `node jd6-links.mjs [URL]` |
 | `jd7-print.mjs` | A4 / Letter / 배율 / 머리글·바닥글 / 흑백. `pdfinfo`·`pdftotext` 필요 | `node jd7-print.mjs [경우] [글자크기]` |
+| `jra1.mjs` | 새 입력 경로(진입 카드·샘플 선택·하단 시트)에 적대적 사용 · 되돌리기 | `node jra1.mjs [URL]` |
+| `jra2.mjs` | 하단 시트·진입 카드 접근성 · 빈 상태 경계값 · 옛 기록 복원 | `node jra2.mjs [URL]` |
+| `jdocs.mjs` | **제출 문서의 주장 ↔ 화면.** 열 가지 화면 상태의 글자를 모아(`out/screens.txt`) 문장 단위로 대조 | `node jdocs.mjs [URL]` |
+| `jcontrast.mjs` | 글자·구획선 대비 실측 (문서의 수치가 아직 맞는지) | `node jcontrast.mjs [URL]` |
 | `reset-browser.mjs` | 탭을 새것으로. 실행기 셋이 맨 앞에서 부른다 | `node reset-browser.mjs` |
 | `depcss.mjs` | 배포본 CSS 가 로컬 빌드 규칙을 빠뜨렸는지. `run-deployed.sh` 가 부른다 | `node depcss.mjs [URL]` |
 
 `jd6-links.mjs` 는 **바깥 서버(국가법령정보센터)에 의존한다.** 그쪽이 느리거나 죽으면
 실패로 나온다 — 우리 문제가 아니다. 그래서 `run.sh` 에도 `run-deployed.sh` 에도 넣지 않았다.
+
+> **한글 문자열을 찾을 때** — 음절이 미리 합쳐져 있어 `"아니"` 는 `"아닙니다"` 의 부분
+> 문자열이 **아니다** (U+B2C8 vs U+B2D9). `jdocs.mjs` 를 처음 돌렸을 때 세 화면에 다 있는
+> 문장을 한 화면에만 있다고 셌다. 어미 앞에서 끊어 찾지 마라.
