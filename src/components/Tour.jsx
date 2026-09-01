@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { INTRO, OUTRO, useTour } from '../lib/tour.jsx'
 import { TOUR_INTRO, TOUR_OUTRO, TOUR_STATIONS, TOUR_TITLE } from '../data/tour.js'
 
@@ -35,7 +36,15 @@ function useTargets(targets, step) {
     setRects(
       els.map((el) => {
         const r = el.getBoundingClientRect()
-        return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 }
+        return {
+          x: r.left - 6,
+          y: r.top - 6,
+          w: r.width + 12,
+          h: r.height + 12,
+          /* ★ 문서 좌표도 같이 담는다. 패널 자리를 **스크롤이 끝난 뒤** 기준으로
+             정하려면 화면 좌표만으로는 안 된다 (placeTopFor 주석 참조). */
+          docY: r.top - 6 + window.scrollY,
+        }
       }),
     )
     return els
@@ -95,6 +104,27 @@ function useTargets(targets, step) {
   }, [measure, rects.length])
 
   return rects
+}
+
+/**
+ * 패널을 위에 붙일 것인가.
+ *
+ * ★ **지금 대상이 어디 있는지로 정하면 안 된다.** (2026-09-01 심사 당일 감사)
+ *   정거장이 열리면 곧바로 대상을 화면 위쪽(96px)으로 스크롤한다. 그런데 그 스크롤은
+ *   부드럽게 진행되므로, 첫 그림 시점의 대상은 아직 화면 **아래쪽**에 있다.
+ *   그 값으로 정하면 패널이 위에 붙었다가 스크롤이 끝난 뒤 아래로 내려온다 —
+ *   1280px 첫 방문에서 패널이 y=16 → y=608 로 592px 뛰었다(레이아웃 이동 0.233).
+ *   그래서 **스크롤이 끝난 뒤 대상이 놓일 자리**를 미리 계산해서 정한다.
+ *   그 값은 스크롤 도중에도 변하지 않으므로 패널은 처음부터 제자리에 그려진다.
+ *
+ *   여전히 위에 붙는 경우가 있다 — 페이지가 짧아 더 스크롤할 수 없어 대상이
+ *   화면 아래쪽에 남는 경우다. 그때는 설명이 설명 대상을 가리지 않게 위로 올린다.
+ */
+function placeTopFor(rects) {
+  if (!rects.length || typeof window === 'undefined') return false
+  const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+  const after = Math.min(Math.max(0, rects[0].docY - 90), max) // useTargets 의 -96 과 같은 자리
+  return Math.min(...rects.map((r) => r.docY - after)) > window.innerHeight * 0.42
 }
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])'
@@ -194,13 +224,8 @@ export default function Tour() {
   if (!active) return null
 
   const total = TOUR_STATIONS.length
-  /*
-   * 그래도 대상이 아래쪽에 남는 경우(더 스크롤할 여지가 없는 짧은 페이지 등)에는
-   * 패널을 위로 올린다. 설명이 설명 대상을 가리면 투어가 아니다.
-   */
-  const placeTop =
-    rects.length > 0 &&
-    Math.min(...rects.map((r) => r.y)) > (typeof window === 'undefined' ? 0 : window.innerHeight) * 0.42
+  /* 대상이 아래쪽에 남는 경우(짧은 페이지 등)에만 패널을 위로 올린다. placeTopFor 참조. */
+  const placeTop = placeTopFor(rects)
   const prev = () => {
     setDir(-1)
     if (step === OUTRO) return goTo(total - 1)
@@ -327,6 +352,19 @@ export default function Tour() {
             <p key={i}>{p}</p>
           ))}
         </div>
+
+        {/* 마무리에서만 뜨는 길 하나. TOUR_OUTRO.link 주석 참조. */}
+        {head.link && (
+          <p className="mt-3">
+            <Link
+              to={head.link.to}
+              onClick={finish}
+              className="font-bold text-ink-700 underline"
+            >
+              {head.link.label}
+            </Link>
+          </p>
+        )}
 
         {/* 진행 중인 기록을 덮어쓴다는 사실은 시작 전에 말한다 */}
         {step === INTRO && hasProgress && (

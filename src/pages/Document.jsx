@@ -1303,6 +1303,18 @@ function DocumentSheet({ activeCase, form2Index }) {
               주세요.
             </span>
           )}
+          {/*
+            ★ 배율. (2026-09-01 심사 당일 감사 — 실측)
+              인쇄 대화상자의 배율을 110% 로 올리면 6쪽짜리가 12쪽이 됐다. 내용은
+              한 글자도 잃지 않는다. 용지를 Letter 로 바꾸는 것은 쪽 수가 그대로였다
+              (A4 6쪽 = Letter 6쪽, 글자 동일). 그래서 배율만 밝힌다.
+          */}
+          {pageCount > 1 && !isForm1 && (
+            <span className="block text-sm text-gray-700">
+              이 값은 <b>배율 100% 기준</b>입니다. 인쇄 대화상자에서 배율을 올리면 장수가
+              늘어납니다. 내용이 빠지지는 않습니다.
+            </span>
+          )}
           {/* 한 칸의 내용이 한 쪽을 넘으면 표의 행을 쪼갤 수 없어 실제가 더 늘어난다 */}
           {!isForm1 && pageCountOversize && (
             <span className="block text-sm text-gray-700">
