@@ -3,6 +3,7 @@
 set -u
 cd "$(dirname "$0")"
 command -v pdfinfo >/dev/null || { echo "pdfinfo 가 필요하다 (poppler-utils)"; exit 2; }
+node reset-browser.mjs || exit 2   # 눌어붙은 탭 상태를 걷어낸다 (run.sh 와 같은 이유)
 ok=0; bad=0
 for c in base worst huge split mega; do
   for sc in base lg; do

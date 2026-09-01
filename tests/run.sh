@@ -8,7 +8,7 @@ CDP="${CDP:-http://127.0.0.1:9444}"
 export APP_URL CDP
 
 UNIT="tp tj t1 tpre treason safari tmatrix"
-BROWSER="rename thero tlong tnarrow tlaw phase1 phase2 phase3 phase4 phase5 phase8 e2e4 journey private afterprint kbd tnext tstrategy tform2 trform ta11y tfacts tour tourkbd tdiag mail samplenote tflow"
+BROWSER="rename thero tlong tnarrow tlaw phase1 phase2 phase3 phase4 phase5 phase8 e2e4 journey private afterprint kbd tnext tstrategy tform2 trform ta11y tfacts tour tourkbd tdiag mail samplenote tflow tcold"
 
 case "${1:-all}" in
   unit)    LIST="$UNIT"; NEED_BROWSER=0 ;;
@@ -25,6 +25,10 @@ if [ "$NEED_BROWSER" = 1 ]; then
     echo "✘ 헤드리스 크롬이 안 떠 있다: $CDP"
     echo "  chrome-headless-shell --remote-debugging-port=9444 --user-data-dir=/tmp/cdp-profile about:blank"; exit 2; }
 fi
+
+# ★ 시작 전에 탭을 새것으로 바꾼다. 눌어붙은 상태가 거짓 실패를 만든다.
+#   (2026-09-01 — 자세한 사연은 reset-browser.mjs 주석)
+if [ "$NEED_BROWSER" = 1 ]; then node reset-browser.mjs || exit 2; fi
 
 pass=0; fail=0; failed=""
 for t in $LIST; do

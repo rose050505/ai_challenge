@@ -57,6 +57,17 @@ curl -s http://127.0.0.1:9444/json/version
 
 ## 실행
 
+> ### ★ 한 번에 하나만 돌려라
+>
+> 브라우저 시험들은 **크롬 탭 하나를 함께 쓴다.** 실행기를 두 개 동시에 돌리면
+> 서로 탭을 밀치고, 관계없는 시험이 무더기로 실패한다. 2026-09-01 감사 중에
+> 실제로 그랬다 — `thero` 가 9/34, 31/34, 15/34 로 오락가락했고 **코드는 멀쩡했다.**
+> (증거: `tour` 시험이 관측한 경로에 다른 시험이 붙인 `?cold=…` 가 찍혀 있었다.)
+>
+> 실행기 셋(`run.sh` · `run-print.sh` · `run-deployed.sh`)은 이제 맨 앞에서
+> `reset-browser.mjs` 로 **탭을 새것으로 바꾼다.** 그래도 동시 실행은 막지 못한다.
+> 낱개 시험을 손으로 돌릴 때도 실행기가 도는 중이면 기다려라.
+
 ```bash
 cd tests
 ./run.sh            # 단위 + 브라우저 시험 전부
@@ -90,13 +101,15 @@ cd tests
 
 1. 접속 200 — 안 열리면 여기서 멈춘다
 2. 보안 헤더 5종
-3. **배포된 번들에 API 키 흔적이 없는가** (있으면 즉시 중단)
-4. `dep1.mjs` — 화면 사실 확인 + **실제 API 한 번** (`--quick` 이면 건너뛴다)
-5. `private-dep.mjs` — 저장이 막힌 브라우저에서 전 경로
-6. `blocked-lead.mjs` — 저장 차단 시 서식 안내문
-7. `depshots.mjs` — 375/768/1280 스크린샷 (`tests/out/`)
+3. **배포본 CSS 가 로컬 빌드의 규칙을 빠뜨리지 않았는가** (`depcss.mjs`).
+   JS 가 바이트까지 같을 때만 비교한다 — `dist` 가 낡았으면 조용히 건너뛴다
+4. **배포된 번들에 API 키 흔적이 없는가** (있으면 즉시 중단)
+5. `dep1.mjs` — 화면 사실 확인 + **실제 API 한 번** (`--quick` 이면 건너뛴다)
+6. `private-dep.mjs` — 저장이 막힌 브라우저에서 전 경로
+7. `blocked-lead.mjs` — 저장 차단 시 서식 안내문
+8. `depshots.mjs` — 375/768/1280 스크린샷 (`tests/out/`)
 
-1~3 은 브라우저가 없어도 돈다. 크롬이 없으면 거기까지만 하고 정상 종료한다.
+1~4 는 브라우저가 없어도 돈다. 크롬이 없으면 거기까지만 하고 정상 종료한다.
 낱개로 돌리려면 `node dep1.mjs <URL>` 처럼 그대로 부르면 된다.
 
 ---
@@ -138,6 +151,7 @@ cd tests
 | `kbd.mjs` | 키보드 접근성, 글자 크기 |
 | `ta11y.mjs` | 스크린리더 관점 — 랜드마크·제목 계층·라벨·aria-controls·표 머리 (8화면) |
 | `afterprint.mjs` | 인쇄 후 흐름, 카운트다운 없음 |
+| `tcold.mjs` | **첫 방문에 화면이 튀지 않는가** — 투어 패널이 제자리에 그려지는가, 레이아웃 이동, 웹폰트 없음 (2026-09-01) |
 | `mail.mjs` | 푸터 문의처 mailto·복사 가능 |
 | `samplenote.mjs` | 샘플이 예시임을 화면이 밝히는가 |
 | `paged.mjs` | 인쇄 쪽수 예고 = 실제 (`run-print.sh` 가 돌린다) |
@@ -165,3 +179,24 @@ cd tests
 node tests/mkdiagrams.mjs            # 셋 다
 node tests/mkdiagrams.mjs routing    # 하나만
 ```
+
+---
+
+## 감사 스크립트 (`run.sh` 밖. 손으로 부른다)
+
+심사 당일 조건을 재현하는 것들이다. 회귀 시험이 아니라 **한 번 재고 기록을 남기는** 용도라
+`run.sh` 에 넣지 않았다. 결과는 `docs/audit-judgeday.md` 에 있다.
+
+| 파일 | 무엇을 재는가 | 부르는 법 |
+|---|---|---|
+| `jd1-cold.mjs` | 캐시·기록 없는 첫 방문. 회선 3종 × 화면 2종의 FCP·CLS·투어 시점·글꼴 | `node jd1-cold.mjs [URL]` |
+| `jd2-5min.mjs` | 5분 체험. 투어 본 사람 / 건너뛴 사람 × 375 / 1280 | `node jd2-5min.mjs [URL]` |
+| `jd4-apidown.mjs` | `/api/*` 를 503·502·504·429·연결실패·무응답으로 강제하고 전 경로 완주. **실제 API 를 부르지 않는다(비용 0)** | `node jd4-apidown.mjs [URL]` |
+| `jd5-requests.mjs` | 화면마다 나가는 요청 전수. 바깥 요청·함수 호출 시점 | `node jd5-requests.mjs [URL]` |
+| `jd6-links.mjs` | 화면의 외부 링크를 **브라우저로** 열어 조문·판본까지 확인. 국가법령정보센터에 실제로 붙는다 | `node jd6-links.mjs [URL]` |
+| `jd7-print.mjs` | A4 / Letter / 배율 / 머리글·바닥글 / 흑백. `pdfinfo`·`pdftotext` 필요 | `node jd7-print.mjs [경우] [글자크기]` |
+| `reset-browser.mjs` | 탭을 새것으로. 실행기 셋이 맨 앞에서 부른다 | `node reset-browser.mjs` |
+| `depcss.mjs` | 배포본 CSS 가 로컬 빌드 규칙을 빠뜨렸는지. `run-deployed.sh` 가 부른다 | `node depcss.mjs [URL]` |
+
+`jd6-links.mjs` 는 **바깥 서버(국가법령정보센터)에 의존한다.** 그쪽이 느리거나 죽으면
+실패로 나온다 — 우리 문제가 아니다. 그래서 `run.sh` 에도 `run-deployed.sh` 에도 넣지 않았다.
