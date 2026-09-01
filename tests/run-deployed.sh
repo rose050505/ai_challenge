@@ -45,6 +45,9 @@ DEPLOY_JS="${js##*/}"
 export DEPLOY_JS
 printf '  · 지금 서버가 주는 판: %s / %s\n' "${js##*/}" "${css##*/}"
 
+# 배포본 CSS 가 로컬 빌드의 규칙을 빠뜨리지 않았는가 (depcss.mjs 주석 참조)
+node depcss.mjs "$URL" || fail_css=1
+
 # 번들에 키가 새지 않았는가 — 배포본에서 직접 확인한다
 if [ -n "$js" ]; then
   body=$(curl -s --max-time 60 "${NOCACHE[@]}" "$URL$js?cb=$CB")
@@ -62,7 +65,9 @@ curl -sf "$CDP/json/version" -o /dev/null || {
   echo "  chrome-headless-shell --remote-debugging-port=9444 --user-data-dir=/tmp/cdp-profile about:blank"
   exit 0; }
 
-fail=0
+node reset-browser.mjs || exit 2   # 눌어붙은 탭 상태를 걷어낸다 (reset-browser.mjs 주석)
+
+fail=${fail_css:-0}
 run() {  # run <이름> <파일> [인자...]
   echo
   echo "── $1 ──"
