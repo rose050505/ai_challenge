@@ -536,6 +536,9 @@ body {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+      /* iOS 사파리에서 주소창이 내려와 있으면 100vh 가 실제 보이는 높이보다 크다.
+         dvh 를 아는 브라우저만 이 줄을 쓰고, 모르는 브라우저는 위 100vh 로 폴백한다. */
+      min-height: 100dvh;
     }
     .app-main {
       flex: 1 1 auto;
@@ -606,6 +609,30 @@ body {
     .sheet-scroll > * {
       min-width: 20rem;
     }
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * iOS 사파리 대응 — 투어 패널의 최대 높이.
+ *
+ * Tour.jsx 는 Tailwind 유틸리티(max-h-[48vh] 등)로 높이를 묶는데, iOS 에서
+ * 주소창이 내려와 있으면 vh 가 실제 보이는 높이보다 커서 패널 아랫단이
+ * 잘릴 수 있다. svh(가장 작은 시각 뷰포트)를 아는 브라우저에서만 같은 수치의
+ * svh 로 덮어쓴다 — 이 블록은 @layer 밖이라 유틸리티(@layer utilities)를 이기고,
+ * svh 를 모르는 브라우저는 선언을 버려 원래 vh 값으로 폴백한다.
+ * 화면 전용(@media screen)이라 인쇄에는 닿지 않는다.
+ * ────────────────────────────────────────────────────────────── */
+@media screen {
+  .tour-sheet {
+    max-height: 48svh;
+  }
+  @media screen and (min-width: 40rem) {
+    .tour-sheet {
+      max-height: 60svh;
+    }
+  }
+  .tour-card {
+    max-height: 76svh;
   }
 }
 

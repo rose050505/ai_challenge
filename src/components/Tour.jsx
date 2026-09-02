@@ -314,7 +314,7 @@ export default function Tour() {
          */
         className={`fixed z-50 mx-auto flex flex-col overflow-hidden rounded-md border-2 border-ink-700 bg-white p-4 shadow-2xl outline-none sm:p-5 ${
           rects.length === 0
-            ? 'inset-x-3 top-1/2 max-h-[76vh] w-auto max-w-2xl -translate-y-1/2 sm:inset-x-0 sm:w-full'
+            ? 'tour-card inset-x-3 top-1/2 max-h-[76vh] w-auto max-w-2xl -translate-y-1/2 sm:inset-x-0 sm:w-full'
             : `tour-sheet inset-x-0 bottom-0 max-h-[48vh] w-full max-w-2xl sm:max-h-[60vh] ${
                 placeTop ? 'sm:bottom-auto sm:top-4' : 'sm:bottom-4'
               }`
