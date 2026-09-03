@@ -305,7 +305,7 @@ export default async function handler(req, res) {
   const responseText = String(body?.responseText ?? '').slice(0, MAX_RESPONSE_CHARS).trim()
   if (!responseText) return res.status(400).json({ error: 'response_text_required' })
 
-  const client = new Anthropic({ apiKey, timeout: TIMEOUT_MS, maxRetries: 1 })
+  const client = new Anthropic({ apiKey, timeout: TIMEOUT_MS, maxRetries: 0 })
 
   try {
     const response = await client.messages.create({

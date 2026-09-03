@@ -93,8 +93,12 @@ export default function SelfCheck() {
           <p className="text-gray-800">{SELF_CHECK_NONE}</p>
         )}
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {/* ★ 라벨은 한 가지다. (2026-09-03)
+                 "이 상황으로 진단 시작하기"였는데 링크는 그냥 /diagnose 라, 고른 항목이
+                 넘어가지 않았다. 자가진단 항목은 사건 유형과 1:1 이 아니어서 넘길 것도 없다.
+                 화면이 하지 않는 일을 약속하지 않는다. */}
           <Link to="/diagnose" className="btn btn-primary">
-            {any ? '이 상황으로 진단 시작하기' : '진단 시작하기'}
+            진단 시작하기
           </Link>
         </div>
       </div>

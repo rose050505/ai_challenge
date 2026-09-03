@@ -88,8 +88,17 @@ export const EMPTY_JOURNEY = {
     form2Index: 0,
     form2Extras: [],
   },
-  /** /response 해석 결과. 붙여넣은 원문은 담지 않는다. */
-  response: { interpretation: null, errors: [], catOverrides: {} },
+  /**
+   * /response 해석 결과. 붙여넣은 원문은 담지 않는다.
+   *
+   * manual — AI 분류가 안 될 때(키 없음·파싱 실패·타임아웃) 사용자가 **손으로 채운 표**.
+   *   ★ 전에는 이것을 저장하지 않았다. 화면은 "이후 단계는 동일하게 진행됩니다"라고
+   *     적어 놓고, 새로고침하면 손으로 채운 표가 통째로 사라졌다 (2026-09-03 실측).
+   *     수동 모드는 API 가 죽었을 때의 경로다. 그 경로에서 사용자가 적은 것을 버리지 않는다.
+   *   ★ interpretation 과 따로 둔다. 여기에는 **비어 있는 행까지 그대로** 담긴다 —
+   *     errors 가 이 배열의 자리 번호를 가리키므로, 걸러 담으면 번호가 밀린다.
+   */
+  response: { interpretation: null, manual: null, errors: [], catOverrides: {} },
   /** 인쇄·제출 기록. 서식 id 별로 둔다. */
   milestones: {},
 }
@@ -231,6 +240,22 @@ function refusalConsistency(raw, covered) {
   return { refused, refusalReasonText, excludedByProviso, provisoText }
 }
 
+/**
+ * 수동 분류 모드에서 사용자가 손으로 채운 표.
+ *
+ * ★ 비어 있는 행도 버리지 않는다. errors 가 이 배열의 **자리 번호**를 가리킨다.
+ *   걸러 담으면 뒤 행의 번호가 밀려, 체크한 것이 다른 항목을 가리키게 된다.
+ */
+function normalizeManual(raw) {
+  if (!isObj(raw)) return null
+  const covered = arr(raw.covered).filter((x) => typeof x === 'string')
+  const items = arr(raw.items)
+    .filter(isObj)
+    .map((it) => pickText(it, ['항목', '내용', '분류']))
+  if (covered.length === 0 && items.every((it) => !it['항목'] && !it['내용'])) return null
+  return { covered, items }
+}
+
 /** 사용자가 손으로 바꾼 분류. 키는 항목 번호, 값은 분류 라벨. */
 function normalizeCatOverrides(raw) {
   if (!isObj(raw)) return {}
@@ -343,6 +368,7 @@ export function normalizeJourney(raw) {
     },
     response: {
       interpretation: normalizeInterpretation(r.interpretation),
+      manual: normalizeManual(r.manual),
       errors: arr(r.errors).filter((x) => Number.isInteger(x)),
       catOverrides: normalizeCatOverrides(r.catOverrides),
     },

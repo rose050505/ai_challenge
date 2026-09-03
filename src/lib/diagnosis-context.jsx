@@ -64,6 +64,8 @@ export function DiagnosisProvider({ children }) {
    * 이전 값이 기록된다. 커밋이 끝난 뒤(useEffect)에 저장한다.
    */
   const immediate = useRef(false)
+  /** 마지막으로 실제로 밀어 넣은 여정. 아래 effect 가 "새 값인가"를 이것으로 가른다. */
+  const flushedFor = useRef(journey)
 
   // ── 저장 ──────────────────────────────────────────────────
   const flush = useCallback(() => {
@@ -72,11 +74,36 @@ export function DiagnosisProvider({ children }) {
     if (saveJourney(stamped)) setSavedAt(stamped.updatedAt)
   }, [storageAvailable])
 
-  // 단계 완료로 표시된 변경은 커밋 직후 바로 저장한다
+  /**
+   * 단계 완료로 표시된 변경은 커밋 직후 바로 저장한다.
+   *
+   * ★ 깃발을 **커밋이 끝나기 전에 소진하지 않는다.** (2026-09-03)
+   *   setSection({immediate}) 이 **자식 화면의 마운트 effect** 에서 불리면,
+   *   이 effect 는 같은 커밋에서 (자식 뒤에) 함께 돈다. 그때 journey 는 아직 옛 값이다.
+   *   그대로 flush 하면
+   *     (가) 옛 값을 쓰고, (나) 깃발을 내려 새 값은 영영 저장되지 않으며,
+   *     (다) clearTimeout 이 같은 커밋에서 예약된 debounce 저장까지 취소한다.
+   *
+   *   실제로 그랬다 — 회신 해석에서 "사실과 다르다"고 표시한 정정 행이 서식 2 화면에는
+   *   채워져 있는데 localStorage 에는 없었다. 새로고침하면 사라졌고, 넘겨준 쪽
+   *   (diagnosis.correctionRows)은 이미 비워진 뒤라 되찾을 방법도 없었다.
+   *   `tests/tfix903b.mjs` 가 이 자리를 잠근다.
+   *
+   *   그래서 두 가지를 함께 한다.
+   *     (1) **journey 가 실제로 바뀐 커밋에서만** 깃발을 소진한다.
+   *     (2) **대기 중인 debounce 저장을 취소하지 않는다.**
+   *         (1)만으로는 부족하다 — 화면 전환과 갱신이 한 커밋에 겹치면
+   *         (goNext 는 setSection 과 navigate 를 같은 핸들러에서 부른다)
+   *         이 effect 가 옛 값으로 먼저 밀어 넣으면서, 자식이 방금 예약한
+   *         **아직 반영 전인 값의 저장까지** 취소해 버렸다. 그래서 살려 둔다.
+   *         남아 있는 타이머는 최종 값으로 한 번 더 쓸 뿐이다 — 잃는 것이 없다.
+   */
   useEffect(() => {
     if (!immediate.current) return
+    // 아직 옛 값이다 (자식 effect 가 방금 예약한 갱신이 반영되기 전). 다음 커밋을 기다린다.
+    if (flushedFor.current === journey) return
     immediate.current = false
-    clearTimeout(timer.current)
+    flushedFor.current = journey
     flush()
   }, [journey, flush])
 
@@ -93,11 +120,20 @@ export function DiagnosisProvider({ children }) {
       clearTimeout(timer.current)
       flush()
     }
+    /*
+     * ★ visibilitychange 는 **보이게 될 때도** 발화한다. (2026-09-03)
+     *   그대로 flush 하면 탭을 왔다 갔다 하기만 해도 빈 여정에 updatedAt 이 찍혀,
+     *   journey.updatedAt 만 보는 곳들이 "마지막 저장 …" · "자동으로 불러왔습니다"라고
+     *   말하게 된다. 숨을 때만 민다.
+     */
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') onHide()
+    }
     window.addEventListener('pagehide', onHide)
-    document.addEventListener('visibilitychange', onHide)
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
       window.removeEventListener('pagehide', onHide)
-      document.removeEventListener('visibilitychange', onHide)
+      document.removeEventListener('visibilitychange', onVisibility)
       clearTimeout(timer.current)
     }
   }, [flush])

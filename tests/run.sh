@@ -8,7 +8,7 @@ CDP="${CDP:-http://127.0.0.1:9444}"
 export APP_URL CDP
 
 UNIT="tp tj t1 tpre treason safari tmatrix torigin tquote"
-BROWSER="rename thero tlong tnarrow tpop tgoto tlaw phase1 phase2 phase3 phase4 phase5 phase8 e2e4 journey private afterprint kbd tnext tstrategy tform2 trform ta11y tfacts tour tourkbd tdiag mail samplenote tflow tcold tquoteui"
+BROWSER="rename thero tlong tnarrow tpop tgoto tlaw phase1 phase2 phase3 phase4 phase5 phase8 e2e4 journey private afterprint kbd tnext tstrategy tform2 trform ta11y tfacts tour tourkbd tdiag mail samplenote tflow tcold tquoteui tfix903 tfix903b"
 
 case "${1:-all}" in
   unit)    LIST="$UNIT"; NEED_BROWSER=0 ;;

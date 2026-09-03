@@ -309,9 +309,12 @@ export default function Diagnose() {
             <button
               type="button"
               onClick={() =>
+                /* ★ 빈 문자열이 아니라 null 이다. EMPTY_DIAGNOSIS 와 모양이 같아야
+                     hasSavedContent 가 "저장된 것이 있다"고 잘못 말하지 않는다
+                     (2026-09-03 실측: '' 로 지우면 머리말에 "저장됨"이 남았다). */
                 edit({
-                  eventId: '',
-                  counterpartyId: '',
+                  eventId: null,
+                  counterpartyId: null,
                   institutionSectorId: '',
                   customInstitution: '',
                   reason: '',

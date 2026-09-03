@@ -20,7 +20,7 @@ import {
 import { RESPONSE_SAMPLES, RESPONSE_SAMPLES_NOTICE } from '../data/response-samples.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { interpretResponse } from '../lib/interpret-client.js'
-import { buildCorrectionRows } from '../lib/correction-rows.js'
+import { correctionRowsFrom } from '../lib/correction-rows.js'
 import { PageHeader, Basis, Notice, Status, SlowHint, Elapsed } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import { AI_PROCESSING, TRANSMIT_LIMITS, RESPONSE_RETENTION } from '../data/privacy.js'
@@ -152,20 +152,31 @@ export default function Response() {
   const savedResponse = journey.response
   const [text, setText] = useState('')
   const [sampleId, setSampleId] = useState(null)
-  const [state, setState] = useState(savedResponse.interpretation ? 'done' : 'idle')
+  /** 수동 분류 표의 빈 첫 행 */
+  const blankManualRow = () => ({ 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label })
+  /**
+   * 저장된 것이 AI 해석인가, 손으로 채운 표인가. (2026-09-03)
+   * 둘 다 다시 열어 주되, 화면이 어느 쪽인지 구분해 말한다.
+   */
+  const savedManual = savedResponse.manual ?? null
+  const [state, setState] = useState(
+    savedResponse.interpretation || savedManual ? 'done' : 'idle',
+  )
   const [result, setResult] = useState(
     savedResponse.interpretation
       ? { mode: 'restored', interpretation: savedResponse.interpretation, notice: null }
-      : null,
+      : savedManual
+        ? { mode: 'manual', interpretation: null, notice: null, restored: true }
+        : null,
   )
   const [errors, setErrors] = useState(savedResponse.errors ?? [])
   // 사용자가 직접 고친 분류. 분류는 정정 요구의 근거이므로 최종 판단은 사용자 몫이다.
   const [catOverrides, setCatOverrides] = useState(savedResponse.catOverrides ?? {})
-  // 수동 모드 상태
-  const [manualCovered, setManualCovered] = useState([])
-  const [manualItems, setManualItems] = useState([
-    { 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label },
-  ])
+  // 수동 모드 상태 — 저장된 것이 있으면 그대로 이어서 고칠 수 있게 되살린다
+  const [manualCovered, setManualCovered] = useState(savedManual?.covered ?? [])
+  const [manualItems, setManualItems] = useState(
+    savedManual?.items?.length ? savedManual.items : [blankManualRow()],
+  )
 
   /**
    * @param {{sampleId: string, text: string}} [preset]
@@ -173,6 +184,17 @@ export default function Response() {
    */
   /** 진행 중이면 새 호출을 내보내지 않는다 (Strategy.jsx 의 running 과 같은 이유) */
   const running = useRef(false)
+  /**
+   * 수동 분류 표를 **이번에** 사용자가 손댔는가.
+   *
+   * ★ 손대기 전에는 저장하지 않는다.
+   *   - 방금 수동 모드로 넘어온 빈 표를 저장하면, 아무것도 적지 않은 사람에게
+   *     가짜 "진행 중인 기록"이 생긴다 (Document.jsx 의 touched 와 같은 이유).
+   *   - 저장된 표를 **되살리기만 한** 경우에도 거짓이다. 내용은 이미 있지만,
+   *     보기만 한 방문에 저장 시각이 새로 찍히면 "방금 저장했다"는 말이 된다.
+   *   그래서 되살린 경우에도 거짓으로 시작한다. 실제로 고치면 그때 저장된다.
+   */
+  const manualTouched = useRef(false)
 
   const run = async (preset) => {
     if (running.current) return
@@ -188,14 +210,21 @@ export default function Response() {
       setCatOverrides({})
       if (r.mode === 'manual') {
         setManualCovered([])
-        setManualItems([{ 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label }])
+        setManualItems([blankManualRow()])
+        manualTouched.current = false
       }
       setState('done')
-      // 단계 완료 — 해석 결과만 저장한다 (원문 전체는 저장하지 않는다)
+      /*
+       * 단계 완료 — 해석 결과만 저장한다 (원문 전체는 저장하지 않는다).
+       * ★ 수동 모드는 여기서 **아무것도 저장하지 않는다.** 방금 열린 빈 표를 저장하면
+       *   아무것도 적지 않은 사람에게 "진행 중인 기록"이 생긴다 (Document.jsx 의 touched 와 같은 이유).
+       *   사용자가 실제로 채우면 아래 effect 가 저장한다.
+       */
       setSection(
         'response',
         {
           interpretation: r.mode === 'manual' ? null : r.interpretation,
+          manual: null,
           errors: [],
           catOverrides: {},
         },
@@ -246,41 +275,85 @@ export default function Response() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
 
-  // 수동 모드에서 만든 해석 결과를 AI 결과와 같은 모양으로 맞춘다
+  const isManual = result?.mode === 'manual'
+
+  /**
+   * 수동 모드에서 만든 해석 결과를 AI 결과와 같은 모양으로 맞춘다.
+   *
+   * ★ 각 항목에 `_key` — **`manualItems` 안에서의 자리 번호** — 를 붙인다. (2026-09-03)
+   *   전에는 걸러낸 배열의 자리 번호를 그대로 썼다. 그래서 앞 행의 이름을 지우면
+   *   목록이 한 칸 당겨지고, **체크한 것이 조용히 다른 항목을 가리켰다.**
+   *   실측: A·B 중 B를 체크한 뒤 A의 이름을 지우면 화면에는 체크가 하나도 없는데
+   *   "1건이 서식 2로 넘어갑니다"라고 말하고, 실제로 넘어간 것은 0건이었다.
+   *   `_key` 는 거르기 전 자리이므로 앞 행이 사라져도 움직이지 않는다.
+   */
   const manualInterpretation = {
     covered: manualCovered,
     missing: RESPONSE_TYPE_IDS.filter((id) => !manualCovered.includes(id)),
     // 사용자가 직접 표시한 것이다. 인용할 회신 문장이 따로 없다.
     coveredEvidence: {},
-    baseInfoItems: manualItems.filter((i) => i.항목.trim()),
+    baseInfoItems: manualItems
+      .map((it, i) => ({ ...it, _key: i }))
+      .filter((it) => it.항목.trim()),
     refused: false,
     refusalReasonText: '',
     excludedByProviso: false,
     provisoText: '',
   }
 
-  const interpretation =
-    result?.mode === 'manual' ? manualInterpretation : (result?.interpretation ?? null)
+  const interpretation = isManual ? manualInterpretation : (result?.interpretation ?? null)
 
-  // 서버가 법정 정의로 보정한 분류 위에 사용자의 선택을 덮어쓴다.
-  const items = (interpretation?.baseInfoItems ?? []).map((it, i) =>
-    catOverrides[i] ? { ...it, 분류: catOverrides[i] } : it,
-  )
+  /**
+   * 손으로 채운 표를 저장한다.
+   *
+   * ★ 비어 있는 행까지 그대로 담는다. errors 가 자리 번호를 가리키므로
+   *   걸러 담으면 되살릴 때 번호가 밀린다 (journey-storage normalizeManual 주석).
+   */
+  useEffect(() => {
+    if (!isManual || !manualTouched.current) return
+    setSection('response', { manual: { covered: manualCovered, items: manualItems } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isManual, manualCovered, manualItems])
+
+  const editManualCovered = (fn) => {
+    manualTouched.current = true
+    setManualCovered(fn)
+  }
+  const editManualItems = (fn) => {
+    manualTouched.current = true
+    setManualItems(fn)
+  }
+
+  /**
+   * 화면에 그리는 항목.
+   * `_key` 는 항목의 고유 열쇠다 — AI 경로에서는 baseInfoItems 의 자리 번호(옛 기록과 같다),
+   * 수동 경로에서는 manualItems 의 자리 번호. errors·catOverrides 는 이 열쇠로 센다.
+   */
+  const items = (interpretation?.baseInfoItems ?? []).map((it, i) => {
+    const key = it._key ?? i
+    return catOverrides[key] ? { ...it, _key: key, 분류: catOverrides[key] } : { ...it, _key: key }
+  })
+  /**
+   * ★ 실제로 표시된 항목만 센다.
+   *   errors 에 남아 있으나 지금 목록에 없는 열쇠는 셈에서 빠진다 —
+   *   그래야 화면이 말하는 개수와 실제로 넘어가는 개수가 언제나 같다.
+   */
+  const errorItems = items.filter((it) => errors.includes(it._key))
   // 수동 모드에서는 표 안에서 이미 분류를 고르므로 별도 보정 UI를 띄우지 않는다.
-  const showCategoryPicker = result?.mode !== 'manual'
+  const showCategoryPicker = !isManual
   const excluded = interpretation?.excludedByProviso === true
 
-  const toggleError = (i) =>
+  const toggleError = (key) =>
     setErrors((p) => {
-      const next = p.includes(i) ? p.filter((x) => x !== i) : [...p, i]
+      const next = p.includes(key) ? p.filter((x) => x !== key) : [...p, key]
       setSection('response', { errors: next })
       return next
     })
 
   const goNext = (action) => {
     // 회신에서 읽은 값을 서식으로 넘긴다. 정정 내용은 사용자가 채운다.
-    // ★ 둘러보기도 같은 함수를 쓴다. 변환이 두 곳으로 갈라지면 언젠가 어긋난다.
-    const rows = buildCorrectionRows(items, errors)
+    // ★ 둘러보기도 같은 변환을 쓴다. 두 곳으로 갈라지면 언젠가 어긋난다.
+    const rows = correctionRowsFrom(errorItems)
     setSection(
       'diagnosis',
       {
@@ -293,7 +366,7 @@ export default function Response() {
   }
 
   const action = interpretation
-    ? decideNextAction({ interpretation, errorCount: errors.length })
+    ? decideNextAction({ interpretation, errorCount: errorItems.length })
     : null
 
   return (
@@ -376,7 +449,9 @@ export default function Response() {
             <button
               ref={runBtnRef}
               type="button"
-              onClick={run}
+              /* ★ onClick={run} 이면 클릭 이벤트가 preset 으로 들어간다.
+                    지금은 event 에 sampleId·text 가 없어 우연히 동작할 뿐이다. */
+              onClick={() => run()}
               disabled={!text.trim()}
               className="btn btn-primary"
             >
@@ -412,6 +487,15 @@ export default function Response() {
               </p>
             </Notice>
           )}
+          {/* 손으로 채운 표를 되살렸을 때. AI 해석과 구분해 말한다. (2026-09-03) */}
+          {isManual && result.restored && (
+            <Notice title="직접 분류하신 결과를 불러왔습니다" mark="i">
+              <p>
+                {RESPONSE_RETENTION.restoredManual} 새 회신을 넣으시려면 아래 [다른 회신 넣기]를
+                누르세요.
+              </p>
+            </Notice>
+          )}
           {result.notice && (
             <Notice title="안내" aria-live="polite">
               <p>{result.notice}</p>
@@ -425,7 +509,7 @@ export default function Response() {
                 <p className="text-lg font-bold text-gray-900">직접 분류하기</p>
                 <p className="mt-1 text-gray-600">
                   받으신 회신에 어떤 내용이 있었는지 직접 표시해 주세요. 이후 단계는 동일하게
-                  진행됩니다.
+                  진행됩니다. 여기 적으신 것도 이 브라우저에 저장돼, 다시 오셔도 남아 있습니다.
                 </p>
               </div>
               <fieldset>
@@ -438,7 +522,7 @@ export default function Response() {
                           type="checkbox"
                           checked={manualCovered.includes(t.id)}
                           onChange={() =>
-                            setManualCovered((p) =>
+                            editManualCovered((p) =>
                               p.includes(t.id) ? p.filter((x) => x !== t.id) : [...p, t.id],
                             )
                           }
@@ -486,7 +570,7 @@ export default function Response() {
                               value={it.항목}
                               aria-label={`${i + 1}번째 항목 이름`}
                               onChange={(e) =>
-                                setManualItems((p) =>
+                                editManualItems((p) =>
                                   p.map((x, j) => (j === i ? { ...x, 항목: e.target.value } : x)),
                                 )
                               }
@@ -498,7 +582,7 @@ export default function Response() {
                               value={it.내용}
                               aria-label={`${i + 1}번째 항목 내용`}
                               onChange={(e) =>
-                                setManualItems((p) =>
+                                editManualItems((p) =>
                                   p.map((x, j) => (j === i ? { ...x, 내용: e.target.value } : x)),
                                 )
                               }
@@ -510,7 +594,7 @@ export default function Response() {
                               value={it.분류}
                               aria-label={`${i + 1}번째 항목 분류`}
                               onChange={(e) =>
-                                setManualItems((p) =>
+                                editManualItems((p) =>
                                   p.map((x, j) => (j === i ? { ...x, 분류: e.target.value } : x)),
                                 )
                               }
@@ -531,10 +615,7 @@ export default function Response() {
                 <button
                   type="button"
                   onClick={() =>
-                    setManualItems((p) => [
-                      ...p,
-                      { 항목: '', 내용: '', 분류: BASE_INFO_CATEGORIES[0].label },
-                    ])
+                    editManualItems((p) => [...p, blankManualRow()])
                   }
                   className="btn btn-quiet mt-3"
                 >
@@ -655,9 +736,8 @@ export default function Response() {
                   사실과 다른 항목에 표시하세요. 표시한 항목이 정정·삭제 요구서로 넘어갑니다.
                 </p>
                 {BASE_INFO_CATEGORIES.map((cat) => {
-                  const rows = items
-                    .map((it, i) => ({ it, i }))
-                    .filter(({ it }) => it.분류 === cat.label)
+                  /* 열쇠(_key)로 센다. 자리 번호가 아니다 — items 주석 참조. */
+                  const rows = items.filter((it) => it.분류 === cat.label)
                   if (rows.length === 0) return null
                   return (
                     <div key={cat.id} className="mb-4">
@@ -666,11 +746,13 @@ export default function Response() {
                         <Basis>{cat.lawBasis}</Basis>
                       </p>
                       <ul className="mt-2 space-y-2">
-                        {rows.map(({ it, i }) => (
+                        {rows.map((it) => {
+                          const k = it._key
+                          return (
                           <li
-                            key={i}
+                            key={k}
                             className={`rounded-md border p-3 ${
-                              errors.includes(i)
+                              errors.includes(k)
                                 ? 'border-amber-500 bg-amber-50'
                                 : 'border-gray-400 bg-white'
                             }`}
@@ -678,15 +760,15 @@ export default function Response() {
                             <label className="flex cursor-pointer items-start gap-3">
                               <input
                                 type="checkbox"
-                                checked={errors.includes(i)}
-                                onChange={() => toggleError(i)}
+                                checked={errors.includes(k)}
+                                onChange={() => toggleError(k)}
                                 className="mt-1 h-5 w-5 shrink-0 accent-ink-700"
                               />
                               <span className="min-w-0 flex-1">
                                 <span className="font-bold text-gray-900">{it.항목}</span>
                                 {it.내용 && <span className="text-gray-700"> — {it.내용}</span>}
                                 <span className="mt-0.5 block text-sm text-gray-600">
-                                  {errors.includes(i) ? (
+                                  {errors.includes(k) ? (
                                     <>
                                       <span aria-hidden="true">✓ </span>
                                       사실과 다르다고 표시했습니다
@@ -700,17 +782,17 @@ export default function Response() {
                             {showCategoryPicker && (
                               <div className="mt-2 pl-8">
                                 <label
-                                  htmlFor={`cat-${i}`}
+                                  htmlFor={`cat-${k}`}
                                   className="mr-2 text-sm text-gray-600"
                                 >
                                   분류
                                 </label>
                                 <select
-                                  id={`cat-${i}`}
+                                  id={`cat-${k}`}
                                   value={it.분류}
                                   onChange={(e) =>
                                     setCatOverrides((p) => {
-                                      const next = { ...p, [i]: e.target.value }
+                                      const next = { ...p, [k]: e.target.value }
                                       setSection('response', { catOverrides: next })
                                       return next
                                     })
@@ -723,7 +805,7 @@ export default function Response() {
                                     </option>
                                   ))}
                                 </select>
-                                {it.correctedFrom && catOverrides[i] === undefined && (
+                                {it.correctedFrom && catOverrides[k] === undefined && (
                                   <p className="mt-2 text-sm text-gray-600">
                                     AI는 「{it.correctedFrom}」로 분류했으나 법 정의에 따라
                                     바로잡았습니다. 다르다고 보시면 직접 고치세요.{' '}
@@ -752,7 +834,8 @@ export default function Response() {
                               </div>
                             )}
                           </li>
-                        ))}
+                          )
+                        })}
                       </ul>
                     </div>
                   )
@@ -862,10 +945,14 @@ export default function Response() {
                     setSampleId(null)
                     setErrors([])
                     setCatOverrides({})
+                    setManualCovered([])
+                    setManualItems([blankManualRow()])
+                    manualTouched.current = false
                     // 저장된 해석도 함께 비운다. 안 그러면 새로고침 때 옛 결과가 되살아난다.
+                    // ★ 손으로 채운 표(manual)도 같이 비운다. 하나만 지우면 되살아난다.
                     setSection(
                       'response',
-                      { interpretation: null, errors: [], catOverrides: {} },
+                      { interpretation: null, manual: null, errors: [], catOverrides: {} },
                       { immediate: true },
                     )
                   }}

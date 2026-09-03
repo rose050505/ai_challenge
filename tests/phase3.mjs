@@ -43,8 +43,13 @@ t_('근거 조문 두 개', b1.includes('법 제2조제14호') && b1.includes('�
 t_('항목 자체엔 조문이 없다', !/이유를 정확히 듣지 못했다[^\n]*제\d+조/.test(b1))
 const live = await ev(`(()=>{const el=[...document.querySelectorAll('[aria-live]')].find(e=>e.textContent.includes('가능성'));return el? el.getAttribute('aria-live'):null})()`)
 t_('결과가 낭독 영역', live==='polite')
-const cta = await ev(`(()=>{const a=[...document.querySelectorAll('a')].find(e=>e.textContent.includes('이 상황으로 진단 시작하기'));return a? a.getAttribute('href'):null})()`)
+/* ★ 라벨은 체크 여부와 무관하게 하나다. (2026-09-03)
+      "이 상황으로 진단 시작하기"였는데 링크는 그냥 /diagnose 라 고른 항목이 넘어가지
+      않았다. 자가진단 항목은 사건 유형과 1:1 이 아니어서 넘길 것도 없다.
+      화면이 하지 않는 일을 약속하지 않는다 — 그래서 없어진 문구도 함께 잠근다. */
+const cta = await ev(`(()=>{const a=[...document.querySelectorAll('a')].find(e=>e.textContent.trim()==='진단 시작하기');return a? a.getAttribute('href'):null})()`)
 t_('진단으로 연결', cta==='/diagnose')
+t_('넘기지도 않을 것을 약속하지 않는다', !b1.includes('이 상황으로 진단 시작하기'))
 
 // 무엇을 해 드리나요
 t_('3단계 요약', b1.includes('무엇을 해 드리나요') && b1.includes('어떤 권리를 쓸 수 있는지'))

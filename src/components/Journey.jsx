@@ -55,6 +55,8 @@ export function lastStep(journey) {
     return { label: '서식 인쇄', to: '/document', detail: `${milestoneLabel(printed[0], journey)} 인쇄` }
   }
   if (journey.response?.interpretation) return { label: '회신 해석', to: '/response', detail: '해석 결과 저장됨' }
+  // AI 분류가 안 될 때 손으로 채운 표도 여기까지 온 기록이다 (2026-09-03)
+  if (journey.response?.manual) return { label: '회신 해석', to: '/response', detail: '직접 분류한 결과 저장됨' }
   const f = journey.form ?? {}
   const hasForm =
     f.personal?.name ||

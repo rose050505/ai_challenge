@@ -739,7 +739,10 @@ function DocumentSheet({ activeCase, form2Index }) {
   const [personal, setPersonalState] = useState(
     savedForm.personal ?? { name: '', phone: '', email: '' },
   )
-  const setPersonal = (k, v) => setPersonalState((p) => ({ ...p, [k]: v }))
+  const setPersonal = (k, v) => {
+    markTouched()
+    setPersonalState((p) => ({ ...p, [k]: v }))
+  }
 
   // 서식 2
   const [enabled, setEnabled] = useState(savedF2.enabled ?? { s2: true, s3: true, s4: true })
@@ -780,10 +783,44 @@ function DocumentSheet({ activeCase, form2Index }) {
   const [recipient, setRecipient] = useState(savedF2.recipient ?? '')
 
   /**
+   * 이 화면에서 사용자가 **실제로 손댔는가.** (2026-09-03)
+   *
+   * ★ 손대기 전에는 저장하지 않는다.
+   *   전에는 아래 자동 저장이 **마운트 시점에** 기본값을 그대로 써 버렸다.
+   *   그런데 그 기본값은 EMPTY_JOURNEY 와 모양이 다르다 —
+   *     tab: 'explanationRequest' (EMPTY: null) · selectedItems: [] (null) ·
+   *     enabled: {s2,s3,s4} (null) · rows: {} (null) · favorable: 빈 행 3개 (null)
+   *   그래서 hasSavedContent 가 참이 되고, **아무것도 입력하지 않은 사람에게**
+   *   "저장됨" · "진행 중인 기록이 있습니다 · 마지막 단계 — 서식 작성" ·
+   *   "이 브라우저에 저장된 내용을 자동으로 불러왔습니다" 가 떴다.
+   *   무엇보다 **첫 화면의 둘러보기가 자동으로 열리지 않았다**
+   *   (shouldAutoOpen 이 hasProgress 로 막는다). 심사자가 네비의 [서식]을
+   *   먼저 눌러 보면 2분 둘러보기를 영영 만나지 못한다. (2026-09-03 실측)
+   *
+   * ★ 판정(hasSavedContent · lastStep)을 고쳐 우회하지 않는다.
+   *   그러면 저장 쪽과 판정 쪽 두 곳을 영원히 맞춰야 한다.
+   *   저장하지 말아야 할 것을 저장하지 않는 것이 뿌리다.
+   *
+   * ★ 다른 화면에서 값이 넘어왔으면(handoff) 그것은 사용자의 방금 행동이므로
+   *   처음부터 손댄 것으로 본다. 넘어온 값은 저장해야 한다 —
+   *   위 effect 가 diagnosis 쪽 원본을 곧바로 비우기 때문이다.
+   */
+  const handedOff =
+    handoff.requestItems.length > 0 ||
+    handoff.correctionRows.length > 0 ||
+    handoff.candidates.length > 0
+  const touched = useRef(handedOff)
+  /** 저장을 여는 열쇠. 값을 바꾸는 모든 자리에서 부른다. */
+  const markTouched = () => {
+    touched.current = true
+  }
+
+  /**
    * 서식 내용 자동 저장.
    * 타이핑 중마다 쓰지 않는다 — setSection 이 입력이 멈춘 뒤(1.5초) 한 번 저장한다.
    */
   useEffect(() => {
+    if (!touched.current) return
     const f1 = { selectedItems, hopeResult, consent }
     const f2 = { enabled, rows, favorable, recipient }
     setSection('form', (prev) => {
@@ -803,12 +840,42 @@ function DocumentSheet({ activeCase, form2Index }) {
     (r) => (r?.current ?? '').trim() || (r?.correction ?? '').trim(),
   )
 
-  const toggleItem = (id) =>
+  /*
+   * ★ 값을 바꾸는 자리는 **전부** markTouched 를 지난다 (위 touched 주석).
+   *   여기를 빠뜨리면 그 칸만 저장되지 않는다. 새 입력을 더할 때도 이 규칙을 지킨다.
+   */
+  const toggleItem = (id) => {
+    markTouched()
     setSelectedItems((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-  const setRow = (catId, field, value) =>
+  }
+  const setRow = (catId, field, value) => {
+    markTouched()
     setRows((prev) => ({ ...prev, [catId]: { ...prev[catId], [field]: value } }))
-  const setFavorableCell = (i, field, value) =>
+  }
+  const setFavorableCell = (i, field, value) => {
+    markTouched()
     setFavorable((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)))
+  }
+  const editHopeResult = (v) => {
+    markTouched()
+    setHopeResult(v)
+  }
+  const editConsent = (v) => {
+    markTouched()
+    setConsent(v)
+  }
+  const editEnabled = (fn) => {
+    markTouched()
+    setEnabled(fn)
+  }
+  const editRecipient = (v) => {
+    markTouched()
+    setRecipient(v)
+  }
+  const editTab = (v) => {
+    markTouched()
+    setTab(v)
+  }
 
   const s4 = FORM_CORRECTION_REQUEST.sections[3]
   const isForm1 = tab === FORM_EXPLANATION_REQUEST.id
@@ -974,7 +1041,7 @@ function DocumentSheet({ activeCase, form2Index }) {
     favorable,
     setFavorable: setFavorableCell,
     recipient,
-    setRecipient,
+    setRecipient: editRecipient,
     needsRecipient: Boolean(branch?.requiresRecipientInput),
     institutionShortLabel,
     s2HasContent,
@@ -1142,7 +1209,7 @@ function DocumentSheet({ activeCase, form2Index }) {
           <button
             key={f.id}
             type="button"
-            onClick={() => setTab(f.id)}
+            onClick={() => editTab(f.id)}
             aria-pressed={tab === f.id}
             className={`flex-1 rounded-md border px-4 py-3 text-left ${
               tab === f.id
@@ -1214,7 +1281,7 @@ function DocumentSheet({ activeCase, form2Index }) {
                   <Checkbox
                     checked={enabled[sec.id] && !blocked}
                     disabled={blocked}
-                    onChange={(v) => setEnabled((p) => ({ ...p, [sec.id]: v }))}
+                    onChange={(v) => editEnabled((p) => ({ ...p, [sec.id]: v }))}
                   >
                     {sec.title} — {RIGHTS_BY_ID[sec.right].label}{' '}
                     <Basis>{sec.basis}</Basis>
@@ -1255,9 +1322,9 @@ function DocumentSheet({ activeCase, form2Index }) {
             personal={personal}
             setPersonal={setPersonal}
             consent={consent}
-            setConsent={setConsent}
+            setConsent={editConsent}
             hopeResult={hopeResult}
-            setHopeResult={setHopeResult}
+            setHopeResult={editHopeResult}
           />
           {/* 서식 1의 쪽 수도 가정이 아니라 측정으로 표시한다 */}
           <SheetHeightProbe onPageCount={setForm1PageCount}>
@@ -1267,9 +1334,9 @@ function DocumentSheet({ activeCase, form2Index }) {
               personal={personal}
               setPersonal={setPersonal}
               consent={consent}
-              setConsent={setConsent}
+              setConsent={editConsent}
               hopeResult={hopeResult}
-              setHopeResult={setHopeResult}
+              setHopeResult={editHopeResult}
             />
           </SheetHeightProbe>
         </>

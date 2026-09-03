@@ -20,7 +20,15 @@ import { TRANSMIT_LIMITS } from '../src/data/privacy.js'
 
 const MODEL = 'claude-sonnet-5'
 const MAX_TOKENS = 2048
-/** Vercel 함수 maxDuration(30s)보다 짧게 잡아 함수가 죽기 전에 우리가 에러를 반환한다 */
+/**
+ * Vercel 함수 maxDuration(30s)보다 짧게 잡아 함수가 죽기 전에 우리가 에러를 반환한다.
+ *
+ * ★ 이 보장은 **재시도가 없을 때만** 성립한다. (2026-09-03)
+ *   maxRetries: 1 이던 동안에는 22s × 2 = 최대 44s 라 30s 에서 함수가 먼저 죽었고,
+ *   클라이언트는 그보다 앞선 25s 에 이미 폴백으로 넘어가 있었다.
+ *   즉 **재시도의 응답은 누구도 읽지 않은 채 과금만 됐다.**
+ *   그래서 maxRetries: 0 이다. 이 값을 올리려면 TIMEOUT_MS 도 함께 내려야 한다.
+ */
 const TIMEOUT_MS = 22_000
 
 /**
@@ -218,7 +226,7 @@ export default async function handler(req, res) {
     .filter(Boolean)
     .join('\n')
 
-  const client = new Anthropic({ apiKey, timeout: TIMEOUT_MS, maxRetries: 1 })
+  const client = new Anthropic({ apiKey, timeout: TIMEOUT_MS, maxRetries: 0 })
 
   try {
     const response = await client.messages.create({
