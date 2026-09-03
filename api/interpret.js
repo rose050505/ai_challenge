@@ -69,6 +69,12 @@ ${RESPONSE_TYPES.map((t) => `- ${t.id}: ${t.label}\n  (금융회사는 보통 �
 
 회신문에 각 유형의 내용이 실제로 담겨 있으면 covered 에, 없으면 missing 에 넣으십시오.
 
+[근거 문장 — 무엇을 보고 "받았다"고 했는가]
+covered 에 넣은 유형마다, 그렇게 판단한 근거가 되는 문장을 coveredEvidence 에 적으십시오.
+- 회신문에 있는 문장을 **그대로 한 문장** 옮기십시오. 요약하거나 고쳐 쓰지 마십시오.
+- 없는 문장을 지어내지 마십시오. 옮길 문장이 없으면 그 유형은 아예 넣지 마십시오.
+- missing 인 유형에는 근거 문장이 없습니다. 없는 것의 근거는 인용할 수 없습니다.
+
 [기초정보 항목 추출]
 회신문에 개별 정보 항목이 열거되어 있으면 baseInfoItems 로 뽑으십시오.
 각 항목의 "분류"는 반드시 아래 다섯 중 하나여야 합니다. 법이 정한 정의와 예시입니다.
@@ -106,6 +112,7 @@ refusalReasonText 에는 A의 사유 문장을, provisoText 에는 B의 문장�
 {
   "covered": ["result"],
   "missing": ["criteria", "baseInfo"],
+  "coveredEvidence": { "result": "회신문에서 그대로 옮긴 한 문장" },
   "baseInfoItems": [
     { "항목": "항목 이름", "내용": "회신에 적힌 값", "분류": "${CATEGORY_LABELS[0]}" }
   ],
@@ -153,14 +160,43 @@ export function correctCategory(name, claimed) {
   return { 분류: claimed, correctedFrom: null, correctionBasis: null }
 }
 
+/** 인용 대조용. 줄바꿈·공백·불릿 기호의 차이로 어긋나지 않게 눌러서 본다. */
+const squash = (s) => String(s ?? '').replace(/\s+/g, '')
+/** 인용 한 문장의 상한. 회신 전체를 "인용"이라며 통째로 실어 보내는 것을 막는다. */
+const MAX_QUOTE_CHARS = 300
+
+/**
+ * 인용 검산. (테스트용 export)
+ *
+ * ★ 이 값은 "회신문에 이렇게 적혀 있다"는 주장이다. 대조 없이 보여주면
+ *   그 주장이 거짓일 수 있다. 회신 원문에 **그대로 있는 말**만 남긴다.
+ *
+ * ★ 판정은 건드리지 않는다. 인용이 틀리면 인용만 버린다.
+ *   (원문을 못 받은 경우 — responseText 가 비면 — 검산할 방법이 없으므로
+ *    아무것도 남기지 않는다. 확인 못 한 것은 표시하지 않는다.)
+ *
+ * @returns {string} 원문에 있으면 다듬은 인용, 아니면 ''
+ */
+export function verifiedQuote(quote, responseText) {
+  const text = String(quote ?? '').trim().slice(0, MAX_QUOTE_CHARS)
+  if (!text) return ''
+  const hay = squash(responseText)
+  if (!hay) return ''
+  return hay.includes(squash(text)) ? text : ''
+}
+
 /**
  * 서버 가드. 클라이언트도 LLM도 믿지 않는다. (테스트용 export)
  * - covered/missing 은 세 리터럴 외 전부 버린다
  * - 분류는 5분류로 강제하고, 벗어나면 "기타 정보"로 귀속시킨 뒤 법정 정의로 보정한다
  * - baseInfoItems 는 최대 20개
  * - ★ 거절(법 §36-2③)과 법정 제외(시행령 §31-2⑧3호 단서)의 논리 검증
+ * - ★ 인용(coveredEvidence·refusalReasonText·provisoText)은 회신 원문과 대조한다
+ *
+ * @param {object} parsed LLM 이 낸 JSON
+ * @param {string} [responseText] 붙여넣은 회신 원문. 주면 인용을 대조한다.
  */
-export function applyInterpretGuards(parsed) {
+export function applyInterpretGuards(parsed, responseText = '') {
   const pickIds = (arr) =>
     [...new Set((Array.isArray(arr) ? arr : []).filter((x) => RESPONSE_TYPE_IDS.includes(x)))]
 
@@ -210,9 +246,40 @@ export function applyInterpretGuards(parsed) {
     }
   }
 
+  /*
+   * ★ 인용 검산 — **논리 검증이 끝난 뒤에** 한다. (2026-09-02)
+   *
+   *   순서가 중요하다. 위 블록은 refusalReasonText 가 있는지를 보고 판정을 옮긴다.
+   *   검산을 먼저 해서 인용을 지워 버리면 **판정이 따라 바뀐다.** 그것은 이 변경의
+   *   범위가 아니다 — 우리는 인용만 더한다. 그래서 판정을 확정한 뒤 인용을 손본다.
+   *
+   *   결과적으로 "제외로 판정했으나 인용은 없음"이 나올 수 있다. 지어낸 문장을
+   *   회신에 있는 척 보여주는 것보다 낫다.
+   *
+   *   대조할 원문이 없으면(단위 시험 등) 건너뛴다. 핸들러는 항상 원문을 넘긴다.
+   */
+  const verify = squash(responseText).length > 0
+  if (verify) {
+    refusalReasonText = verifiedQuote(refusalReasonText, responseText)
+    provisoText = verifiedQuote(provisoText, responseText)
+  }
+
+  // 받았다고 판정한 유형에만, 원문에 실제로 있는 문장만 남긴다
+  const coveredEvidence = {}
+  const rawEvidence = parsed?.coveredEvidence
+  if (rawEvidence && typeof rawEvidence === 'object') {
+    for (const id of covered) {
+      const q = String(rawEvidence[id] ?? '').trim().slice(0, MAX_QUOTE_CHARS)
+      if (!q) continue
+      const kept = verify ? verifiedQuote(q, responseText) : q
+      if (kept) coveredEvidence[id] = kept
+    }
+  }
+
   return {
     covered,
     missing,
+    coveredEvidence,
     baseInfoItems: items,
     refused,
     refusalReasonText,
@@ -266,7 +333,8 @@ export default async function handler(req, res) {
     const parsed = parseInterpretation(text)
     if (!parsed) return res.status(502).json({ error: 'unparsable_response' })
 
-    return res.status(200).json(applyInterpretGuards(parsed))
+    // ★ 원문을 함께 넘긴다. 인용이 회신에 실제로 있는지 서버가 대조한다.
+    return res.status(200).json(applyInterpretGuards(parsed, responseText))
   } catch (err) {
     // 회신 본문은 로깅하지 않는다. 에러 종류만 구분한다.
     if (err instanceof Anthropic.APIConnectionTimeoutError) {

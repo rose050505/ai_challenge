@@ -94,8 +94,14 @@ function decideNextAction({ interpretation, errorCount }) {
 /**
  * 받음/못 받음 표시.
  * 색만으로 알리지 않는다. 글리프(✓ / ✕)와 글자("받음" / "못 받음")를 함께 둔다.
+ *
+ * ★ evidence — "무엇을 보고 받았다고 했는가". (2026-09-02)
+ *   /strategy 의 선정이유와 같은 원리다. 라이브 경로에서는 서버가 이 문장이 회신
+ *   원문에 그대로 있는지 대조하고, 없으면 버린다(api/interpret.js verifiedQuote).
+ *   그래서 여기 문장이 보이면 그것은 **회신문에 실제로 있는 말**이다.
+ *   못 받은 것에는 근거가 없다 — 없는 문장은 인용할 수 없다.
  */
-function TypeRow({ type, got }) {
+function TypeRow({ type, got, evidence }) {
   return (
     <li
       className={`rounded-md border p-3 ${
@@ -119,6 +125,14 @@ function TypeRow({ type, got }) {
             <Basis prefix="근거">{type.basis}</Basis>
             <Basis prefix="관련">{type.relatedRightBasis}</Basis>
           </span>
+          {got && evidence && (
+            <div className="mt-3 border-l-4 border-ink-300 bg-gray-50 py-2 pl-3">
+              <p className="text-sm text-gray-600">회신문의 이 문장 때문입니다</p>
+              <blockquote className="mt-1 whitespace-pre-line text-gray-800">
+                &ldquo;{evidence}&rdquo;
+              </blockquote>
+            </div>
+          )}
         </div>
       </div>
     </li>
@@ -236,6 +250,8 @@ export default function Response() {
   const manualInterpretation = {
     covered: manualCovered,
     missing: RESPONSE_TYPE_IDS.filter((id) => !manualCovered.includes(id)),
+    // 사용자가 직접 표시한 것이다. 인용할 회신 문장이 따로 없다.
+    coveredEvidence: {},
     baseInfoItems: manualItems.filter((i) => i.항목.trim()),
     refused: false,
     refusalReasonText: '',
@@ -533,7 +549,12 @@ export default function Response() {
             <h2 className="mb-3 text-[1.375rem] font-semibold text-gray-900">무엇을 받았나요</h2>
             <ul className="space-y-2">
               {RESPONSE_TYPES.map((t) => (
-                <TypeRow key={t.id} type={t} got={interpretation.covered.includes(t.id)} />
+                <TypeRow
+                  key={t.id}
+                  type={t}
+                  got={interpretation.covered.includes(t.id)}
+                  evidence={interpretation.coveredEvidence?.[t.id]}
+                />
               ))}
             </ul>
             {interpretation.missing.length > 0 && (

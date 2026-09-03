@@ -54,7 +54,11 @@ for (const [w, h] of [[375, 667], [1280, 900]]) {
   await send('Network.clearBrowserCache'); await send('Network.clearBrowserCookies')
   await send('Page.navigate', { url: BASE + '/' }); await sleep(1200)
   await ev(`try{localStorage.clear();sessionStorage.clear()}catch(e){}`)
-  const idf = (await send('Page.addScriptToEvaluateOnNewDocument', { source: PROBE })).result?.result?.identifier
+  /* ★ 응답 모양은 {id, result:{identifier}} 다. 한 겹 더 들어가면 undefined 가 되고,
+     그러면 아래 remove 가 실행되지 않아 **탐침이 탭에 눌어붙는다.**
+     실제로 그랬다 (2026-09-02): 뒤에 도는 시험마다 탐침이 다시 실행되면서
+     "Identifier 'tick' has already been declared" 예외가 나, 관계없는 시험이 실패했다. */
+  const idf = (await send('Page.addScriptToEvaluateOnNewDocument', { source: PROBE })).result?.identifier
   await send('Page.navigate', { url: BASE + '/?cold=' + Date.now() }); await sleep(3400)
   const d = JSON.parse(await ev(`JSON.stringify({
     ...window.__c,

@@ -164,12 +164,33 @@ function normalizeCorrectionRow(raw) {
  *   covered/missing 의 유형 id 는 화면이 사전에서 찾아 쓰므로, 문자열이 아닌 것은 버린다.
  *   (모르는 id 가 남아도 화면이 죽지 않도록 조회 쪽에도 보호를 뒀다.)
  */
+/**
+ * 근거 인용. (2026-09-02)
+ *
+ * ★ 서버는 이 문장이 회신 원문에 그대로 있는지 대조하고 없으면 버린다
+ *   (api/interpret.js verifiedQuote). 불러온 파일은 그 경로를 거치지 않는데,
+ *   **원문은 저장하지 않으므로 여기서 다시 대조할 방법이 없다.**
+ *   그래서 할 수 있는 것만 한다 — 받았다고 한 유형의 것만, 문자열만, 길이를 잘라 남긴다.
+ *   (기초정보 항목의 값도 같은 성격이다. 그것과 다르게 취급할 이유가 없다.)
+ */
+const MAX_QUOTE_CHARS = 300
+function normalizeEvidence(raw, covered) {
+  const out = {}
+  if (!isObj(raw)) return out
+  for (const id of covered) {
+    const q = text(raw[id]).trim().slice(0, MAX_QUOTE_CHARS)
+    if (q) out[id] = q
+  }
+  return out
+}
+
 function normalizeInterpretation(raw) {
   if (!isObj(raw)) return null
   const ids = (v) => arr(v).filter((x) => typeof x === 'string')
   return {
     covered: ids(raw.covered),
     missing: ids(raw.missing),
+    coveredEvidence: normalizeEvidence(raw.coveredEvidence, ids(raw.covered)),
     baseInfoItems: arr(raw.baseInfoItems)
       .filter(isObj)
       .map((it) => pickText(it, ['항목', '내용', '분류', 'correctedFrom', 'correctionBasis']))
