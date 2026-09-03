@@ -23,6 +23,7 @@
  * ────────────────────────────────────────────────────────────────
  */
 import Anthropic from '@anthropic-ai/sdk'
+import { rejectForeignOrigin } from './_origin.js'
 import {
   RESPONSE_TYPES,
   RESPONSE_TYPE_IDS,
@@ -225,6 +226,8 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'method_not_allowed' })
   }
+  // ★ 키 확인보다 먼저 — 낯선 출처는 키가 있든 없든 403 이다 (_origin.js)
+  if (rejectForeignOrigin(req, res)) return
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {

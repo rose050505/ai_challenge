@@ -27,9 +27,20 @@ printf '  %s 접속 %s\n' "$([ "$code" = 200 ] && echo ✔ || echo ✘)" "$code"
 
 # 보안 헤더 — 배포 설정이 살아 있는지
 hdr=$(curl -sI --max-time 20 -H 'Cache-Control: no-cache' "$URL/" | tr 'A-Z' 'a-z')
-for h in x-content-type-options x-frame-options referrer-policy permissions-policy strict-transport-security; do
+for h in content-security-policy x-content-type-options x-frame-options referrer-policy permissions-policy strict-transport-security; do
   printf '  %s %s\n' "$(printf '%s' "$hdr" | grep -q "^$h:" && echo ✔ || echo '·')" "$h"
 done
+
+# /api 가 낯선 Origin 을 거부하는가 (2026-09-02 심사 대비 [1])
+# ★ 403 이 Claude 호출보다 먼저 나므로 이 검사에 API 비용이 들지 않는다.
+oc=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST \
+  -H 'Origin: https://example.com' -H 'Content-Type: application/json' \
+  --data '{}' "$URL/api/analyze")
+if [ "$oc" = 403 ]; then
+  echo "  ✔ /api Origin 가드 403"
+else
+  echo "  ✘ /api Origin 가드: 낯선 Origin 에 $oc (기대 403)"; fail_origin=1
+fi
 
 # ── 어느 판을 검사하는가 ────────────────────────────────────────
 # ★ 캐시 오탐 방지 (2026-09-01). 배포 직후 첫 실행이 옛 번들을 잡아 13건 실패했고,
@@ -67,7 +78,7 @@ curl -sf "$CDP/json/version" -o /dev/null || {
 
 node reset-browser.mjs || exit 2   # 눌어붙은 탭 상태를 걷어낸다 (reset-browser.mjs 주석)
 
-fail=${fail_css:-0}
+fail=$(( ${fail_css:-0} + ${fail_origin:-0} ))
 run() {  # run <이름> <파일> [인자...]
   echo
   echo "── $1 ──"

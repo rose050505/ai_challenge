@@ -208,3 +208,14 @@ node tests/mkdiagrams.mjs routing    # 하나만
 > **한글 문자열을 찾을 때** — 음절이 미리 합쳐져 있어 `"아니"` 는 `"아닙니다"` 의 부분
 > 문자열이 **아니다** (U+B2C8 vs U+B2D9). `jdocs.mjs` 를 처음 돌렸을 때 세 화면에 다 있는
 > 문장을 한 화면에만 있다고 셌다. 어미 앞에서 끊어 찾지 마라.
+
+### CSP · Origin (2026-09-02 심사 대비)
+
+| 스크립트 | 무엇을 |
+|---|---|
+| `torigin.mjs` | `/api/*` 의 Origin 가드 — 우리 출처만 통과, **Origin 없는 요청은 막지 않는다** |
+| `csp-server.mjs` | `vercel.json` 의 헤더를 그대로 실어 `dist/` 를 서빙 (기본 4500). `vite preview` 에는 CSP 가 실리지 않으므로 필요하다 |
+| `tcsp.mjs` | CSP 아래에서 전 경로 완주 — 여섯 화면·투어·내보내기(blob)·mailto·인쇄·`/api` 폴백. 위반은 `securitypolicyviolation` 이벤트와 CDP `Log.entryAdded` **두 경로**로 듣는다 |
+
+`run.sh` 가 목록을 다 돈 **뒤에** `csp-server.mjs` 를 직접 띄워 `tcsp` 를 돌리고 내린다
+(브라우저 탭을 함께 쓰므로 동시에 돌리지 않는다). `dist/` 가 없으면 건너뛴다.
