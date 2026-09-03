@@ -151,21 +151,31 @@ function EntryCards({ onTour }) {
         ))}
       </ul>
       {/* 상황이 아닌 두 갈래. 카드와 같은 무게로 두지 않는다.
-          [샘플로 체험하기]는 심사 경로이므로 반드시 남긴다. */}
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-700">
+          [샘플로 체험하기]는 심사 경로이므로 반드시 남긴다.
+
+          ★ 375px 에서 두 단추가 서로 다른 줄로 갈라져 있었다 (2026-09-03 실기 확인).
+            라벨(147px)과 첫 단추(125px)가 한 줄을 차지하면 남는 폭이 모자라
+            [샘플로 체험하기]만 아래로 떨어진다 — 한 덩어리로 읽히지 않는다.
+            → 좁은 화면에서는 라벨을 윗줄로 올리고 단추 둘을 아랫줄에 나란히 둔다.
+            (두 단추의 합은 275px. 375px 에서 좌우 여백 32px 를 빼고도 남는다)
+            넓은 화면은 원래대로 한 줄이다. */}
+      <p className="flex flex-col gap-2 text-gray-700 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 sm:gap-y-1">
         <span>어느 것도 아니라면 —</span>
-        <button type="button" onClick={onTour} className="btn btn-secondary">
-          {TOUR_TITLE}
-        </button>
-        <button
-          type="button"
-          onClick={() => setPick((v) => !v)}
-          aria-expanded={pick}
-          aria-controls="sample-pick"
-          className="btn btn-secondary"
-        >
-          샘플로 체험하기
-        </button>
+        {/* 라벨과 갈라져도 두 단추는 갈라지지 않는다 — 한 덩어리로 감싼다 */}
+        <span className="flex gap-2">
+          <button type="button" onClick={onTour} className="btn btn-secondary">
+            {TOUR_TITLE}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPick((v) => !v)}
+            aria-expanded={pick}
+            aria-controls="sample-pick"
+            className="btn btn-secondary"
+          >
+            샘플로 체험하기
+          </button>
+        </span>
       </p>
       {/* ★ 접혀 있어도 요소는 남긴다. aria-controls 가 가리키는 id 가 없으면
           보조기술이 "무엇을 여는 단추인지" 알 수 없다. hidden 으로 감춘다. */}
@@ -376,8 +386,13 @@ export default function Landing() {
           상황을 읽어 맥락을 옮기는 것. 법조문·거절 사유·서식 문구·절차는 전부 코드 안의
           법령 상수가 정합니다. 그 사이에 서버 검산이 있어, AI가 낸 문장이 법의 구조에 맞지
           않으면 화면에 내보내지 않고 버립니다.{' '}
-          <Link to="/strategy" className="font-bold text-ink-700 underline">
-            어떻게 하는지 그림으로 보기 →
+          {/* ★ 문구가 목적지를 숨기고 있었다 (2026-09-03 실기 확인).
+                 "그림으로 보기"만 읽고 누르면 **다른 화면**이 열리는데, 그림은 그 화면
+                 어딘가에 있어 도착한 사람은 잘못 눌렀다고 느낀다. 어느 화면의 무엇인지를
+                 문구에 적고, 해시 앵커로 그림 앞에 세운다 (App.jsx HashScroll). */}
+          <Link to="/strategy#ai-role" className="font-bold text-ink-700 underline">
+            대응 전략 화면에 그림이 있습니다 — 보러 가기{' '}
+            <span aria-hidden="true">→</span>
           </Link>
         </p>
       </section>

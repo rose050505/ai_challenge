@@ -235,8 +235,13 @@ export default function Strategy() {
         </p>
       </section>
 
-      {/* AI가 어디까지 하고 어디부터 코드가 하는지 — 이 화면에서 가장 자주 나오는 질문이다 */}
-      <section className="space-y-2">
+      {/* AI가 어디까지 하고 어디부터 코드가 하는지 — 이 화면에서 가장 자주 나오는 질문이다.
+
+          ★ 랜딩의 [대응 전략 화면에 그림이 있습니다]가 이 자리를 가리킨다.
+            앵커가 없던 때에는 링크를 눌러도 화면이 제자리에 남아, 도착한 사람이
+            "제출할 정보 후보 만들기" 단추 앞에서 자기가 왜 왔는지 몰랐다.
+            id 는 제목에 붙인다 — 그림만 가리키면 도착했을 때 그림이 무엇인지 알 수 없다. */}
+      <section id="ai-role" tabIndex={-1} className="scroll-mt-4 space-y-2">
         <h2 className="text-lg font-bold text-gray-900">이 화면에서 AI는 어디까지 하나요</h2>
         <ArchitectureDiagram className="rounded-lg border border-gray-400 bg-white p-4" />
       </section>

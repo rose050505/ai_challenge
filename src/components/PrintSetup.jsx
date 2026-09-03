@@ -171,7 +171,7 @@ export function PrintSetupNotice() {
  * ★ 진행을 막지 않는다. [이대로 인쇄하기] 는 언제나 활성 상태다.
  *   빠뜨린 것이 의도일 수도 있고, 그 판단은 사용자의 것이다.
  */
-export function PrePrintPanel({ issues = [], onPrint, onCancel }) {
+export function PrePrintPanel({ issues = [], onPrint, onCancel, onFix }) {
   return (
     <div
       role="group"
@@ -188,11 +188,24 @@ export function PrePrintPanel({ issues = [], onPrint, onCancel }) {
             <span aria-hidden="true">! </span>
             비어 있는 곳이 {issues.length}군데 있습니다
           </p>
+          {/* ★ 말만 하고 데려가지는 않았다 (2026-09-03 실기 확인).
+                 "신청인 성명이 비어 있습니다"를 읽은 사람은 창을 닫고 서식을 처음부터
+                 다시 훑어야 했다. 항목마다 그 칸으로 가는 길을 낸다. */}
           <ul className="mt-2 space-y-2">
             {issues.map((it) => (
               <li key={it.id} className="rounded-md border border-amber-400 bg-amber-50 p-3">
                 <span className="block text-amber-900">{it.text}</span>
                 {it.hint && <span className="mt-1 block text-sm text-amber-900">{it.hint}</span>}
+                {onFix && (
+                  <button
+                    type="button"
+                    className="btn btn-quiet mt-2"
+                    onClick={() => onFix(it)}
+                    data-testid={`goto-${it.id}`}
+                  >
+                    이 칸으로 가기
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -216,8 +229,18 @@ export function PrePrintPanel({ issues = [], onPrint, onCancel }) {
         >
           이대로 인쇄하기
         </button>
-        <button type="button" className="btn btn-quiet" onClick={onCancel}>
-          돌아가서 고치기
+        <button
+          type="button"
+          className="btn btn-quiet"
+          onClick={() => (onFix && issues.length > 0 ? onFix(issues[0]) : onCancel())}
+        >
+          돌아가서 고치기{' '}
+          {issues.length > 1 && (
+            /* 첫 칸으로 간다는 것과, 뒤에 몇 군데가 더 남는지를 단추가 직접 말한다 */
+            <span className="ml-1 font-normal">
+              — 첫 칸으로 (나머지 {issues.length - 1}군데)
+            </span>
+          )}
         </button>
       </div>
     </div>

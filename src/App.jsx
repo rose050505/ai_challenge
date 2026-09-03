@@ -160,6 +160,37 @@ function FooterLawVersions() {
   return <LawVersions collapsed className="mb-5 text-base" />
 }
 
+/**
+ * `#앵커` 를 따라간다.
+ *
+ * react-router 는 해시를 스스로 따라가지 않는다. 그래서 랜딩의
+ * [대응 전략 화면에 그림이 있습니다]를 눌러도 화면은 제자리에 남았고, 도착한 사람은
+ * 그림이 아니라 "제출할 정보 후보 만들기" 단추 앞에 서 있었다 (2026-09-03 실기 확인).
+ *
+ * 화면은 마운트 직후에 그려지므로 대상이 아직 없을 수 있다 — 프레임마다 다시 찾는다.
+ * 멈출 자리는 각 앵커의 `scroll-mt-*` 가 정한다. 여기서 숫자를 정하지 않는다.
+ */
+function HashScroll() {
+  const { pathname, hash } = useLocation()
+  useEffect(() => {
+    if (!hash) return
+    let raf = 0
+    const go = (left) => {
+      const el = document.getElementById(decodeURIComponent(hash.slice(1)))
+      if (el) {
+        el.scrollIntoView({ block: 'start' })
+        // 키보드·보조기술 사용자도 그 자리에서 이어 읽을 수 있어야 한다
+        if (el.hasAttribute('tabindex')) el.focus({ preventScroll: true })
+        return
+      }
+      if (left > 0) raf = requestAnimationFrame(() => go(left - 1))
+    }
+    go(30)
+    return () => cancelAnimationFrame(raf)
+  }, [pathname, hash])
+  return null
+}
+
 function AppRoutes() {
   const { generation } = useJourney()
   const { pathname } = useLocation()
@@ -256,6 +287,7 @@ export default function App() {
         <main id="main" className="app-main mx-auto w-full max-w-3xl px-4 print:max-w-none print:p-0">
           {/* 파일을 불러오거나 기록을 지우면 화면을 새로 마운트한다
               (각 화면이 useState 초기값으로 저장 내용을 읽기 때문) */}
+          <HashScroll />
           <AppRoutes />
         </main>
 

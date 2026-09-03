@@ -47,13 +47,14 @@ import { formatWhen, formatDate, todayInputValue } from '../lib/journey-storage.
  * 브라우저 기본 체크박스는 인쇄 시 체크 표시가 빠지거나 컬러로 나오므로,
  * 인쇄에서는 테두리 + 체크문자 글리프로 바꿔 출력한다. 값은 하나를 공유한다.
  */
-function Checkbox({ checked, onChange, disabled, children }) {
+function Checkbox({ checked, onChange, disabled, children, fieldKey }) {
   const measuring = useSheetMode() === 'measure'
   return (
     <label className={`flex items-start gap-2 ${disabled ? 'text-gray-400' : 'cursor-pointer'}`}>
       {!measuring && (
         <input
           type="checkbox"
+          data-field={fieldKey}
           checked={checked}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
@@ -93,7 +94,15 @@ function Checkbox({ checked, onChange, disabled, children }) {
  *   좁은 화면에서 열 폭을 줄인 뒤로는 더 심해진다. 그래서 그런 칸은 늘어나는
  *   textarea 로 그린다. 인쇄와 측정은 그대로 span 을 쓰므로 쪽 수는 달라지지 않는다.
  */
-function Field({ value, onChange, placeholder, label, className = '', multiline = false }) {
+function Field({
+  value,
+  onChange,
+  placeholder,
+  label,
+  className = '',
+  multiline = false,
+  fieldKey,
+}) {
   const measuring = useSheetMode() === 'measure'
   const ref = useRef(null)
   // 내용에 맞춰 높이를 늘린다. 스크롤이 생기면 사용자는 나머지가 있는 줄 모른다.
@@ -116,6 +125,7 @@ function Field({ value, onChange, placeholder, label, className = '', multiline 
         <textarea
           ref={ref}
           rows={1}
+          data-field={fieldKey}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -124,6 +134,7 @@ function Field({ value, onChange, placeholder, label, className = '', multiline 
         />
       ) : (
         <input
+          data-field={fieldKey}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -196,13 +207,32 @@ function SignatureBlock({ paged = false, mark = FORM_SIGNATURE_TEXTS.signatureMa
   )
 }
 
-/** 사용자 입력이 들어가는 밑줄 칸 */
-function Blank({ value }) {
-  return (
-    <span className="sheet-value inline-block min-w-32 border-b border-gray-500 px-1 text-center">
-      {value || ' '}
-    </span>
-  )
+/**
+ * 사용자 입력이 들어가는 밑줄 칸.
+ *
+ * ★ `onChange` 를 주면 **화면에서는 고쳐 쓸 수 있는 칸**이 된다 (2026-09-03).
+ *   서식 2에는 인적사항 표가 없어 성명을 적을 자리가 화면 어디에도 없었다.
+ *   그래서 빈칸 점검이 "신청인 성명이 비어 있습니다"라고 말해도 데려갈 곳이 없었다.
+ *   인쇄물과 쪽 수 측정은 예전 그대로 밑줄 span 을 쓴다 — 종이는 달라지지 않는다.
+ */
+function Blank({ value, onChange, label, fieldKey }) {
+  const measuring = useSheetMode() === 'measure'
+  const cls = 'sheet-value inline-block min-w-32 border-b border-gray-500 px-1 text-center'
+  if (onChange && !measuring) {
+    return (
+      <>
+        <input
+          data-field={fieldKey}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label={label}
+          className={`${cls} print:hidden`}
+        />
+        <span className={`${cls} hidden print:inline-block`}>{value || ' '}</span>
+      </>
+    )
+  }
+  return <span className={cls}>{value || ' '}</span>
 }
 
 /* ── 서식 1 : 자동화평가 결과에 대한 설명요구서 (R1, R2) ────────── */
@@ -230,9 +260,14 @@ function Form1({ selectedItems, toggleItem, personal, setPersonal, consent, setC
           {FORM1_TEXTS.requestLeadAfter}
         </p>
         <ul className="mt-2 space-y-1 text-sm">
-          {FORM_REQUEST_ITEMS.map((it) => (
+          {FORM_REQUEST_ITEMS.map((it, i) => (
             <li key={it.id}>
-              <Checkbox checked={selectedItems.includes(it.id)} onChange={() => toggleItem(it.id)}>
+              {/* 빈칸 점검의 "요구할 항목을 고르지 않으셨습니다"가 데려갈 자리 */}
+              <Checkbox
+                checked={selectedItems.includes(it.id)}
+                onChange={() => toggleItem(it.id)}
+                fieldKey={i === 0 ? 'items' : undefined}
+              >
                 {it.marker} {it.label}
               </Checkbox>
               {/* ①의 부기란. 작성 시점에 모를 수 있으므로 필수 입력이 아니다. */}
@@ -268,6 +303,7 @@ function Form1({ selectedItems, toggleItem, personal, setPersonal, consent, setC
                       onChange={(v) => setPersonal(f.id, v)}
                       label={f.label}
                       className="w-full"
+                      fieldKey={f.id === 'name' ? 'name' : undefined}
                     />
                   ) : (
                     <>
@@ -326,6 +362,7 @@ function Form1({ selectedItems, toggleItem, personal, setPersonal, consent, setC
 function form2Blocks({
   enabled,
   personal,
+  setName,
   rows,
   setRow,
   favorable,
@@ -355,6 +392,7 @@ function form2Blocks({
             placeholder="정정 대상 정보가 발생한 금융회사명"
             label="수신 기관"
             className="w-72 border-b border-gray-500 px-1"
+            fieldKey="recipient"
           />
         </section>
       ),
@@ -400,7 +438,12 @@ function form2Blocks({
             2. {s2.title} <span className="text-xs font-normal">({s2.basis})</span>
           </h3>
           <p className="mt-1 text-sm">
-            <Blank value={personal.name} />
+            <Blank
+              value={personal.name}
+              onChange={setName}
+              label="신청인 성명"
+              fieldKey="name"
+            />
             {neutralizeInstitution(s2.leadRest, s1.substitution, institutionShortLabel)}
           </p>
         </section>
@@ -435,6 +478,7 @@ function form2Blocks({
                 label={`${formLabel} — ${s2.table.columns[1].label}`}
                 className="w-full"
                 multiline
+                fieldKey={`row-${cat.id}-current`}
               />
             </td>
             <td className="border p-1">
@@ -444,6 +488,7 @@ function form2Blocks({
                 label={`${formLabel} — ${s2.table.columns[2].label}`}
                 className="w-full"
                 multiline
+                fieldKey={`row-${cat.id}-correction`}
               />
             </td>
           </tr>
@@ -501,6 +546,7 @@ function form2Blocks({
                 label={`${i + 1}번째 ${s3.table.columns[1].label}`}
                 className="w-full"
                 multiline
+                fieldKey={`fav-${i}`}
               />
             </td>
           </tr>
@@ -789,6 +835,8 @@ function DocumentSheet({ activeCase, form2Index }) {
    */
   const [stage, setStage] = useState('form') // form | afterPrint
   const [confirming, setConfirming] = useState(false)
+  /** 빈 칸으로 옮긴 직후의 안내 (어디로 갔는지 · 몇 군데가 남았는지) */
+  const [jumped, setJumped] = useState(null)
   const printScale = usePrintScale()
   const [emailOpen, setEmailOpen] = useState(false)
   const [checked, setChecked] = useState({})
@@ -831,7 +879,32 @@ function DocumentSheet({ activeCase, form2Index }) {
     categoryLabel: (id) => BASE_INFO_CATEGORIES_BY_ID[id]?.label ?? id,
   })
 
+  /**
+   * 비어 있는 칸으로 데려간다.
+   *
+   * ★ 왜 필요한가 (2026-09-03 실기 확인).
+   *   [돌아가서 고치기]는 창만 닫았다. 서식은 A4 한두 장 분량이라, 어느 칸이
+   *   비었는지 들었어도 사용자는 처음부터 다시 훑어야 했다.
+   *
+   * 창이 사라진 **뒤에** 자리를 잡는다 — 창이 남아 있으면 문서 높이가 달라져
+   * 엉뚱한 곳에 선다. 화면 한가운데(block:'center')에 세우므로 머리말에 가리지 않는다.
+   */
+  const goToIssue = (issue) => {
+    setConfirming(false)
+    setJumped({ id: issue.id, text: issue.text })
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-field="${CSS.escape(issue.id)}"]`)
+      if (!el) return
+      el.scrollIntoView({ block: 'center', inline: 'nearest' })
+      el.focus?.({ preventScroll: true })
+      // 어느 칸인지 눈으로도 보이게 한다. 잠깐이면 된다 — 포커스가 계속 가리킨다.
+      el.classList.add('field-flash')
+      setTimeout(() => el.classList.remove('field-flash'), 2400)
+    })
+  }
+
   const handlePrint = () => {
+    setJumped(null)
     /*
      * ★ 빈 칸이 있을 때만 멈춘다. (2026-08-31)
      *   전에는 이 브라우저에서 처음 인쇄할 때도 멈춰 세워 머리글·바닥글을 확인시켰다.
@@ -895,6 +968,7 @@ function DocumentSheet({ activeCase, form2Index }) {
   const form2 = form2Blocks({
     enabled,
     personal,
+    setName: (v) => setPersonal('name', v),
     rows,
     setRow,
     favorable,
@@ -1230,7 +1304,24 @@ function DocumentSheet({ activeCase, form2Index }) {
             issues={issues}
             onPrint={doPrint}
             onCancel={() => setConfirming(false)}
+            onFix={goToIssue}
           />
+        ) : null}
+        {/* 옮긴 뒤에도 "몇 군데가 남았는지"는 화면에 남아 있어야 한다.
+            창은 닫혔고, 사용자는 방금 옮겨진 칸만 보고 있다. */}
+        {!confirming && jumped ? (
+          <p
+            role="status"
+            data-testid="jump-status"
+            className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900"
+          >
+            {jumped.text.replace(/\.$/, '')} — 그 자리로 옮겼습니다.{' '}
+            {/* ★ 남은 개수는 **지금** 다시 센다. 옮긴 뒤에 채우셨을 수 있고,
+                   그때도 옛 숫자가 남아 있으면 확인하지 않은 것을 말하는 셈이다. */}
+            {issues.filter((it) => it.id !== jumped.id).length > 0
+              ? `비어 있는 곳이 ${issues.filter((it) => it.id !== jumped.id).length}군데 더 있습니다. [인쇄 / PDF로 저장]을 다시 누르시면 남은 목록이 나옵니다.`
+              : '다른 빈 칸은 없습니다.'}
+          </p>
         ) : null}
         {/* 인쇄 글자 크기 — 고령층이 자기가 낸 서류를 읽을 수 있어야 한다 */}
         <div className="rounded-md border border-gray-400 bg-white p-3">

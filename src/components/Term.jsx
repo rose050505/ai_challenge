@@ -1,6 +1,35 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { GLOSSARY, GLOSSARY_BY_ID, GLOSSARY_BY_TERM } from '../data/glossary.js'
 import { Basis } from './ui.jsx'
+
+/**
+ * 좁은 화면인가.
+ *
+ * ★ 왜 화면 폭으로 갈라야 하는가 (2026-09-03 실기 확인).
+ *   팝오버는 용어가 놓인 자리에서 오른쪽으로 펼쳐진다. 375px 에서는 폭이 318px 이라
+ *   용어가 왼쪽 끝(x≈16)에 있을 때만 겨우 들어오고, 문장 중간에만 놓여도
+ *   **오른쪽이 화면 밖으로 나가 글자가 잘렸다.** 17개 용어를 전 화면에서 열어 보니
+ *   16개가 넘쳤고, 그중 12개는 문서 자체를 가로로 밀어 배경까지 흔들었다.
+ *   좁은 화면에서 자리를 계산해 밀어 넣으면 팝오버가 용어에서 멀어져 무엇에 대한
+ *   설명인지 흐려진다. 그래서 좁은 화면에서는 **자리를 아예 고정한다** — 아래 시트.
+ *   어느 용어에서 열든 같은 자리에 같은 폭으로 뜨고, 넘칠 여지가 없다.
+ *
+ * 640px 은 Tailwind 의 `sm` 경계와 같다. 이 서비스가 화면을 가르는 다른 자리와 맞춘다.
+ */
+const NARROW_MAX = 639
+function useNarrow() {
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= NARROW_MAX,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${NARROW_MAX}px)`)
+    const on = () => setNarrow(mq.matches)
+    on()
+    mq.addEventListener?.('change', on)
+    return () => mq.removeEventListener?.('change', on)
+  }, [])
+  return narrow
+}
 
 /**
  * 용어 풀이.
@@ -27,6 +56,10 @@ export function Term({ id, children }) {
   const [open, setOpen] = useState(false)
   const panelId = useId()
   const wrapRef = useRef(null)
+  const panelRef = useRef(null)
+  const narrow = useNarrow()
+  /** 넓은 화면에서 뷰포트 안으로 밀어 넣은 거리(px)와 위로 뒤집었는지 */
+  const [fit, setFit] = useState({ dx: 0, above: false })
 
   useEffect(() => {
     if (!open) return
@@ -43,6 +76,38 @@ export function Term({ id, children }) {
       document.removeEventListener('pointerdown', onDown)
     }
   }, [open])
+
+  /*
+   * 넓은 화면의 자리 보정.
+   * 좁은 화면은 아래 시트라 보정할 것이 없다 — 언제나 뷰포트 안이다.
+   * 그린 뒤에 재고 옮긴다. 용어가 문장 어디에 놓일지는 글자 크기·번역·줄바꿈에
+   * 따라 달라져서, 미리 계산할 수 없다.
+   */
+  useLayoutEffect(() => {
+    if (!open || narrow) {
+      setFit({ dx: 0, above: false })
+      return
+    }
+    const el = panelRef.current
+    const trig = wrapRef.current
+    if (!el || !trig) return
+    const M = 8
+    const vw = document.documentElement.clientWidth
+    const vh = window.innerHeight
+    // 보정 전 자리에서 잰다 (dx=0, 아래쪽)
+    const r0 = el.getBoundingClientRect()
+    const base = r0.left - fit.dx
+    let dx = 0
+    if (base + r0.width > vw - M) dx = vw - M - (base + r0.width)
+    if (base + dx < M) dx = M - base
+    const t = trig.getBoundingClientRect()
+    // 아래로 넘치고 위에 자리가 있으면 뒤집는다
+    const below = t.bottom + 4 + r0.height
+    const above = below > vh - M && r0.height + 4 <= t.top - M
+    setFit({ dx, above })
+    // fit 은 이 계산의 결과다. 의존성에 넣으면 스스로를 다시 부른다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, narrow])
 
   // 용어집에 없는 말이면 아무 장식 없이 그대로 보여준다 (조용히 실패한다)
   if (!entry) return <>{children}</>
@@ -61,9 +126,19 @@ export function Term({ id, children }) {
       </button>
       {open && (
         <span
+          ref={panelRef}
           id={panelId}
           role="note"
-          className="absolute left-0 top-full z-30 mt-1 block w-[min(23rem,85vw)] rounded-md border border-ink-300 bg-white p-3 text-left shadow-lg"
+          className={
+            narrow
+              ? /* 좁은 화면 — 아래 시트. 자리를 계산하지 않으므로 어느 용어에서 열어도
+                   결과가 같다. 긴 풀이는 시트 안에서 세로로 굴린다. */
+                'fixed inset-x-3 bottom-3 z-50 block max-h-[70vh] overflow-y-auto overscroll-contain rounded-lg border border-ink-300 bg-white p-4 text-left shadow-2xl'
+              : `absolute left-0 z-30 block w-[min(23rem,85vw)] rounded-md border border-ink-300 bg-white p-3 text-left shadow-lg ${
+                  fit.above ? 'bottom-full mb-1' : 'top-full mt-1'
+                }`
+          }
+          style={narrow ? undefined : { left: fit.dx }}
         >
           <TermBody entry={entry} onClose={() => setOpen(false)} />
         </span>
