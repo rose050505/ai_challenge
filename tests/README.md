@@ -219,3 +219,13 @@ node tests/mkdiagrams.mjs routing    # 하나만
 
 `run.sh` 가 목록을 다 돈 **뒤에** `csp-server.mjs` 를 직접 띄워 `tcsp` 를 돌리고 내린다
 (브라우저 탭을 함께 쓰므로 동시에 돌리지 않는다). `dist/` 가 없으면 건너뛴다.
+
+### 라이브 인용 검산 (비용 있음)
+
+```bash
+node tests/live-quote.mjs     # /api/interpret 을 실제로 한 번 호출한다
+```
+
+캐시에 없는 회신문을 넣어, 모델이 낸 인용 중 **몇 개가 회신 원문 대조에 걸려 버려지는지**
+센다. 마지막에 지어낸 인용을 일부러 주입해 전부 버려지는지까지 본다(이건 API 를 다시 부르지 않는다).
+`.env` 의 `ANTHROPIC_API_KEY` 를 직접 읽는다 — dotenv 를 의존성으로 더하지 않았다.
