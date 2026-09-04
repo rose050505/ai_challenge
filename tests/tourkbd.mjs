@@ -9,7 +9,17 @@ const ws=new WebSocket(t.webSocketDebuggerUrl); await new Promise(r=>ws.onopen=r
 let id=0; const pend=new Map(); const errors=[]
 ws.onmessage=e=>{const m=JSON.parse(e.data); if(m.id&&pend.has(m.id)){pend.get(m.id)(m);pend.delete(m.id)}
   if(m.method==='Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception?.description||m.params.exceptionDetails.text)}
-const send=(m,p={})=>new Promise(res=>{const i=++id;pend.set(i,res);ws.send(JSON.stringify({id:i,method:m,params:p}))})
+/*
+ * ★ 응답을 **영원히 기다리지 않는다.** (2026-09-04)
+ *   전에는 CDP 응답이 한 번 안 오면 top-level await 이 그대로 매달렸다.
+ *   그러면 run.sh 의 timeout 400 이 죽일 때까지 아무것도 찍히지 않고,
+ *   요약 줄이 없어 "원인 불명 실패"로 남는다. 멈춤을 **빠르고 읽히는 실패**로 바꾼다.
+ */
+const stalls=[]
+const send=(m,p={},ms=15000)=>new Promise(res=>{const i=++id
+  const to=setTimeout(()=>{pend.delete(i);stalls.push(m);res({__timeout:true})},ms)
+  pend.set(i,(v)=>{clearTimeout(to);res(v)})
+  ws.send(JSON.stringify({id:i,method:m,params:p}))})
 await send('Page.enable'); await send('Runtime.enable')
 const ev=async x=>(await send('Runtime.evaluate',{expression:x,awaitPromise:true,returnByValue:true})).result?.result?.value
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
@@ -83,5 +93,6 @@ t_('저장이 막혀도 닫힌다', (await panel())==='')
 t_('★ 처리되지 않은 예외 0건', errors.length===0, errors.join(' | '))
 await send('Page.removeScriptToEvaluateOnNewDocument',{identifier})
 
+t_('★ CDP 응답이 멈춘 호출 0건', stalls.length===0, stalls.slice(0,3).join(','))
 console.log(`\ntourkbd: ${pass}/${pass+fail} 통과`)
 ws.close(); process.exit(fail?1:0)

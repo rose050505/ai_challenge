@@ -2,6 +2,7 @@
 # 인쇄 쪽수 예고 = 실제 확인. 10가지 조합의 PDF 를 만들어 쪽수를 센다. 몇 분 걸린다.
 set -u
 cd "$(dirname "$0")"
+. ./lock.sh   # ★ 실행기는 한 번에 하나만 — 크롬 탭을 함께 쓴다 (README 「주의」)
 command -v pdfinfo >/dev/null || { echo "pdfinfo 가 필요하다 (poppler-utils)"; exit 2; }
 node reset-browser.mjs || exit 2   # 눌어붙은 탭 상태를 걷어낸다 (run.sh 와 같은 이유)
 ok=0; bad=0

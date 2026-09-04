@@ -8,6 +8,7 @@
 #   심사 기간에는 그게 핵심이다 — 키가 살아 있는지 여기서 확인한다.
 set -u
 cd "$(dirname "$0")"
+. ./lock.sh   # ★ 실행기는 한 번에 하나만 — 크롬 탭을 함께 쓴다 (README 「주의」)
 
 URL="${1:-https://362.parkmiyeong.com}"
 case "${1:-}" in --quick) URL="https://362.parkmiyeong.com" ;; esac

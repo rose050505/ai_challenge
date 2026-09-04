@@ -8,21 +8,61 @@ const t=(await (await fetch((process.env.CDP || 'http://127.0.0.1:9444') + '/jso
 const ws=new WebSocket(t.webSocketDebuggerUrl); await new Promise(r=>ws.onopen=r)
 let id=0; const pend=new Map()
 ws.onmessage=e=>{const m=JSON.parse(e.data); if(m.id&&pend.has(m.id)){pend.get(m.id)(m);pend.delete(m.id)}}
-const send=(m,p={})=>new Promise(res=>{const i=++id;pend.set(i,res);ws.send(JSON.stringify({id:i,method:m,params:p}))})
+/*
+ * ★ 응답을 **영원히 기다리지 않는다.** (2026-09-04)
+ *   전에는 CDP 응답이 한 번 안 오면 top-level await 이 그대로 매달렸다.
+ *   그러면 run.sh 의 timeout 400 이 죽일 때까지 아무것도 찍히지 않고,
+ *   요약 줄이 없어 "원인 불명 실패"로 남는다. 멈춤을 **빠르고 읽히는 실패**로 바꾼다.
+ */
+const stalls=[]
+const send=(m,p={},ms=15000)=>new Promise(res=>{const i=++id
+  const to=setTimeout(()=>{pend.delete(i);stalls.push(m);res({__timeout:true})},ms)
+  pend.set(i,(v)=>{clearTimeout(to);res(v)})
+  ws.send(JSON.stringify({id:i,method:m,params:p}))})
 await send('Page.enable'); await send('Runtime.enable')
-const ev=async x=>(await send('Runtime.evaluate',{expression:x,awaitPromise:true,returnByValue:true})).result?.result?.value
+/**
+ * ★ 브라우저 쪽 오류를 삼키지 않는다. (2026-09-04)
+ *   탐색 중의 평가는 "Inspected target navigated or closed" 로 날아간다. 전에는 그것이
+ *   조용히 undefined 가 되어, 한참 뒤 엉뚱한 검사가 실패했다 — 회차마다 실패 자리가
+ *   달라 보인 진짜 이유다. 여기서 세고 마지막에 보고한다.
+ */
+const evErrs=[]
+const ev=async x=>{const r=await send('Runtime.evaluate',{expression:x,awaitPromise:true,returnByValue:true})
+  if(r.error) evErrs.push('CDP: '+JSON.stringify(r.error).slice(0,110))
+  const ed=r.result?.exceptionDetails
+  if(ed) evErrs.push('EX: '+String(ed.exception?.description||ed.text).slice(0,110).split(String.fromCharCode(10)).join(' | '))
+  return r.result?.result?.value}
+/** 탐색이 끝나기를 기다리는 동안의 오류는 고장이 아니라 '아직'이다. 조용히 다시 묻는다. */
+const evQuiet=async x=>{try{const r=await send('Runtime.evaluate',{expression:x,awaitPromise:true,returnByValue:true})
+  return r.result?.result?.value}catch(_){return undefined}}
+const until=async(expr,ms=8000)=>{const t0=Date.now()
+  while(Date.now()-t0<ms){ if(await evQuiet(expr)) return true; await sleep(30) }
+  console.log('  ‼ 기다려도 참이 되지 않음: '+expr.slice(0,60)); return false}
+/** 화면이 조작 가능해졌는가 — 고정 시간 대신 이것을 기다린다 */
+const READY=`document.readyState==='complete' && !!document.querySelector('main')`
+/**
+ * 화면 크기를 바꾸고 **실제로 바뀔 때까지 기다린다.** (2026-09-04)
+ * ★ setDeviceMetricsOverride 는 곧바로 반영되지 않는다. 바로 재면 옛 크기가 잡힌다 —
+ *   375px 절에서 innerHeight 가 900 으로 읽혀 "시트가 화면 아래에 붙는다"가 거짓 실패했다.
+ */
+const viewport=async(w,h,mobile)=>{
+  await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile})
+  await until(`innerWidth===${w} && innerHeight===${h}`, 3000)
+  await sleep(150)   // resize 를 듣는 쪽(useTargets)이 다시 재기를 기다린다
+}
+
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 const fs=await import('node:fs')
 let pass=0,fail=0; const t_=(n,c,d='')=>{ if(c) pass++; else {fail++; console.log('  FAIL',n,d)} }
 const panel=()=>ev(`document.querySelector('[role=dialog][aria-modal]')?.innerText ?? ''`)
 const clickIn=async(txt)=>{const ok=await ev(`(()=>{const p=document.querySelector('[role=dialog][aria-modal]');if(!p)return false;const b=[...p.querySelectorAll('button')].find(b=>b.textContent.trim()===${JSON.stringify(txt)});if(!b)return false;b.click();return true})()`);await sleep(1200);return ok}
 const wipe=async(path)=>{const {identifier}=(await send('Page.addScriptToEvaluateOnNewDocument',{source:`try{localStorage.clear()}catch(e){}`})).result
-  await send('Page.navigate',{url:BASE+path}); await sleep(1300)
+  await send('Page.navigate',{url:BASE+path}); await until(READY); await sleep(500)
   await send('Page.removeScriptToEvaluateOnNewDocument',{identifier})}
 const path=()=>ev('location.pathname+location.search')
 const holes=()=>ev(`document.querySelectorAll('svg mask#tour-mask rect').length-1`)
 
-await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false})
+await viewport(1280,900,false)
 
 console.log('[A] 첫 방문 — 자동으로 열린다')
 await wipe('/')
@@ -64,7 +104,7 @@ t_('③ 쪽 수 예고 존재', /현재 내용은 .?\d+페이지/.test(doc.repla
 r=await send('Page.captureScreenshot',{format:'png'}); fs.writeFileSync('tour-3.png',Buffer.from(r.result.data,'base64'))
 
 console.log('[C] 재방문 — 자동으로 열리지 않는다')
-await send('Page.navigate',{url:BASE+'/'}); await sleep(1200)
+await send('Page.navigate',{url:BASE+'/'}); await until(READY); await sleep(500)
 t_('재방문에 안 열린다', (await panel())===''  )
 t_('버튼으로는 열 수 있다', await ev(`(()=>{const b=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='2분 둘러보기');if(!b)return false;b.click();return true})()`))
 await sleep(600)
@@ -87,7 +127,7 @@ t_('이탈도 "봤다"로 기억된다', await ev(`localStorage.getItem('wy-tour
 console.log('[E] 375px — 정거장이 바뀌면 패널이 맨 위부터 보인다')
 /* ★ 실기에서 나온 버그: 패널은 overflow-y-auto 라, 앞 정거장에서 안쪽을 내려 두면
      그 scrollTop 이 남아 다음 정거장의 글이 중간부터 보였다. */
-await send('Emulation.setDeviceMetricsOverride',{width:375,height:667,deviceScaleFactor:1,mobile:true})
+await viewport(375,667,true)
 /* ★ 스크롤되는 것은 패널이 아니라 그 **안의 내용 영역**이다 (시트 바닥에 단추가 붙어 있다) */
 const scrollTop=()=>ev(`document.querySelector('[data-tour-body]')?.scrollTop ?? -1`)
 const scrollable=()=>ev(`(()=>{const p=document.querySelector('[data-tour-body]');return p?p.scrollHeight-p.clientHeight:-1})()`)
@@ -177,8 +217,10 @@ const anim = async () => JSON.parse(await ev(`JSON.stringify((()=>{
 await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]})
 await wipe('/')
 const A1 = await anim()
-t_('reduce: 시트 애니메이션 없음', !!A1 && A1.sheet==='none', JSON.stringify(A1))
-t_('reduce: 내용 전환 애니메이션 없음', !!A1 && (A1.page==='none'||A1.page==null), JSON.stringify(A1))
+/* ★ reduce 는 "움직임 0"이 아니라 **"이동 0 + 밝기만 바뀜"**이다 (2026-09-04 승인).
+     자리와 크기를 재는 결정적 검사는 tmotion.mjs 에 있다. 여기서는 이름만 확인한다. */
+t_('reduce: 시트가 페이드로 바뀐다', !!A1 && A1.sheet==='tour-fade', JSON.stringify(A1))
+t_('reduce: 내용 전환도 페이드다', !!A1 && (A1.page==='tour-fade'||A1.page==null), JSON.stringify(A1))
 t_('reduce: 강조 표시 transition 0s', !!A1 && (A1.holeD==='0s'||A1.holeT==='all'&&A1.holeD==='0s'||A1.holeD==null), JSON.stringify(A1))
 await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]})
 await wipe('/')
@@ -187,7 +229,9 @@ t_('평소에는 시트가 올라온다', !!A2 && A2.sheet==='tour-rise', JSON.s
 t_('평소에는 내용이 방향을 갖고 들어온다', !!A2 && A2.page==='tour-in', JSON.stringify(A2))
 await clickIn('건너뛰기')
 await send('Emulation.setEmulatedMedia',{features:[]})
-await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false})
+await viewport(1280,900,false)
 
+t_('★ 브라우저 쪽 오류 0건', evErrs.length===0, evErrs.slice(0,3).join(' ／ '))
+t_('★ CDP 응답이 멈춘 호출 0건', stalls.length===0, stalls.slice(0,3).join(','))
 console.log(`\ntour: ${pass}/${pass+fail} 통과`)
 ws.close(); process.exit(fail?1:0)

@@ -2,13 +2,14 @@
 # 회귀 시험 실행기. 자세한 설명은 README.md
 set -u
 cd "$(dirname "$0")"
+. ./lock.sh   # ★ 실행기는 한 번에 하나만 — 크롬 탭을 함께 쓴다 (README 「주의」)
 
 APP_URL="${APP_URL:-http://localhost:4400}"
 CDP="${CDP:-http://127.0.0.1:9444}"
 export APP_URL CDP
 
 UNIT="tp tj t1 tpre treason safari tmatrix torigin tquote"
-BROWSER="rename thero tlong tnarrow tpop tgoto tlaw phase1 phase2 phase3 phase4 phase5 phase8 e2e4 journey private afterprint kbd tnext tstrategy tform2 trform ta11y tfacts tour tourkbd tdiag mail samplenote tflow tcold tquoteui tfix903 tfix903b tanim"
+BROWSER="rename thero tlong tnarrow tpop tgoto tlaw phase1 phase2 phase3 phase4 phase5 phase8 e2e4 journey private afterprint kbd tnext tstrategy tform2 trform ta11y tfacts tour tourkbd tdiag mail samplenote tflow tcold tquoteui tfix903 tfix903b tanim tmotion"
 
 case "${1:-all}" in
   unit)    LIST="$UNIT"; NEED_BROWSER=0 ;;
