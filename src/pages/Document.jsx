@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import {
   FORM_EXPLANATION_REQUEST,
   FORM_CORRECTION_REQUEST,
-  FORM_ORIGINAL_UNVERIFIED,
+  FORM_ORIGINAL_VERIFIED,
   FORM_REQUEST_ITEMS,
   FORM_SECTION1_REFUSAL_NOTICE,
   FORM_SECTION1_DISCREPANCY,
@@ -13,14 +13,12 @@ import {
   BASE_INFO_CATEGORIES,
   BASE_INFO_CATEGORIES_BY_ID,
   CORRECTION_ROUTING_BY_ID,
-  INSTITUTION_OPTIONS,
   RIGHTS_BY_ID,
   COUNTERPARTY_TYPES,
   COUNTERPARTY_TYPES_BY_ID,
 } from '../data/law.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { STORAGE_FACTS } from '../data/privacy.js'
-import { neutralizeInstitution } from '../lib/neutralize.js'
 import { PageHeader, Basis, Notice } from '../components/ui.jsx'
 import { Term } from '../components/Term.jsx'
 import EmailDraft from '../components/EmailDraft.jsx'
@@ -370,7 +368,6 @@ function form2Blocks({
   recipient,
   setRecipient,
   needsRecipient,
-  institutionShortLabel,
   s2HasContent,
 }) {
   const [s1, s2, s3, s4] = FORM_CORRECTION_REQUEST.sections
@@ -405,11 +402,9 @@ function form2Blocks({
     node: (
       <section>
         <h3 className="font-semibold">1. {s1.title}</h3>
-        {/* 원문 전문(verbatimText) 확보 시 그걸 쓰고, 기관명만 중립적으로 치환한다. */}
-        {/* 기관명("저축은행")만 업권 shortLabel 로 치환한다. "당사"는 건드리지 않는다. */}
-        <p className="mt-1 whitespace-pre-line text-sm">
-          {neutralizeInstitution(s1.verbatimText, s1.substitution, institutionShortLabel)}
-        </p>
+        {/* ★ 정본 전문 그대로 찍는다. 손대지 않는다.
+              정본은 "당사"·"귀 사"로 기관 중립적이라 치환할 것이 없다 (2026-09-04 대조). */}
+        <p className="mt-1 whitespace-pre-line text-sm">{s1.verbatimText}</p>
       </section>
     ),
   })
@@ -444,7 +439,7 @@ function form2Blocks({
               label="신청인 성명"
               fieldKey="name"
             />
-            {neutralizeInstitution(s2.leadRest, s1.substitution, institutionShortLabel)}
+            {s2.leadRest}
           </p>
         </section>
       ),
@@ -661,13 +656,6 @@ function DocumentSheet({ activeCase, form2Index }) {
   /** 여정 기록에서 두 건을 구분한다 */
   const caseKey = isSecond ? ':second' : ''
   const branch = CORRECTION_ROUTING_BY_ID[diagnosis.routingBranchId]
-  const sector = INSTITUTION_OPTIONS.find((o) => o.id === diagnosis.institutionSectorId)
-  /**
-   * 서식 본문 치환값은 업권 shortLabel 이다.
-   * 직접 입력한 기관명(customInstitution)이나 수신 기관 입력값을 쓰지 않는다.
-   * 서식 원문의 그 자리는 회사명이 아니라 업권명 자리이기 때문이다.
-   */
-  const institutionShortLabel = sector?.shortLabel ?? null
   /** 이메일 초안의 수신처 자리에 쓸 이름. 없으면 비워 두고 사용자가 채운다. */
   const customInstitutionLabel = (diagnosis.customInstitution ?? '').trim()
 
@@ -1043,7 +1031,6 @@ function DocumentSheet({ activeCase, form2Index }) {
     recipient,
     setRecipient: editRecipient,
     needsRecipient: Boolean(branch?.requiresRecipientInput),
-    institutionShortLabel,
     s2HasContent,
   })
 
@@ -1353,18 +1340,18 @@ function DocumentSheet({ activeCase, form2Index }) {
       </SheetScroll>
 
       <div className="no-print space-y-3">
-        {/* 서식 출처 — 어느 실물을 보고 재현했는지 밝힌다 */}
+        {/* 서식 출처 — 무엇을 보고 재현했는지 밝힌다 */}
         <p className="text-sm text-gray-700">
-          <b>서식 출처</b> — 이 서식은 {currentForm.source}을 기준으로 재현했습니다.{' '}
-          {currentForm.sourceNote ?? currentForm.sourceCaveat}{' '}
-          <Basis>{currentForm.basis}</Basis>
+          <b>서식 출처</b> — 이 서식은 {currentForm.source}
+          {currentForm.revisionMark ? ` ${currentForm.revisionMark}` : ''}을 재현했습니다.{' '}
+          {currentForm.sourceNote}{' '} <Basis>{currentForm.basis}</Basis>
         </p>
-        {/* ★ 확인하지 못한 것을 확인한 것처럼 두지 않는다.
-            우리는 기관 공개본을 보고 재현했고, 고시의 별지 원본과는 대조하지 못했다.
-            대조하지 못한 이상 "정본과 같다"고 말할 수 없고, 그 사실을 여기서 밝힌다. */}
-        <p className="rounded-md border border-seal-300 bg-seal-50 p-3 text-sm text-gray-800">
-          <b>원본과 대조하지 못했습니다</b> — {FORM_ORIGINAL_UNVERIFIED.note}{' '}
-          <Basis>{FORM_ORIGINAL_UNVERIFIED.basis}</Basis>
+        {/* ★ 확인한 것만 적는다.
+            2026-09-04 에 국가법령정보센터에서 두 별지 서식의 정본을 받아 문장 단위로
+            대조했다. 그 전까지 여기 있던 "원본과 대조하지 못했습니다"는 사실이 아니게
+            되어 걷어냈다 — 대조하지 않은 동안 그렇게 적었던 것과 같은 이유다. */}
+        <p className="rounded-md border border-gray-400 bg-white p-3 text-sm text-gray-800">
+          {FORM_ORIGINAL_VERIFIED.note} <Basis>{FORM_ORIGINAL_VERIFIED.basis}</Basis>
         </p>
         {confirming ? (
           <PrePrintPanel

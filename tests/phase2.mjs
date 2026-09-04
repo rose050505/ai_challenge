@@ -48,12 +48,17 @@ await send('Page.navigate',{url:BASE+'/'}); await sleep(800)
 await ev("localStorage.removeItem('wae:journey:state')")
 await send('Page.navigate',{url:BASE+'/document?form=explanationRequest'}); await sleep(1300)
 const d1=await ev('document.body.innerText')
-t_('서식 1 출처', d1.includes('서식 출처') && d1.includes('BC카드 공개본'))
+t_('서식 1 출처', d1.includes('서식 출처') && d1.includes('별지 제15호의2 정본'))
+/* 별지 자체의 개정 표기. 감독규정의 2026-08-13 개정과 다른 것이다. */
+t_('서식 1 별지 개정 표기', d1.includes('<개정 2022.7.7.>'))
 await send('Page.navigate',{url:BASE+'/document?form=correctionRequest'}); await sleep(1300)
 const d2=await ev('document.body.innerText')
-t_('서식 2 출처', d2.includes('서식 출처') && d2.includes('HB저축은행 공개본'))
-// 2026-08-30 원본 대조 완료 → "대조 전" 안내문은 화면에서 사라졌다. 출처 표기는 남는다.
-t_('대조 전 안내문 제거', !d2.includes('글자를 추출해') && !d2.includes('항목 구조와 요구 문구는 같습니다'))
+t_('서식 2 출처', d2.includes('서식 출처') && d2.includes('별지 제15호의3 정본'))
+/* 2026-09-04 정본 대조 완료 → 공개본을 기준으로 삼던 시절의 유보 문구는 전부 사라졌다.
+   ('실무 표준으로 다룹니다' 는 정본을 못 봤을 때 쓰던 표현이다) */
+t_('대조 전 안내문 제거',
+   !d2.includes('글자를 추출해') && !d2.includes('실무 표준으로') && !d2.includes('공개본'))
+t_('서식 2에는 별지 개정 표기가 없다 — 지어내지 않는다', !d2.includes('<개정'))
 
 console.log('미처리 예외:', errs.length)
 console.log(JSON.stringify([...hrefs],null,0))

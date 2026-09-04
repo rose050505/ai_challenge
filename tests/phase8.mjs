@@ -49,7 +49,7 @@ await send('Page.navigate',{url:BASE+'/document?form=explanationRequest'}); awai
 b=await body()
 t_('설명요구서는 양쪽에 각각', b.includes('양쪽에 각각'))
 t_('정정 요청서는 보유한 곳에', b.includes('그 정보를 보유한 곳'))
-t_('라우팅 근거 조문', b.includes('고시 서식 「기초정보 정정·삭제 및 자동화평가 재산출 요청서」 [섹션 1]'))
+t_('라우팅 근거 조문', b.includes('고시 서식 「기초정보 정정·삭제 및 자동화평가 재산출 요청」 [섹션 1]'))
 
 console.log('\n[판단 3] 거절 이후 경로')
 await send('Page.navigate',{url:BASE+'/next'}); await sleep(1400)

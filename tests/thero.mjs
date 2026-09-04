@@ -93,21 +93,32 @@ t_('쉬운 말에서도 진입 카드 첫 장이 첫 화면 안', pCards[0] !== 
 const {result:{identifier:seedR}} = await send('Page.addScriptToEvaluateOnNewDocument',
   {source:`try{localStorage.clear();localStorage.setItem('wy-tour-v1','done')}catch(e){}`})
 
-console.log('[A-2] 서식 — 정본과 대조하지 못했다는 고지')
+/* ★ 2026-09-04 정본을 확보해 대조를 마쳤다. 그 전까지 여기 있던 "원본과 대조하지
+     못했습니다"는 이제 사실이 아니다 — 그 문장이 **되살아나지 않는지**까지 잠근다.
+     확인한 것만 적는다는 규칙은 방향이 바뀌어도 같다. */
+console.log('[A-2] 서식 — 정본과 대조했다는 사실')
 await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false})
 for (const f of ['explanationRequest','correctionRequest']) {
   await send('Page.navigate',{url:BASE+'/document?form='+f}); await sleep(1500)
   const b = await ev(`document.body.innerText.replace(/\\s+/g,' ')`)
-  t_(`${f}: 원본 미대조를 밝힌다`, b.includes('원본과 대조하지 못했습니다'), b.slice(0,80))
-  t_(`${f}: 왜 대조하지 못했는지 밝힌다`, b.includes('고시의 첨부 파일로만'))
-  t_(`${f}: 개정 판본을 특정한다`, b.includes('2026-08-13') && b.includes('제2026-37호'))
-  // ★ 확인한 것(원본이 개정됐다)과 확인하지 못한 것(우리 실물이 개정 뒤인지)을 나눈다
-  t_(`${f}: 개정 사실과 미확인 사실을 나눈다`,
-     b.includes('원본은 2026-08-13 개정됐는데') && b.includes('개정 뒤의 판본인지는 확인하지 못했습니다'))
+  t_(`${f}: 정본 대조 사실을 밝힌다`,
+     b.includes('별지 제15호의2·제15호의3 정본과 대조했습니다'), b.slice(0,80))
+  t_(`${f}: 어느 별지인지 밝힌다`, b.includes('별지 제15호의2·제15호의3'))
+  t_(`${f}: 미대조 고지가 남아 있지 않다`, !b.includes('원본과 대조하지 못했습니다'))
+  /* ★ a.href 는 한글을 퍼센트 인코딩해서 돌려준다. 적어 넣은 그대로 보려면 속성을 읽는다. */
+  t_(`${f}: 감독규정 원문으로 연결한다`,
+     await ev(`!![...document.querySelectorAll('a')].find(a=>(a.getAttribute('href')||'').includes('행정규칙/신용정보업감독규정'))`))
   // 고지는 화면에만 — 종이에는 나가지 않는다
-  const inSheet = await ev(`(document.querySelector('.print-sheet')?.innerText ?? '').includes('원본과 대조하지 못했습니다')`)
+  const inSheet = await ev(`(document.querySelector('.print-sheet')?.innerText ?? '').includes('정본과 대조했습니다')`)
   t_(`${f}: 고지가 인쇄물에는 들어가지 않는다`, inSheet===false)
 }
+/* 별지마다의 개정 표기 — 2026-08-13 은 감독규정 자체의 개정일이지 서식의 개정일이 아니었다 */
+await send('Page.navigate',{url:BASE+'/document?form=explanationRequest'}); await sleep(1400)
+const b1 = await ev(`document.body.innerText.replace(/\\s+/g,' ')`)
+t_('서식 1: 별지 자체의 개정 표기를 적는다', b1.includes('<개정 2022.7.7.>'), b1.slice(0,60))
+await send('Page.navigate',{url:BASE+'/document?form=correctionRequest'}); await sleep(1400)
+const b2 = await ev(`document.body.innerText.replace(/\\s+/g,' ')`)
+t_('서식 2: 개정 표기가 없으므로 지어내지 않는다', !b2.includes('<개정'), b2.slice(0,60))
 
 console.log('[A-2] 진단 결과 — 앞머리의 바로가기')
 await send('Page.navigate',{url:BASE+'/diagnose'}); await sleep(1300)

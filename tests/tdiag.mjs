@@ -86,7 +86,7 @@ t_('★ 세로판의 갈래가 줄기보다 안쪽으로 들여쓰였다', await
   });
   return cs.every(c=>+c.getAttribute('cx')>qx) && branchX.every(x=>x>qx+20)
 })()`))
-t_('서식 이름이 law.js 의 줄임 이름', txt.includes('정정ㆍ재산출 요청서') && txt.includes('설명요구서'))
+t_('서식 이름이 law.js 의 줄임 이름', txt.includes('정정ㆍ재산출 요청') && txt.includes('설명요구서'))
 t_('★ 처리되지 않은 예외 0건', errs.length===0, errs.join('|'))
 
 console.log(`\ntdiag: ${pass}/${pass+fail} 통과`)

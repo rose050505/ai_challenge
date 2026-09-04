@@ -63,7 +63,7 @@ console.log('화면 페이지 상자 수:', await ev(`document.querySelectorAll(
 console.log('쪽 번호:', await ev(`JSON.stringify([...document.querySelectorAll('.paged-foot')].map(e=>e.innerText.trim()))`))
 console.log('반복 머리:', await ev(`JSON.stringify([...document.querySelectorAll('.paged-runhead')].map(e=>e.innerText.replace(/\\s+/g,' ').trim()))`))
 console.log('섹션1 등장 횟수:', await ev(`(()=>{let n=0;document.querySelectorAll('.paged-page').forEach(p=>{if(p.innerText.includes('1. 기초정보 정정')||p.innerText.includes('대응권'))n++});return n})()`))
-console.log('마지막 페이지에 서명란:', await ev(`(()=>{const ps=[...document.querySelectorAll('.paged-page')];return ps.length? ps[ps.length-1].innerText.includes('서명 또는 인'):null})()`))
+console.log('마지막 페이지에 서명란:', await ev(`(()=>{const ps=[...document.querySelectorAll('.paged-page')];return ps.length? ps[ps.length-1].innerText.includes('(서명 / 인)'):null})()`))
 console.log('측정영역이 인쇄 대상에서 빠짐:', await ev(`!!document.querySelector('.print-metrics')?.closest('.no-print')`))
 console.log('예측 분할:', await ev(`JSON.stringify([...document.querySelectorAll('.paged-page')].map(p=>[...p.querySelectorAll('.paged-block')].length))`))
 console.log('페이지 상자 실제 높이(mm):', await ev(`JSON.stringify([...document.querySelectorAll('.paged-page')].map(p=>Math.round(p.getBoundingClientRect().height/96*25.4)))`))

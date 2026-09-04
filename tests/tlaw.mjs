@@ -76,7 +76,7 @@ for(const [b,art,who] of cases){
   const r=L.basisLink(b); const href=r?decodeURIComponent(r.href):''
   ok('링크: '+b.slice(0,26), href.includes(art) && href.includes(who), href.replace('https://www.law.go.kr',''))
 }
-ok('고시 서식 배지는 링크 없음(연결할 조문이 아님)', L.basisLink('고시 서식 「기초정보 정정·삭제 및 자동화평가 재산출 요청서」 [섹션 1]') === null)
+ok('고시 서식 배지는 링크 없음(연결할 조문이 아님)', L.basisLink('고시 서식 「기초정보 정정·삭제 및 자동화평가 재산출 요청」 [섹션 1]') === null)
 ok('감독규정 판본 채움', L.LAW_META.supervisionRule.revision === '금융위원회고시 제2026-37호, 2026. 8. 13., 일부개정')
 
 console.log('\n[D] 화면에 그대로 나가는가')
