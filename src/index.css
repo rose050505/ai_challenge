@@ -377,28 +377,67 @@ body {
      * ★ **transform 과 opacity 만** 쓴다. layout 을 건드리는 속성(top·height 등)은
      *   .print-metrics 의 높이 측정과 충돌한다.
      * ★ 150~250ms 안에서 끝낸다. 그보다 길면 기다림이 된다.
-     * ★ prefers-reduced-motion: reduce 면 **전부 없다.** 움직임은 전정기관 장애가 있는
-     *   사람에게 실제 어지럼증을 준다. 우리는 접근성을 내세우고 있다.
+     * ★ prefers-reduced-motion: reduce 면 **자리와 크기는 한 픽셀도 움직이지 않는다.**
+     *   대신 밝기만 바뀐다(크로스페이드). 어지럼증을 일으키는 것은 이동과 크기 변화이지
+     *   밝기 변화가 아니다 — iOS 가 "동작 줄이기"에서 확대·슬라이드를 크로스페이드로
+     *   바꾸는 것과 같은 처리다. (2026-09-04 사용자 승인)
+     *   그래서 "움직임을 줄여 달라"고 한 사람도 **화면이 바뀐 사실은** 볼 수 있다.
      * ★ 인쇄에서도 전부 무효화한다 (파일 끝 @media print).
+     *
+     * ★ **켜는 조건이 아니라 끄는 조건으로 쓴다.** (2026-09-04)
+     *   앞서는 셋 다 `@media (prefers-reduced-motion: no-preference)` 안에 있었다.
+     *   그 형태는 브라우저가 **명시적으로 no-preference 라고 답할 때만** 켜진다.
+     *   이 미디어 특성을 모르는 브라우저는 어느 쪽도 맞지 않아 셋이 한꺼번에 죽는다.
+     *   (실측 — 없는 특성으로 같은 상황을 만들어 확인: 켜는 조건 = 꺼짐, 끄는 조건 = 켜짐)
+     *   reduce 로 답하는 브라우저에서는 **두 형태가 똑같이 꺼진다.** 접근성은 그대로다.
      */
-    @media (prefers-reduced-motion: no-preference) {
-      /* (1) 강조 표시가 다음 대상으로 미끄러져 이동한다 (정거장이 바뀌는 순간에만) */
+    /* (1) 강조 표시가 다음 대상으로 미끄러져 이동한다 (정거장이 바뀌는 순간에만) */
+    .tour-hole-move {
+      transition: transform 200ms ease-out;
+    }
+    /* (3) 시트 내용이 방향을 갖고 바뀐다 — [다음]은 오른쪽에서, [이전]은 왼쪽에서 */
+    .tour-page {
+      animation: tour-in 200ms ease-out both;
+    }
+    .tour-page-back {
+      animation-name: tour-in-back;
+    }
+    /* (4) 하단 시트는 아래에서 올라온다 (모바일에서만) */
+    @media (max-width: 39.999rem) {
+      .tour-sheet {
+        animation: tour-rise 220ms ease-out both;
+      }
+    }
+    /*
+     * 움직임을 줄여 달라고 한 사람에게는 **이동과 크기 변화가 없다.** 밝기만 바뀐다.
+     *
+     * ★ !important 를 쓰지 않는다. 같은 층(@layer components) 안에서 뒤에 오는 규칙이
+     *   앞의 것을 이미 이긴다. 그리고 important 는 층 순서를 **뒤집으므로**, 여기서
+     *   important 를 쓰면 층 밖에 있는 파일 끝 @media print 의 리셋을 이겨 버린다.
+     * ★ 강조 표시(구멍)는 페이드하지 않는다 — 마스크의 구멍이 흐려지면 어두운 막이
+     *   대상 위로 번진다. 자리를 즉시 옮기는 것으로 끝낸다.
+     * ★ 시트의 페이드는 **원래 상승이 있던 폭에서만** 준다. 넓은 화면에는 본래
+     *   아무 움직임도 없었으므로, reduce 라고 해서 없던 효과를 새로 만들지 않는다.
+     */
+    @media (prefers-reduced-motion: reduce) {
       .tour-hole-move {
-        transition: transform 200ms ease-out;
+        transition: none;
       }
-      /* (3) 시트 내용이 방향을 갖고 바뀐다 — [다음]은 오른쪽에서, [이전]은 왼쪽에서 */
-      .tour-page {
-        animation: tour-in 200ms ease-out both;
-      }
+      /* 방향(오른쪽/왼쪽에서 들어옴)은 사라지고 밝기만 남는다 */
+      .tour-page,
       .tour-page-back {
-        animation-name: tour-in-back;
+        animation: tour-fade 150ms ease-out both;
       }
-      /* (4) 하단 시트는 아래에서 올라온다 (모바일에서만) */
       @media (max-width: 39.999rem) {
         .tour-sheet {
-          animation: tour-rise 220ms ease-out both;
+          animation: tour-fade 150ms ease-out both;
         }
       }
+    }
+    /* ★ transform 을 쓰지 않는다. 이 한 줄이 "한 픽셀도 움직이지 않는다"를 지킨다. */
+    @keyframes tour-fade {
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
     @keyframes tour-in {
       from { opacity: 0; transform: translateX(14px); }
