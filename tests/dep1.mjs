@@ -79,6 +79,6 @@ ok('미처리 예외 없음', exc.length===0, exc.join(' | '))
 /* ★ 어느 판을 검사했는지 남긴다. 옛 번들을 잡고 통과/실패하면 그것이 오탐이다. */
 const B = await checkBundle(ev)
 console.log(`\n검사한 번들: ${B.name ?? '(못 찾음)'}${B.expect ? `  (기대 ${B.expect})` : ''}`)
-ok('★ 배포된 그 번들을 검사했다', B.ok, `${B.name} ≠ ${B.expect}`)
+ok('★ 배포된 그 번들을 검사했다', B.ok, B.ok ? '' : `${B.name} ≠ ${B.expect}`)
 console.log(`\n통과 ${pass} / 실패 ${fail}`)
 ws.close(); process.exit(fail?1:0)

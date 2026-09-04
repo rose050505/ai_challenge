@@ -3,7 +3,6 @@ import {
   EXERCISE_CHANNELS,
   EXERCISE_FORM_REQUIREMENT,
   RESPONSE_DUTY,
-  RESPONSE_FORM,
   PROCESSING_DEADLINE,
   EXPLANATION_METHODS,
   REFUSAL_GROUNDS,
@@ -17,6 +16,7 @@ import {
 } from '../data/law.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { PageHeader, Basis, Notice } from '../components/ui.jsx'
+import ResponseFormNotice from '../components/ResponseFormNotice.jsx'
 import { Term } from '../components/Term.jsx'
 import { SubmissionRecord } from '../components/Journey.jsx'
 import NoReply from '../components/NoReply.jsx'
@@ -268,30 +268,16 @@ export default function Next() {
       <Section
         n="4."
         title="어떤 답을 받게 되나요"
-        summary="회신 서식과 설명 방법이 법령에 정해져 있습니다. 평가 모델의 내부 로직은 받지 못할 수 있습니다."
+        summary="회신 서식과 담길 내용이 법령에 정해져 있습니다. 평가 모델의 내부 로직은 받지 못할 수 있습니다."
         defaultOpen={open.methods}
         note="받게 될 답변의 형태가 법령에 정해져 있습니다. 미리 알고 있으면 실망이 줄어듭니다."
       >
         {/*
           내용(3유형)에 앞서 형식을 먼저 짚는다.
-          ★ 서식 본문은 확인하지 못했다. 담는 내용을 설명하지 않는다.
+          ★ 2026-09-04 별지 제15호의4 정본 확보. 무엇이 담기는지까지 안내한다.
+            문구와 구조는 ResponseFormNotice 한 곳에 있다 (/response 도 같은 것을 쓴다).
         */}
-        <div className="mb-4 rounded-md border border-gray-400 bg-gray-50 p-4">
-          <p className="font-bold text-gray-900">회신에도 정해진 서식이 있습니다</p>
-          <p className="mt-2 text-gray-700">{RESPONSE_FORM.notice}</p>
-          <p className="mt-2 text-gray-700">
-            그 서식은 <b>{RESPONSE_FORM.formNo} 「{RESPONSE_FORM.formName}」</b>입니다.
-          </p>
-          <blockquote className="mt-3 rounded-md border-l-4 border-gray-400 bg-white p-3 text-gray-800">
-            {RESPONSE_FORM.ruleText}
-          </blockquote>
-          <p className="mt-3 text-sm text-gray-600">{RESPONSE_FORM.contentsUnverified}</p>
-          <p className="mt-2 text-sm text-gray-600">{RESPONSE_FORM.noVerdictNote}</p>
-          <p className="mt-3 flex flex-wrap gap-2">
-            <Basis prefix="근거">{RESPONSE_FORM.basis}</Basis>
-            <Basis prefix="관련">{RESPONSE_FORM.relatedBasis}</Basis>
-          </p>
-        </div>
+        <ResponseFormNotice className="mb-4" />
 
         <ul className="space-y-3">
           {EXPLANATION_METHODS.map((m) => (

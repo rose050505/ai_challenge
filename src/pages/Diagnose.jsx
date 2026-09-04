@@ -565,6 +565,19 @@ function RoutingDisclosure({ withDiagram = false }) {
               ))}
             </ol>
             {branch.note && <p className="mt-2 text-sm text-gray-600">{branch.note}</p>}
+            {/* ★ "모르겠습니다"를 고른 사람에게 — 회신이 그 답을 갖고 온다 (정본 근거) */}
+            {branch.noticeHint && (
+              <div className="mt-3 rounded-md border border-gray-400 bg-gray-50 p-3">
+                <p className="text-sm text-gray-800">{branch.noticeHint.text}</p>
+                <p className="mt-2 flex flex-wrap gap-2">
+                  {branch.noticeHint.basis.map((b) => (
+                    <Basis key={b} prefix="근거">
+                      {b}
+                    </Basis>
+                  ))}
+                </p>
+              </div>
+            )}
             {branch.requiresRecipientInput && (
               <p className="mt-2 text-sm text-gray-600">
                 서식을 만들 때 수신 기관을 따로 지정해야 합니다.

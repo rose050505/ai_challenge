@@ -50,7 +50,7 @@ ck('9) 처리되지 않은 예외 없음', errors.length===0, errors.slice(0,2).
 
 await send('Page.removeScriptToEvaluateOnNewDocument',{identifier})
 const B = await checkBundle(ev)
-ck(`★ 배포된 그 번들을 검사했다 (${B.name ?? '?'})`, B.ok, B.expect ? `기대 ${B.expect}` : '')
+ck(`★ 배포된 그 번들을 검사했다 (${B.name ?? '?'})`, B.ok, B.ok ? '' : `기대 ${B.expect}`)
 console.log('\n════════════════════════')
 const f=out.filter(([,p])=>!p)
 console.log(`${out.length-f.length}/${out.length} 통과`)

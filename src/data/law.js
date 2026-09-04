@@ -65,8 +65,39 @@ export const LAW_META = {
     article: '제40조의5',
     effectiveDate: '2026-08-13',
     revision: '금융위원회고시 제2026-37호, 2026. 8. 13., 일부개정',
+    /**
+     * 이 고시의 별지 서식 셋. **정본을 모두 받아 대조했다** (2026-09-04).
+     *
+     * ★ 2026-08-13 은 **고시 자체**의 개정일이다. 별지 서식은 저마다 개정 표기를 따로 갖는다.
+     *   제15호의2 에만 표기가 있고, 나머지 둘에는 없다. 없는 것을 지어내지 않는다.
+     * ★ 별지 번호와 개정 표기의 단일 출처는 여기다. 아래 서식 상수들이 이것을 읽는다.
+     */
+    forms: {
+      explanationRequest: {
+        no: '별지 제15호의2',
+        name: '자동화평가 결과에 대한 설명요구서',
+        revisionMark: '<개정 2022.7.7.>',
+        verifiedOn: '2026-09-04',
+      },
+      correctionRequest: {
+        no: '별지 제15호의3',
+        name: '기초정보 정정ㆍ삭제 및 자동화평가 재산출 요청',
+        revisionMark: null,
+        verifiedOn: '2026-09-04',
+      },
+      /** 사업자가 **회신할 때** 쓰는 서식. 우리가 만들지 않고, 무엇이 담기는지만 안내한다. */
+      responseNotice: {
+        no: '별지 제15호의4',
+        name: '자동화평가 결과 안내서',
+        revisionMark: null,
+        verifiedOn: '2026-09-04',
+      },
+    },
   },
 }
+
+/** 별지 서식 셋의 번호·이름·개정 표기. LAW_META 를 한 번 더 적지 않기 위한 지름길. */
+export const SUPERVISION_FORMS = LAW_META.supervisionRule.forms
 
 /* ============================================================
  * 0-2. 법령 원문 링크
@@ -974,16 +1005,19 @@ export const RESPONSE_DUTY = {
  *   그 서식이 무엇인지는 고시(감독규정)가 지정한다. 그 지정이 제40조의5 제2항이다.
  *   사용자에게 이건 하나의 축이 된다 — 금융회사가 아무 형태로나 답해도 되는 것이 아니다.
  *
- * ★ 확인한 것과 확인하지 못한 것을 나눈다.
- *   확인한 것: 규정 원문(2026-08-30 국가법령정보센터 행정규칙 원문)과
- *             별지 목록에 실린 이름("[별지 15의 4] 자동화평가 결과 안내서").
- *   확인하지 못한 것: **서식의 본문**. 별지 서식은 고시의 첨부 파일로만 제공되는데
- *             그 파일을 받지 못했다(다운로드 식별자 미상). 서식이 존재한다는 것과
- *             그 서식이 무엇을 담는지는 다른 문제다. 담는 내용을 지어내지 않는다.
+ * ★ 정본 대조 완료 (2026-09-04). 국가법령정보센터에서 별지 제15호의4 본문을 받았다.
+ *   그전까지는 "그런 법정 서식이 있다"까지만 말했다 — 본문을 받지 못했기 때문이다.
+ *   이제 무엇을 담는지 말할 수 있다. 개정 표기는 붙어 있지 않다.
  *
- * ★ 위법 단정 금지.
- *   회신이 이 서식을 따르지 않았다고 해서 위법이라고 말하지 않는다.
- *   실무 관행을 확인하지 않았다. "법정 서식이 있다"까지가 우리가 말할 수 있는 전부다.
+ * ★ **위법이라고 단정하지 않는 이유가 추측에서 정본으로 바뀌었다.**
+ *   그전에는 "실무 관행을 확인하지 않았다"였다. 이제는 정본의 작성요령이
+ *   자체 서식과 자체 분류를 명시적으로 허용한다(ownFormAllowed). 근거가 있는 말이다.
+ *
+ * 명세: docs/law/form-spec-4.md
+ *
+ * ★ 본문을 화면에 통째로 옮기지 않는다. 구조만 안내한다.
+ *   이 서식은 **금융회사가** 쓰는 것이지 사용자가 쓰는 것이 아니다. 재현할 이유가 없다.
+ *   사용자에게 필요한 것은 "무엇이 적혀 있어야 하는가"뿐이다.
  */
 export const RESPONSE_FORM = {
   basis: '신용정보업감독규정 제40조의5 제2항',
@@ -992,22 +1026,88 @@ export const RESPONSE_FORM = {
   /** ★ 규정 원문 그대로 */
   ruleText:
     '영 제31조의2제7항에서 "금융위원회가 정하여 고시하는 서식"이란 별지 제15호의4 서식을 말한다.',
-  formNo: '별지 제15호의4',
-  /** 고시 별지 목록에 실린 이름 (목록 표기: [별지 15의 4]) */
-  formName: '자동화평가 결과 안내서',
+  formNo: SUPERVISION_FORMS.responseNotice.no,
+  /** 별지 제목과 부제 (정본) */
+  formTitle: '자동화평가 결과 안내',
+  subtitle: '(제40조의5제2항 관련)',
+  /** 본문 표제. 고시 별지 목록의 표기도 이것이다 ([별지 15의 4] 자동화평가 결과 안내서). */
+  formName: SUPERVISION_FORMS.responseNotice.name,
+  /** 이 별지에는 개정 표기가 없다. 없는 것을 지어내지 않는다. */
+  revisionMark: SUPERVISION_FORMS.responseNotice.revisionMark,
+  verbatimVerified: true,
   effectiveDate: LAW_META.supervisionRule.effectiveDate,
   revision: LAW_META.supervisionRule.revision,
   /** 화면 한 줄 */
   notice:
     '금융회사는 시행령 제31조의2 제7항과 감독규정에 따라 금융위원회가 정한 서식으로 회신해야 합니다.',
-  /** ★ 미확인 고지. 이 문장을 빼고 서식 내용을 설명하지 않는다. */
-  contentsUnverified:
-    '이 서식이 어떤 항목을 담는지는 확인하지 못했습니다. 별지 서식의 본문은 고시의 첨부 파일로만 ' +
-    '제공되는데 그 파일을 받지 못했습니다. 여기서 말씀드릴 수 있는 것은 "그런 법정 서식이 있다"까지입니다.',
-  /** ★ 단정 금지 고지 */
+
+  /**
+   * 정본이 정한 절 구성.
+   * ★ 번호가 1 · 2 · 2 다. 마지막 절도 "2."로 매겨져 있다 — 정본 그대로 옮긴다.
+   */
+  sections: [
+    {
+      no: '1',
+      title: '자동화평가 결과',
+      fields: ['평가 기준 시점', '평가 대상(금융상품명)', '결과'],
+    },
+    {
+      no: '2',
+      title: '자동화평가 주요 기준 및 기초정보의 개요',
+      /** ★ 사용자에게 가장 큰 값이 여기 있다 */
+      fields: ['신용정보의 구분', '세부 정보', '입수 경로', '반영비중'],
+      note: '다섯 분류마다 반영비중(%)이 적히고, 정보마다 입수 경로가 적힌다.',
+      /** 분류 순서와 표기는 정본 그대로. 라벨은 BASE_INFO_CATEGORIES 에서 읽는다. */
+      categoryOrder: ['identity', 'transaction', 'creditworthiness', 'capacity', 'other'],
+    },
+    {
+      no: '2',
+      title: '자동화평가 결과의 산출에 유리하다고 판단되는 정보',
+      optional: true,
+      note: '해당사항이 있으면 안내하고, 없으면 본란을 삭제한다.',
+    },
+  ],
+  /** 말미 */
+  closing: '20  .  .  .  /  ○○금융회사  대표이사 △△△',
+
+  /**
+   * ★★ 입수 경로 — 이 서비스의 라우팅 질문에 직접 답이 되는 칸이다.
+   *   정정 요청을 어디로 낼지는 그 정보를 **누가 준 것인가**로 갈린다(CORRECTION_ROUTING).
+   *   사용자는 그것을 알 수 없어서 우리가 물어보고, 모르면 서식 1을 먼저 내라고 안내했다.
+   *   정본은 회신에 그 값이 적히도록 정하고 있다. 그러니 회신을 받으면 물어볼 필요가 없다.
+   *   근거: 별지 제15호의4 작성요령 (2)
+   */
+  sourceRoutes: {
+    basis: '신용정보업감독규정 별지 제15호의4 작성요령 (2)',
+    values: [
+      '당사 자체입수',
+      '신용정보집중기관',
+      '개인신용평가회사 (NICE평가정보, KCB 등 회사명을 구체적으로)',
+    ],
+    /** 화면 한 줄 — 라우팅이 막힌 사람에게 하는 말 */
+    routingHint:
+      '회신을 받으시면 기초정보마다 그 정보를 어디서 받았는지(입수 경로)가 함께 적혀 있습니다. ' +
+      '그 값으로 정정 요청을 어느 회사에 낼지 정하실 수 있습니다.',
+  },
+
+  /**
+   * ★ 회신이 이 서식과 달라도 되는 근거. 추측이 아니라 정본이 그렇게 정하고 있다.
+   *   (1) 은 분류·항목을, (3) 은 서식 자체를 자체적으로 정할 수 있게 한다.
+   */
+  ownFormAllowed: {
+    basis: '신용정보업감독규정 별지 제15호의4 작성요령 (1)·(3)',
+    itemsText:
+      '신용정보의 구분, 세부 정보 및 세부 공개항목은 협회 또는 금융회사가 자체적으로 정할 수 있음',
+    formText:
+      '상기 양식이 부적합하다고 판단하는 경우 협회 또는 금융회사가 자체적으로 정한 서식을 사용할 수 있음',
+  },
+
+  /** ★ 단정 금지 고지 — 이제 근거가 있는 말이다 */
   noVerdictNote:
-    '받으신 회신이 이 서식의 모양과 다르더라도 그것만으로 위법이라고 단정할 수 없습니다. ' +
-    '실무에서 어떻게 운용되는지는 이 서비스가 확인하지 않았습니다.',
+    '받으신 회신이 이 서식의 모양과 달라도 그것만으로 위법이라고 볼 수 없습니다. ' +
+    '서식의 작성요령이 협회나 금융회사가 자체적으로 정한 서식을 쓸 수 있도록 허용하고, ' +
+    '신용정보의 구분과 세부 항목도 자체적으로 정할 수 있게 하고 있습니다. ' +
+    '다만 담아야 할 내용은 위와 같으므로, 빠진 것이 있으면 그것을 근거로 다시 요구하실 수 있습니다.',
 }
 
 /**
@@ -1276,8 +1376,8 @@ export const FORM_EXPLANATION_REQUEST = {
   coveredRights: ['R1', 'R2'],
   available: true,
   /** 정본의 별지 번호와 그 서식 자체의 개정 표기 (2026-09-04 대조) */
-  formNo: '별지 제15호의2',
-  revisionMark: '<개정 2022.7.7.>',
+  formNo: SUPERVISION_FORMS.explanationRequest.no,
+  revisionMark: SUPERVISION_FORMS.explanationRequest.revisionMark,
   /** 무엇과 대조했는지 — docs/law/form-spec.md */
   source: '신용정보업감독규정 별지 제15호의2 정본',
   /**
@@ -1391,6 +1491,8 @@ export const BASE_INFO_CATEGORIES = [
   {
     id: 'transaction',
     label: '거래내용 판단정보',
+    /** 별지 제15호의4(회신 서식) 표기. 그 서식은 세 「판단정보」를 붙여 쓴다. */
+    noticeFormLabel: '거래내용판단정보',
     lawBasis: '법 제2조 제1호 나목',
     definitionBasis: '법 제2조 제1호의3',
     examples: [
@@ -1404,6 +1506,7 @@ export const BASE_INFO_CATEGORIES = [
   {
     id: 'creditworthiness',
     label: '신용도 판단정보',
+    noticeFormLabel: '신용도판단정보',
     lawBasis: '법 제2조 제1호 다목',
     definitionBasis: '법 제2조 제1호의4',
     examples: [
@@ -1425,6 +1528,8 @@ export const BASE_INFO_CATEGORIES = [
      *   서식 원문 재현과 우리 화면 용어는 별개다. 나머지 네 분류는 formLabel 이 없다.
      */
     formLabel: '신용거래능력판단정보',
+    /** 별지 제15호의4 도 같은 붙여쓰기다 (2026-09-04 정본 대조) */
+    noticeFormLabel: '신용거래능력판단정보',
     lawBasis: '법 제2조 제1호 라목',
     definitionBasis: '법 제2조 제1호의5',
     examples: ['개인의 직업', '재산', '채무', '소득의 총액', '납세실적'],
@@ -1673,6 +1778,14 @@ export const CORRECTION_ROUTING = {
       submitToLabel: '먼저 출처를 확인해야 합니다',
       /** ★ 서식 1이 서식 2의 선행 단계가 되는 경로 */
       requiresPrecedingStep: true,
+      /**
+       * ★ 이 갈래는 "모르면 서식 1을 먼저 내라"로 끝나 있었다. 맞는 말이지만,
+       *   **왜 그 답이 출처를 알려 주는지**는 우리 추측이었다. (2026-09-04 이전)
+       *   별지 제15호의4 정본을 받아 근거가 생겼다 — 회신에는 기초정보마다
+       *   입수 경로가 적히도록 정해져 있다. 그래서 서식 1의 답이 곧 이 질문의 답이다.
+       *   문구의 단일 출처는 RESPONSE_FORM.sourceRoutes 다.
+       */
+      noticeHint: null, // 아래에서 채운다 (RESPONSE_FORM 참조를 순환 없이 잇기 위해)
       steps: [
         {
           order: 1,
@@ -1694,6 +1807,15 @@ export const CORRECTION_ROUTING = {
       ],
     },
   ],
+}
+
+/**
+ * ★ unknown 갈래의 안내에 회신 서식의 근거를 잇는다. (2026-09-04)
+ *   문구를 여기 다시 적지 않는다 — RESPONSE_FORM.sourceRoutes 가 단일 출처다.
+ */
+CORRECTION_ROUTING.branches.find((b) => b.id === 'unknown').noticeHint = {
+  text: RESPONSE_FORM.sourceRoutes.routingHint,
+  basis: [RESPONSE_FORM.basis, RESPONSE_FORM.sourceRoutes.basis],
 }
 
 export const CORRECTION_ROUTING_BY_ID = Object.fromEntries(
@@ -1730,8 +1852,8 @@ export const FORM_CORRECTION_REQUEST = {
   singleSheet: true,
 
   /** 정본의 별지 번호. 이 서식에는 개정 표기가 붙어 있지 않다 (2026-09-04 대조). */
-  formNo: '별지 제15호의3',
-  revisionMark: null,
+  formNo: SUPERVISION_FORMS.correctionRequest.no,
+  revisionMark: SUPERVISION_FORMS.correctionRequest.revisionMark,
   /**
    * ★ 2026-09-04 정본 대조로 **공개본이 정본을 손댄 것**임이 드러났다.
    *   HB저축은행 공개본은 제목에 "서"를 붙이고 부제를 빼고, 정본의 기관 중립 표현

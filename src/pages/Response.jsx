@@ -15,13 +15,13 @@ import {
   AMBIGUOUS_CATEGORY_ITEMS,
   isAmbiguousCategoryItem,
   BASE_INFO_CATEGORIES_BY_ID,
-  RESPONSE_FORM,
 } from '../data/law.js'
 import { RESPONSE_SAMPLES, RESPONSE_SAMPLES_NOTICE } from '../data/response-samples.js'
 import { useJourney } from '../lib/diagnosis-context.jsx'
 import { interpretResponse } from '../lib/interpret-client.js'
 import { correctionRowsFrom } from '../lib/correction-rows.js'
 import { PageHeader, Basis, Notice, Status, SlowHint, Elapsed } from '../components/ui.jsx'
+import ResponseFormNotice from '../components/ResponseFormNotice.jsx'
 import { Term } from '../components/Term.jsx'
 import { AI_PROCESSING, TRANSMIT_LIMITS, RESPONSE_RETENTION } from '../data/privacy.js'
 
@@ -651,25 +651,10 @@ export default function Response() {
 
             {/*
               회신의 '내용'만이 아니라 '형식'에도 법정 기준이 있다는 축.
-              ★ 서식 본문을 확인하지 못했으므로 담는 내용을 설명하지 않는다.
-              ★ 형식이 다르다고 위법이라고 단정하지 않는다.
+              ★ 2026-09-04 별지 제15호의4 정본을 받아, 무엇이 담기는지까지 말할 수 있게 됐다.
+                문구와 구조는 ResponseFormNotice 한 곳에 있다 (/next 도 같은 것을 쓴다).
             */}
-            <div className="mt-4 rounded-md border border-gray-400 bg-gray-50 p-4">
-              <p className="font-bold text-gray-900">회신에도 정해진 서식이 있습니다</p>
-              <p className="mt-2 text-gray-700">{RESPONSE_FORM.notice}</p>
-              <p className="mt-2 text-gray-700">
-                그 서식은 <b>{RESPONSE_FORM.formNo} 「{RESPONSE_FORM.formName}」</b>입니다.
-              </p>
-              <blockquote className="mt-3 rounded-md border-l-4 border-gray-400 bg-white p-3 text-gray-800">
-                {RESPONSE_FORM.ruleText}
-              </blockquote>
-              <p className="mt-3 text-sm text-gray-600">{RESPONSE_FORM.contentsUnverified}</p>
-              <p className="mt-2 text-sm text-gray-600">{RESPONSE_FORM.noVerdictNote}</p>
-              <p className="mt-3 flex flex-wrap gap-2">
-                <Basis prefix="근거">{RESPONSE_FORM.basis}</Basis>
-                <Basis prefix="관련">{RESPONSE_FORM.relatedBasis}</Basis>
-              </p>
-            </div>
+            <ResponseFormNotice className="mt-4" />
           </div>
 
           {/* (2) 제도의 한계 — 반드시 표시. 실제 적용된 회신이면 강조한다. */}
