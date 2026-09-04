@@ -134,9 +134,13 @@ for (let n=1; n<=N; n++) {
   const hole = JSON.parse(await ev(`JSON.stringify((()=>{
     const e=document.querySelector('[data-tour=${first}]'); if(!e) return null;
     const r=e.getBoundingClientRect();
+    /* ★ 자리는 **문서 좌표**로 담고 스크롤은 바깥 <g> 가 맡는다 (2026-09-04).
+         그래서 둘을 곱해야 화면 좌표가 된다. 하나만 보면 스크롤한 만큼 어긋난다. */
+    const g=document.querySelector('svg mask#tour-mask g');
+    const gm=g?new DOMMatrixReadOnly(getComputedStyle(g).transform):new DOMMatrixReadOnly();
     const rects=[...document.querySelectorAll('svg mask#tour-mask rect')].slice(1);
     const near=rects.map(x=>{
-      const m=new DOMMatrixReadOnly(getComputedStyle(x).transform);
+      const m=gm.multiply(new DOMMatrixReadOnly(getComputedStyle(x).transform));
       return {x:m.e, y:m.f, w:m.a, h:m.d}
     }).map(h=>({dx:Math.round(Math.abs(h.x-(r.left-6))), dy:Math.round(Math.abs(h.y-(r.top-6))),
                 dw:Math.round(Math.abs(h.w-(r.width+12))), dh:Math.round(Math.abs(h.h-(r.height+12)))}))
@@ -164,7 +168,7 @@ console.log('[F] prefers-reduced-motion: reduce — 움직임이 없어야 한�
 const anim = async () => JSON.parse(await ev(`JSON.stringify((()=>{
   const p=document.querySelector('[data-tour-panel]'); if(!p) return null;
   const page=p.querySelector('.tour-page');
-  const hole=document.querySelector('svg mask#tour-mask rect + rect');
+  const hole=document.querySelector('[data-tour-hole]');
   const g=e=>e?getComputedStyle(e):null;
   return {sheet:g(p)?.animationName, page:g(page)?.animationName,
           holeT:hole?getComputedStyle(hole).transitionProperty:null,

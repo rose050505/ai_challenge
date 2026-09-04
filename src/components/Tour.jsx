@@ -20,39 +20,57 @@ import { TOUR_INTRO, TOUR_OUTRO, TOUR_STATIONS, TOUR_TITLE } from '../data/tour.
 
 /** 강조할 요소를 찾는다. 화면이 아직 안 그려졌을 수 있으므로 잠깐 기다린다. */
 function useTargets(targets, step) {
-  const [rects, setRects] = useState([])
+  /**
+   * ★ 구멍의 자리는 **문서 좌표**로 담고, 스크롤은 바깥 <g> 하나로 뺀다. (2026-09-04)
+   *   화면 좌표로 담으면 스크롤할 때마다 값이 바뀐다. 거기에 transition 이 걸려 있으면
+   *   강조 표시가 요소를 뒤늦게 따라가므로, 옛 코드는 스크롤이 시작되면 transition 을
+   *   껐다 — 그런데 정거장을 옮길 때 **우리가 스스로** 스크롤하므로 그 한 줄이
+   *   미끄러짐(①)을 매번 30~60ms 만에 죽였다. 375px 실기에서 "뚝뚝 넘어간다"의 원인이다.
+   *   문서 좌표는 스크롤과 무관하므로 transition 이 겨룰 상대가 없다.
+   *   → 안쪽 rect: 대상이 바뀔 때만 값이 바뀐다 (200ms 미끄러짐)
+   *     바깥 <g>: 매 프레임 스크롤을 따라간다 (transition 없음)
+   */
+  const [box, setBox] = useState({ rects: [], off: 0 })
   /** 지금 강조 중인 요소들. 크기가 바뀌면 다시 잰다. */
   const watched = useRef([])
   const measure = useCallback(() => {
     if (!targets?.length) {
       watched.current = []
-      setRects([])
+      setBox({ rects: [], off: window.scrollY })
       return []
     }
     const els = targets
       .map((t) => document.querySelector(`[data-tour="${t}"]`))
       .filter(Boolean)
     watched.current = els
-    setRects(
-      els.map((el) => {
+    setBox({
+      off: window.scrollY,
+      rects: els.map((el) => {
         const r = el.getBoundingClientRect()
         return {
-          x: r.left - 6,
-          y: r.top - 6,
+          x: r.left - 6 + window.scrollX,
+          y: r.top - 6 + window.scrollY,
           w: r.width + 12,
           h: r.height + 12,
-          /* ★ 문서 좌표도 같이 담는다. 패널 자리를 **스크롤이 끝난 뒤** 기준으로
-             정하려면 화면 좌표만으로는 안 된다 (placeTopFor 주석 참조). */
-          docY: r.top - 6 + window.scrollY,
         }
       }),
-    )
+    })
     return els
   }, [targets])
 
   useLayoutEffect(() => {
     let stop = false
     let tries = 0
+    /*
+     * ★ 새 정거장은 **맨 위에서 시작한다.** (2026-09-04 375px 실기 측정)
+     *   정거장마다 화면이 바뀌는데(goTo 가 navigate 한다) 스크롤 값은 앞 화면 것이
+     *   그대로 남는다. 게다가 앞 정거장의 부드러운 스크롤이 아직 흐르고 있고,
+     *   새 화면이 더 짧으면 브라우저가 그 값을 잘라 낸다 —
+     *   375px 에서 [다음] 직후 100ms 동안 2864 → 1416 → 1284 로 요동쳤다.
+     *   그 요동은 어느 대상과도 관계가 없다. 대상을 찾기 전에 먼저 멈춰 세운다.
+     *   (scrollTo(auto) 는 진행 중이던 부드러운 스크롤도 함께 끊는다)
+     */
+    if (targets?.length) window.scrollTo({ top: 0, behavior: 'auto' })
     const tick = () => {
       if (stop) return
       const els = measure()
@@ -62,15 +80,28 @@ function useTargets(targets, step) {
          * ★ 가운데로 스크롤하면 안 된다. 패널이 화면 아래 절반을 덮으므로
          *   가운데에 놓인 대상은 패널 뒤에 숨는다. 위쪽(머리말 바로 아래)에 붙인다.
          * ★ 부드럽게 움직인다 (2026-09-01). 즉시 점프하면 "어디서 어디로 갔는지"가
-         *   보이지 않는다. 움직이는 동안에도 scroll 리스너가 계속 다시 재므로
-         *   강조 표시는 요소에 정확히 붙어 함께 미끄러진다.
+         *   보이지 않는다. 강조 표시는 바깥 <g> 가 매 프레임 스크롤을 따라가므로
+         *   움직이는 동안에도 요소에 정확히 붙어 함께 미끄러진다.
          * ★ prefers-reduced-motion: reduce 면 즉시 이동한다.
          */
-        const top = els[0].getBoundingClientRect().top + window.scrollY - 96
+        const top = Math.max(0, els[0].getBoundingClientRect().top + window.scrollY - 96)
         const reduce =
           typeof window.matchMedia === 'function' &&
           window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        window.scrollTo({ top: Math.max(0, top), behavior: reduce ? 'auto' : 'smooth' })
+        /*
+         * ★ 부드럽게 훑는 거리를 **묶는다.** (2026-09-04 375px 실기 측정)
+         *   정거장은 저마다 다른 화면이다(goTo 가 navigate 한다). 그래서 새 화면은
+         *   앞 화면의 스크롤 값을 그대로 물려받은 채 열린다 — 375px 에서 그 거리가
+         *   2,400px 이었고, 크롬의 부드러운 스크롤이 **800ms 넘게** 흘렀다.
+         *   내용 전환은 200ms 에 끝나므로 배경만 한참 더 흐르고, 그것이 "뚝뚝"으로 읽힌다.
+         *   (1280px 은 같은 자리가 1,600px 이라 덜 아팠다. 그래서 데스크톱만 멀쩡해 보였다)
+         *   → 처음 보는 화면에는 지켜야 할 연속성이 없다. 대부분을 **즉시** 건너뛰고
+         *     마지막 LEAD 만 부드럽게 미끄러진다. 그리면 폭과 무관하게 같은 길이다.
+         *   두 번의 scrollTo 는 같은 작업 안에서 일어나므로 중간 자리는 그려지지 않는다.
+         */
+        const LEAD = reduce ? 0 : Math.min(SCROLL_LEAD_PX, top)
+        if (LEAD > 0) window.scrollTo({ top: top - LEAD, behavior: 'auto' })
+        window.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' })
         setTimeout(measure, 60)
         return
       }
@@ -101,9 +132,9 @@ function useTargets(targets, step) {
       window.removeEventListener('resize', on)
       ro?.disconnect()
     }
-  }, [measure, rects.length])
+  }, [measure, box.rects.length])
 
-  return rects
+  return box
 }
 
 /**
@@ -123,13 +154,16 @@ function useTargets(targets, step) {
 function placeTopFor(rects) {
   if (!rects.length || typeof window === 'undefined') return false
   const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
-  const after = Math.min(Math.max(0, rects[0].docY - 90), max) // useTargets 의 -96 과 같은 자리
-  return Math.min(...rects.map((r) => r.docY - after)) > window.innerHeight * 0.42
+  const after = Math.min(Math.max(0, rects[0].y - 90), max) // useTargets 의 -96 과 같은 자리
+  return Math.min(...rects.map((r) => r.y - after)) > window.innerHeight * 0.42
 }
+
+/** 정거장이 바뀔 때 **부드럽게** 훑는 거리. 나머지는 즉시 건너뛴다. (useTargets 주석) */
+const SCROLL_LEAD_PX = 240
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])'
 
-/** 단위 사각형(1×1)을 그 자리·그 크기로 옮기는 transform. 0 으로 줄어들지 않게 막는다. */
+/** 단위 사각형(1×1)을 그 자리·그 크기로 옮기는 transform (**문서 좌표**). 0 으로 줄어들지 않게 막는다. */
 const holeTransform = (r) =>
   `translate(${r.x}px, ${r.y}px) scale(${Math.max(r.w, 1)}, ${Math.max(r.h, 1)})`
 
@@ -154,7 +188,7 @@ export default function Tour() {
    *   소개에서 첫 화면의 자가진단을 비추기 위해 head 를 훅보다 먼저 구한다.
    */
   const head = step === INTRO ? TOUR_INTRO : step === OUTRO ? TOUR_OUTRO : station
-  const rects = useTargets(head?.targets, step)
+  const { rects, off } = useTargets(head?.targets, step)
 
   // 단계가 바뀔 때마다 패널로 포커스를 옮긴다. 스크린리더가 새 내용을 읽는다.
   useEffect(() => {
@@ -173,20 +207,18 @@ export default function Tour() {
 
   /*
    * 정거장이 바뀐 직후 260ms 동안만 강조 표시에 transition 을 건다.
-   * ★ 배경이 스크롤되기 시작하면 곧바로 끈다. 스크롤 중에는 리스너가 매 프레임
-   *   다시 재는데, 그때 transition 이 남아 있으면 강조 표시가 요소를 **뒤늦게 따라가** 어긋난다.
-   *   (스크롤이 있는 경우의 "이동"은 배경과 함께 미끄러지는 것으로 이미 보인다)
+   * ★ **스크롤로 끄지 않는다.** (2026-09-04)
+   *   옛 코드는 스크롤이 시작되면 곧바로 껐다 — 구멍의 자리를 화면 좌표로 담고 있어서
+   *   스크롤 중에 transition 이 남아 있으면 구멍이 요소를 뒤늦게 따라갔기 때문이다.
+   *   그런데 정거장을 옮기면 우리가 스스로 스크롤한다. 그래서 미끄러짐이 30~60ms 만에
+   *   죽었다(375px 실기 측정). 이제 자리를 문서 좌표로 담으므로 스크롤은 값을 바꾸지 않고,
+   *   transition 과 겨루지 않는다. 시간으로만 끈다.
    */
   useEffect(() => {
     if (!active) return
     setMoving(true)
-    const off = () => setMoving(false)
-    const t = setTimeout(off, 260)
-    window.addEventListener('scroll', off, true)
-    return () => {
-      clearTimeout(t)
-      window.removeEventListener('scroll', off, true)
-    }
+    const t = setTimeout(() => setMoving(false), 260)
+    return () => clearTimeout(t)
   }, [active, step])
 
   // 포커스 트랩 + Esc
@@ -226,6 +258,15 @@ export default function Tour() {
   const total = TOUR_STATIONS.length
   /* 대상이 아래쪽에 남는 경우(짧은 페이지 등)에만 패널을 위로 올린다. placeTopFor 참조. */
   const placeTop = placeTopFor(rects)
+  /*
+   * ★ 시트냐 가운데 카드냐는 **잰 값이 아니라 선언된 대상**으로 정한다. (2026-09-04)
+   *   rects 는 대상을 찾기까지 한두 프레임 비어 있다. 그 사이에 가운데 카드가 됐다가
+   *   시트로 돌아오면, 클래스가 다시 붙으면서 tour-rise 가 **정거장마다 다시 재생**됐다
+   *   (375px 실기 측정: 시트가 320px = 48vh 만큼 내려갔다 올라온다).
+   *   데스크톱에는 이 규칙이 없어 나타나지 않았다 — 모바일만 뚝뚝 끊긴 이유의 하나다.
+   *   ④ 는 "처음 뜰 때 올라온다"이지 "옮길 때마다 다시 올라온다"가 아니다.
+   */
+  const hasTargets = (head?.targets?.length ?? 0) > 0
   const prev = () => {
     setDir(-1)
     if (step === OUTRO) return goTo(total - 1)
@@ -256,18 +297,21 @@ export default function Tour() {
                 단위 사각형(1×1)을 옮기고 늘린다. 그래야 transform 하나만으로
                 다음 대상까지 미끄러져 갈 수 있다 — layout 을 건드리지 않는다.
             */}
-            {rects.map((r, i) => (
-              <rect
-                key={i}
-                x="0"
-                y="0"
-                width="1"
-                height="1"
-                fill="#000"
-                className={moving ? 'tour-hole-move' : undefined}
-                style={{ transform: holeTransform(r), transformOrigin: '0 0' }}
-              />
-            ))}
+            {/* 스크롤은 이 <g> 하나가 맡는다 (transition 없음). useTargets 주석 참조. */}
+            <g style={{ transform: `translateY(${-off}px)` }}>
+              {rects.map((r, i) => (
+                <rect
+                  key={i}
+                  x="0"
+                  y="0"
+                  width="1"
+                  height="1"
+                  fill="#000"
+                  className={moving ? 'tour-hole-move' : undefined}
+                  style={{ transform: holeTransform(r), transformOrigin: '0 0' }}
+                />
+              ))}
+            </g>
           </mask>
         </defs>
         <rect
@@ -278,22 +322,26 @@ export default function Tour() {
           fill="rgba(20,31,49,0.62)"
           mask="url(#tour-mask)"
         />
-        {rects.map((r, i) => (
-          <rect
-            key={i}
-            x="0"
-            y="0"
-            width="1"
-            height="1"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            /* 늘려도 선 굵기는 그대로여야 한다 */
-            vectorEffect="non-scaling-stroke"
-            className={moving ? 'tour-hole-move' : undefined}
-            style={{ transform: holeTransform(r), transformOrigin: '0 0' }}
-          />
-        ))}
+        <g style={{ transform: `translateY(${-off}px)` }}>
+          {rects.map((r, i) => (
+            <rect
+              key={i}
+              /* 시험이 이 테두리를 다른 그림의 사각형과 헷갈리지 않게 하는 표식 */
+              data-tour-hole=""
+              x="0"
+              y="0"
+              width="1"
+              height="1"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              /* 늘려도 선 굵기는 그대로여야 한다 */
+              vectorEffect="non-scaling-stroke"
+              className={moving ? 'tour-hole-move' : undefined}
+              style={{ transform: holeTransform(r), transformOrigin: '0 0' }}
+            />
+          ))}
+        </g>
       </svg>
 
       <div
@@ -313,7 +361,7 @@ export default function Tour() {
          *     데스크톱(sm 이상)은 화면이 넓어 문제가 없으므로 현행 그대로 둔다.
          */
         className={`fixed z-50 mx-auto flex flex-col overflow-hidden rounded-md border-2 border-ink-700 bg-white p-4 shadow-2xl outline-none sm:p-5 ${
-          rects.length === 0
+          !hasTargets
             ? 'tour-card inset-x-3 top-1/2 max-h-[76vh] w-auto max-w-2xl -translate-y-1/2 sm:inset-x-0 sm:w-full'
             : `tour-sheet inset-x-0 bottom-0 max-h-[48vh] w-full max-w-2xl sm:max-h-[60vh] ${
                 placeTop ? 'sm:bottom-auto sm:top-4' : 'sm:bottom-4'
