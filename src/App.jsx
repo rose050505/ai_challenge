@@ -15,6 +15,7 @@ import Document from './pages/Document.jsx'
 import Strategy from './pages/Strategy.jsx'
 import Next from './pages/Next.jsx'
 import Response from './pages/Response.jsx'
+import AiDecision from './pages/AiDecision.jsx'
 
 /**
  * 네비게이션은 5개다.
@@ -205,6 +206,9 @@ function AppRoutes() {
       <Route path="/strategy" element={<Strategy />} />
       <Route path="/next" element={<Next />} />
       <Route path="/response" element={<Response />} />
+      {/* 확장 범위 — 개인정보 보호법 제37조의2 (2026-11-20). 네비 다섯 칸에는 넣지 않는다:
+          그 다섯은 신용 분야의 흐름 순서다. 랜딩의 한 줄과 진단 1단계에서 들어온다. */}
+      <Route path="/ai-decision" element={<AiDecision />} />
       <Route
         path="*"
         element={

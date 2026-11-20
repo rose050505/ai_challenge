@@ -208,6 +208,14 @@ function EntryCards({ onTour }) {
             ))}
           </ul>
       </div>
+      {/* 확장 범위 (2026-11-20) — 신용이 아닌 AI 결정. 카드 셋의 격자를 깨지 않게 한 줄로 둔다. */}
+      <p className="rounded-md border border-ink-200 bg-ink-50 p-3 text-gray-800" data-testid="ai-decision-entry">
+        대출 · 카드가 아니라 <b>채용 탈락 · 플랫폼 계정 정지</b>처럼 AI가 내린 결정이라면 —{' '}
+        <Link to="/ai-decision" className="font-semibold text-ink-800 underline">
+          AI 결정에 「왜?」 묻기
+        </Link>{' '}
+        <span className="text-sm text-gray-600">(개인정보 보호법 제37조의2)</span>
+      </p>
     </section>
   )
 }
