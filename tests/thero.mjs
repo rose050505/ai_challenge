@@ -64,7 +64,8 @@ const cards  = await ev(`JSON.stringify([...document.querySelectorAll('.entry-ca
   const r=e.getBoundingClientRect(); return {top:Math.round(r.top+scrollY),bottom:Math.round(r.bottom+scrollY)}}))`)
 const C = JSON.parse(cards)
 const scY  = await y(`[...document.querySelectorAll('h2')].find(e=>e.textContent.includes('혹시 이런 일'))`)
-t_('진입 카드가 셋', C.length===3, String(C.length))
+// 2026-11-20 넷째 카드(/ai-decision, 개인정보 보호법 제37조의2)를 더했다 — 의도한 변경
+t_('진입 카드가 넷', C.length===4, String(C.length))
 t_('"지금 어떤 상황이신가요"가 첫 화면 안', entryY!==null && entryY < 667, 'y='+entryY)
 t_('★ 진입 카드 첫 장이 통째로 첫 화면 안', C[0] && C[0].bottom <= 667, JSON.stringify(C[0]))
 t_('★ 진입 카드 둘째 장이 통째로 첫 화면 안', C[1] && C[1].bottom <= 667, JSON.stringify(C[1]))

@@ -54,6 +54,8 @@
 | `/strategy` | `POST /api/analyze` | `situation` — **`/diagnose` 마지막 단계의 자유 서술**(`#reason`)<br>`eventLabel` — 고른 사건 유형의 이름<br>`sectorLabel` — 고른 업권의 이름 | 서술 2,000자<br>이름 각 100자 | 사용자가 분석을 시작할 때 |
 | `/response` | `POST /api/interpret` | `responseText` — **붙여넣은 회신 원문** | 12,000자 | 사용자가 [회신 해석하기]를 누를 때 |
 | `/ai-decision` 3단계 | `POST /api/decision` `mode:'suggest'` | `story` — 사정 서술<br>`what` — 받은 결정 한 줄<br>`kindId` — 고정 목록의 분야 id | 서술 2,000자<br>결정 200자 | [후보 찾기]를 누를 때 |
+| `/ai-decision` 2단계 | `POST /api/decision` `mode:'triage'` | `story` · `what` · `kindId` (위와 같음) | 위와 같음 | [AI로 세 질문 미리 답하기]를 누를 때 |
+| `/ai-decision` 3단계 | `POST /api/decision` `mode:'polish'` | `story` — 사정 서술만 | 2,000자 | [문장 다듬기]를 누를 때 |
 | `/ai-decision` 4단계 | `POST /api/decision` `mode:'reply'` | `replyText` — **붙여넣은 회신 원문** | 12,000자 | [AI로 항목 찾기]를 누를 때 |
 
 - 상한은 `src/data/privacy.js` `TRANSMIT_LIMITS` 한 곳에서 정하고, 화면의 입력 제한과
@@ -151,6 +153,8 @@
 | `/api/analyze` | 사용자 상황 서술 → **제출하면 유리할 정보 후보**로 번역 | 법정 범주(신용거래능력 판단정보) 안에서만. 최대 개수 고정 |
 | `/api/interpret` | 회신문 → **법이 정한 세 유형 중 무엇이 담겼나** 분류, 기초정보 항목 추출 | 5분류 안에서만. 최대 20항목 |
 | `/api/decision` suggest | 사정 서술 → **결정에 빠졌을 수 있는 본인 정보** 후보 (개인정보 보호법 시행령 제44조의2 제2항 제2호) | 최대 4개. 사람 평가·법적 결론 제거, 인용은 원문 대조 |
+| `/api/decision` triage | 사정 서술 → **세 질문(사람 관여 · 중대한 영향 · 근거)의 답 후보** | 원문 인용이 없으면 「모르겠어요」로 되돌림. 판정은 여전히 `pipa-judge.js` |
+| `/api/decision` polish | 사정 서술 → **요구서용 서면 문장** | 원문에 없는 숫자 · 법적 단정 · 사람 평가가 있으면 버림. 원문과 나란히 보여 주고 사용자가 고름 |
 | `/api/decision` reply | 회신문 → **법정 설명 4항목(시행령 제44조의3 제2항)** 각각에 해당하는 문장을 찾아 옮김 | 찾았다는 문장이 원문에 그대로 있을 때만 인정. 키 고정 |
 
 - 모델 `claude-sonnet-5`, `output_config: { effort: 'low' }`,

@@ -157,6 +157,83 @@ export function guardReply(parsed, replyText) {
   return { items, ...flags }
 }
 
+/* ──────────────────────────── triage ─────────────────────────── */
+/*
+ * 세 질문 미리 답하기 (2026-11-20 개선).
+ * ★ AI 는 「답의 후보」만 낸다. 화면은 그것을 미리 고른 상태로 보여 주고 사용자가 고칠 수 있다.
+ *   권리 판정은 여전히 lib/pipa-judge.js 가 한다.
+ * ★ 근거 인용이 원문(사정 서술 + 받은 결정 한 줄)에 없으면 그 답은 'unk'(모르겠어요)로 되돌린다.
+ *   근거 없이 단정한 답은 쓰지 않는다.
+ */
+export const TRIAGE_OPTIONS = {
+  auto: ['no', 'unk', 'yes'],
+  big: ['yes', 'unk', 'no'],
+  basis: ['unk', 'consent', 'contract', 'law'],
+}
+
+export const TRIAGE_PROMPT = `당신은 사용자가 쓴 글에서 사실을 찾아 세 질문의 답 후보를 고르는 보조 도구입니다.
+법적 판단은 하지 않습니다. 글에 근거가 있을 때만 답을 고르고, 없으면 "unk" 입니다.
+
+[질문]
+auto  — 사람이 그 결정을 직접 검토했나요?  "no"(자동으로 나왔다는 단서가 있음) / "yes"(담당자가 판단했다는 단서가 있음) / "unk"
+big   — 그 결정이 권리나 의무에 큰 영향을 줬나요? (탈락 · 정지 · 거절 · 해지처럼 결과가 달라졌는가)  "yes" / "no" / "unk"
+basis — 그 결정의 근거는?  "consent"(본인이 동의했다는 단서) / "contract"(가입 · 계약 · 약관 이행이라는 단서) / "law"(법에 정해져 있다는 단서) / "unk"
+
+[규칙]
+- quote 는 사용자 글에서 **한 글자도 바꾸지 않고** 옮긴 연속된 부분(최대 80자)이어야 합니다.
+- 짐작으로 고르지 마십시오. 단서가 약하면 "unk", quote 는 "".
+- 배달 · 대리운전 같은 플랫폼 일이라는 사실만으로 계약이라고 단정하지 마십시오. 약관 · 계약이라는 말이 있을 때만 contract 입니다.
+
+[응답 형식] 아래 JSON만 출력하십시오.
+{ "auto": {"answer":"no","quote":"..."}, "big": {"answer":"yes","quote":"..."}, "basis": {"answer":"unk","quote":""} }`
+
+/** 답 후보 가드 — 허용된 값 + 원문 인용이 있을 때만 인정. (테스트용 export) */
+export function guardTriage(parsed, source) {
+  const hay = squash(source)
+  const out = {}
+  for (const [q, allowed] of Object.entries(TRIAGE_OPTIONS)) {
+    const v = parsed?.[q]
+    const answer = String(v?.answer ?? 'unk')
+    const quote = String(v?.quote ?? '').trim().slice(0, 80)
+    const grounded = squash(quote).length >= 2 && hay.includes(squash(quote))
+    if (!allowed.includes(answer) || answer === 'unk' || !grounded) out[q] = { answer: 'unk', quote: '' }
+    else out[q] = { answer, quote }
+  }
+  return out
+}
+
+/* ──────────────────────────── polish ─────────────────────────── */
+/*
+ * 요구서에 들어갈 의견 문장 다듬기 (2026-11-20 개선).
+ * 「빠졌어요」 같은 말투를 「누락되었습니다」 같은 서면 문장으로 바꾼다. 사실은 더하지 않는다.
+ * ★ 가드: 원문에 없는 숫자가 나오면 버린다. 사람 평가 · 법적 단정이 있으면 버린다.
+ *   길이가 원문의 두 배를 넘으면 버린다(말을 지어 붙인 것).
+ */
+export const POLISH_PROMPT = `당신은 사용자가 편하게 쓴 사정을 기관에 내는 서면의 문장으로 다듬는 보조 도구입니다.
+
+[규칙]
+- 사용자가 쓴 사실만 씁니다. 사실을 더하거나 빼거나 부풀리지 마십시오. 숫자 · 기간 · 날짜는 원문 그대로 둡니다.
+- 존댓말 서면체(~습니다)로, 3~5문장. 감정 표현은 사실 진술로 바꿉니다 (예: "억울해요" → 빼거나 "확인을 요청합니다").
+- 법적 결론(위법 · 무효 등)이나 상대에 대한 비난을 넣지 마십시오.
+- 이름 · 연락처 · 회사 실명은 넣지 마십시오.
+
+[응답 형식] 아래 JSON만 출력하십시오.
+{ "opinion": "다듬은 문장" }`
+
+const DIGITS_RE = /\d+(?:[.,]\d+)?/g
+
+/** 다듬은 문장 가드. 통과하면 문자열, 아니면 null. (테스트용 export) */
+export function guardPolish(opinion, story) {
+  const text = String(opinion ?? '').trim()
+  if (!text) return null
+  if (text.length > Math.max(200, String(story).length * 2)) return null
+  if (PIPA_SUGGEST_SCOPE.deniedTerms.some((t) => text.includes(t))) return null
+  if (PIPA_SUGGEST_SCOPE.verdictTerms.some((t) => text.includes(t))) return null
+  const src = String(story)
+  for (const n of text.match(DIGITS_RE) ?? []) if (!src.includes(n)) return null
+  return text
+}
+
 /* ─────────────────────────── 공통 ─────────────────────────── */
 
 /** 코드펜스를 벗기고 가장 바깥 중괄호를 파싱. 실패하면 null. (테스트용 export) */
@@ -231,6 +308,25 @@ export default async function handler(req, res) {
     finish = (parsed) => {
       const candidates = guardSuggestions(parsed?.candidates, story)
       return candidates.length ? { status: 200, json: { candidates } } : { status: 502, json: { error: 'no_valid_candidates' } }
+    }
+  } else if (mode === 'triage') {
+    const story = String(body?.story ?? '').slice(0, TRANSMIT_LIMITS.situation).trim()
+    const what = String(body?.what ?? '').slice(0, 200).trim()
+    const kind = PIPA_DECISION_KINDS_BY_ID[body?.kindId]
+    if (!story && !what) return res.status(400).json({ error: 'story_required' })
+    if (!kind || kind.route !== 'pipa') return res.status(400).json({ error: 'kind_invalid' })
+    const source = `${what}\n${story}`
+    system = TRIAGE_PROMPT
+    user = `결정 분야: ${kind.label}\n받은 결정: ${what || '(없음)'}\n사용자가 쓴 사정:\n${story || '(없음)'}\n\n세 질문의 답 후보를 JSON으로 답하십시오.`
+    finish = (parsed) => ({ status: 200, json: guardTriage(parsed, source) })
+  } else if (mode === 'polish') {
+    const story = String(body?.story ?? '').slice(0, TRANSMIT_LIMITS.situation).trim()
+    if (!story) return res.status(400).json({ error: 'story_required' })
+    system = POLISH_PROMPT
+    user = `사용자가 쓴 사정:\n${story}\n\n서면 문장으로 다듬어 JSON으로 답하십시오.`
+    finish = (parsed) => {
+      const opinion = guardPolish(parsed?.opinion, story)
+      return opinion ? { status: 200, json: { opinion } } : { status: 502, json: { error: 'no_valid_candidates' } }
     }
   } else if (mode === 'reply') {
     const replyText = String(body?.replyText ?? '').slice(0, TRANSMIT_LIMITS.responseText).trim()

@@ -106,6 +106,15 @@ const ENTRY_CARDS = [
     next: '어디에 어떻게 내는지, 답이 오지 않으면 무엇을 할 수 있는지 안내합니다.',
     dest: '이후 절차',
   },
+  /* 확장 범위 (2026-11-20) — 신용이 아닌 AI 결정도 「상황」이다. 넷째 카드로 2×2 를 채운다.
+     (예전에는 카드 아래 한 줄로 두었는데 첫 화면 밖이라 들어오는 사람이 못 봤다) */
+  {
+    id: 'ai-decision',
+    to: '/ai-decision',
+    situation: '채용 탈락, 계정 정지처럼 회사의 AI가 결정했습니다',
+    next: '사람 없이 내려진 결정이라면 거부하거나 설명을 요구할 수 있는지 가려 드립니다.',
+    dest: 'AI 결정에 묻기',
+  },
 ]
 
 function EntryCards({ onTour }) {
@@ -208,14 +217,6 @@ function EntryCards({ onTour }) {
             ))}
           </ul>
       </div>
-      {/* 확장 범위 (2026-11-20) — 신용이 아닌 AI 결정. 카드 셋의 격자를 깨지 않게 한 줄로 둔다. */}
-      <p className="rounded-md border border-ink-200 bg-ink-50 p-3 text-gray-800" data-testid="ai-decision-entry">
-        대출 · 카드가 아니라 <b>채용 탈락 · 플랫폼 계정 정지</b>처럼 AI가 내린 결정이라면 —{' '}
-        <Link to="/ai-decision" className="font-semibold text-ink-800 underline">
-          AI 결정에 「왜?」 묻기
-        </Link>{' '}
-        <span className="text-sm text-gray-600">(개인정보 보호법 제37조의2)</span>
-      </p>
     </section>
   )
 }

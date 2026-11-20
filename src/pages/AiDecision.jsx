@@ -33,7 +33,7 @@ import {
 import { DECISION_SAMPLES, DECISION_SAMPLES_BY_ID } from '../data/decision-samples.js'
 import { AI_PROCESSING, TRANSMIT_LIMITS } from '../data/privacy.js'
 import { judgePipa, checkReply } from '../lib/pipa-judge.js'
-import { requestSuggestions, requestReplyCheck } from '../lib/decision-client.js'
+import { requestSuggestions, requestReplyCheck, requestTriage, requestPolish } from '../lib/decision-client.js'
 
 const STEPS = ['무슨 결정', '권리 확인', '요구서', '회신 확인']
 const ITEM_IDS = PIPA_EXPLANATION_ITEMS.map((i) => i.id)
@@ -54,6 +54,22 @@ const EMPTY = {
   reply: '',
   timing: null,
   present: {},
+  /** AI 가 미리 고른 답 { auto: {answer, quote}, ... } — 사용자가 바꾸면 그 질문의 표시는 사라진다 */
+  aiAnswers: {},
+  /** AI 가 다듬은 의견 문장과, 그것을 요구서에 쓸지 */
+  polished: '',
+  usePolished: false,
+  /** 요구서를 보낸 날 — 회신 기한(30일) 계산용 */
+  sentDate: '',
+}
+
+/** 'YYYY-MM-DD' + n일 → Date (현지 자정) */
+function addDays(ymd, n) {
+  const [y, m, d] = ymd.split('-').map(Number)
+  return new Date(y, m - 1, d + n)
+}
+function ymdOf(date) {
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`
 }
 
 function fmtDate(s) {
@@ -120,6 +136,8 @@ export default function AiDecision() {
   const [sampleId, setSampleId] = useState(null)
   const [suggest, setSuggest] = useState({ state: 'idle' })
   const [replyAi, setReplyAi] = useState({ state: 'idle' })
+  const [triage, setTriage] = useState({ state: 'idle' })
+  const [polish, setPolish] = useState({ state: 'idle' })
   const set = (patch) => setS((p) => ({ ...p, ...patch }))
 
   // ?sample=hire | platform — 랜딩에서 바로 채운다
@@ -130,7 +148,8 @@ export default function AiDecision() {
     setS({
       ...EMPTY,
       kindId: sm.kindId,
-      answers: sm.answers,
+      // ★ 샘플도 세 질문은 비워 둔다 — [AI로 미리 답하기]가 무엇을 하는지 직접 보게 한다
+      answers: {},
       org: sm.org,
       when: sm.when,
       what: sm.what,
@@ -141,6 +160,8 @@ export default function AiDecision() {
     setSampleId(sm.id)
     setSuggest({ state: 'idle' })
     setReplyAi({ state: 'idle' })
+    setTriage({ state: 'idle' })
+    setPolish({ state: 'idle' })
     setStep(2)
   }, [params])
 
@@ -165,7 +186,29 @@ export default function AiDecision() {
     setSampleId(null)
     setSuggest({ state: 'idle' })
     setReplyAi({ state: 'idle' })
+    setTriage({ state: 'idle' })
+    setPolish({ state: 'idle' })
     go(1)
+  }
+
+  async function askTriage() {
+    setTriage({ state: 'loading' })
+    const r = await requestTriage({ kindId: s.kindId, what: s.what, story: s.story })
+    setTriage({ state: 'done', ...r })
+    if (r.result) {
+      // 근거가 있는 답만 미리 고른다. 'unk' 는 고르지 않고 비워 둬 사용자가 보게 한다.
+      const picked = Object.fromEntries(
+        Object.entries(r.result).filter(([, v]) => v.answer !== 'unk').map(([k, v]) => [k, v.answer]),
+      )
+      setS((p) => ({ ...p, answers: { ...p.answers, ...picked }, aiAnswers: r.result }))
+    }
+  }
+
+  async function askPolish() {
+    setPolish({ state: 'loading' })
+    const r = await requestPolish(s.story)
+    setPolish({ state: 'done', ...r })
+    if (r.opinion) set({ polished: r.opinion, usePolished: true })
   }
 
   async function askSuggest() {
@@ -195,7 +238,7 @@ export default function AiDecision() {
     }))
 
   const opinion = [
-    s.story.trim(),
+    (s.usePolished && s.polished ? s.polished : s.story).trim(),
     ...s.picked.map((p) => `· ${p.정보}${p.자료 ? ` (제출 자료: ${p.자료})` : ''}`),
   ]
     .filter(Boolean)
@@ -280,21 +323,56 @@ export default function AiDecision() {
               세 가지만 확인할게요
             </h2>
             <p className="mt-1 text-gray-700">
-              「모르겠어요」도 괜찮습니다. 모르는 부분은 요구서에서 기관에 직접 묻게 써 드립니다.
+              무슨 일이 있었는지 먼저 적어 주시면 AI가 세 질문의 답을 미리 골라 드립니다. 「모르겠어요」도
+              괜찮습니다. 모르는 부분은 요구서에서 기관에 직접 묻게 써 드립니다.
             </p>
           </div>
+
+          <Card className="space-y-3" data-testid="pipa-triage">
+            <label className="block">
+              <span className="font-semibold text-gray-900">어떤 결정이었나요?</span>
+              <input className="mt-1 w-full rounded-md border border-gray-400 bg-white p-3" value={s.what} maxLength={200} onChange={(e) => set({ what: e.target.value })} placeholder="예: 서류 전형 불합격 (AI 역량검사 결과로 안내받음)" />
+            </label>
+            <label className="block">
+              <span className="font-semibold text-gray-900">무슨 일이 있었나요? 짐작되는 이유나 억울한 점</span>
+              <span className="block text-sm text-gray-600">
+                신원을 알 수 있는 내용(이름 · 연락처 · 회사 실명)은 쓰지 마세요. 최대 {TRANSMIT_LIMITS.situation.toLocaleString()}자.
+              </span>
+              <textarea className="mt-1 min-h-28 w-full rounded-md border border-gray-400 bg-white p-3" value={s.story} maxLength={TRANSMIT_LIMITS.situation} onChange={(e) => set({ story: e.target.value, polished: '', usePolished: false, aiAnswers: {} })} />
+            </label>
+            <p className="text-xs text-gray-600">
+              {AI_PROCESSING.short} 보내는 것: {AI_PROCESSING.sent.decisionSuggest}.
+            </p>
+            <button type="button" className="btn btn-primary" disabled={!(s.story.trim() || s.what.trim()) || triage.state === 'loading'} onClick={askTriage}>
+              {triage.state === 'loading' ? '읽는 중…' : 'AI로 세 질문 미리 답하기'}
+            </button>
+            {triage.state === 'loading' && <Status>AI가 적으신 글에서 단서를 찾고 있어요.</Status>}
+            {triage.state === 'done' && (
+              <p className="text-sm text-gray-700">
+                {triage.result
+                  ? '글에 단서가 있는 질문만 미리 골랐어요. 근거로 삼은 문장이 각 질문 아래에 나옵니다. 권리 판정은 AI가 아니라 프로그램이 조문대로 합니다.'
+                  : triage.notice}
+              </p>
+            )}
+          </Card>
+
           {PIPA_QUESTIONS.filter((q) => q.id === 'auto' || s.answers.auto !== 'yes').map((q) => (
             <fieldset key={q.id} className="space-y-2">
               <legend className="font-bold text-gray-900">{q.title}</legend>
               <p className="text-sm text-gray-600">
                 {q.help} <Basis>{q.basis}</Basis>
               </p>
+              {s.aiAnswers[q.id]?.answer && s.aiAnswers[q.id].answer !== 'unk' && s.answers[q.id] === s.aiAnswers[q.id].answer && (
+                <p className="rounded-md border border-seal-300 bg-seal-50 px-3 py-2 text-sm text-gray-800" data-testid={`ai-pick-${q.id}`}>
+                  <b className="text-seal-800">AI가 고른 답</b> — 근거: “{s.aiAnswers[q.id].quote}”. 아니면 다른 답을 누르세요.
+                </p>
+              )}
               <div className="grid gap-2 sm:grid-cols-2">
                 {q.options.map((o) => (
                   <Choice
                     key={o.id}
                     selected={s.answers[q.id] === o.id}
-                    onClick={() => set({ answers: { ...s.answers, [q.id]: o.id } })}
+                    onClick={() => setS((p) => ({ ...p, answers: { ...p.answers, [q.id]: o.id } }))}
                   >
                     {o.label}
                   </Choice>
@@ -363,17 +441,38 @@ export default function AiDecision() {
               <span className="font-semibold text-gray-900">결정을 통보받은 날</span>
               <input type="date" className="rounded-md border border-gray-400 bg-white p-3 mt-1 w-full" value={s.when} onChange={(e) => set({ when: e.target.value })} />
             </label>
-            <label className="block">
-              <span className="font-semibold text-gray-900">어떤 결정이었나요?</span>
-              <input className="rounded-md border border-gray-400 bg-white p-3 mt-1 w-full" value={s.what} maxLength={200} onChange={(e) => set({ what: e.target.value })} placeholder="예: 서류 전형 불합격 (AI 역량검사 결과로 안내받음)" />
-            </label>
-            <label className="block">
-              <span className="font-semibold text-gray-900">짐작되는 이유나 억울한 점</span>
-              <span className="block text-sm text-gray-600">
-                신원을 알 수 있는 내용(이름 · 연락처 · 회사 실명)은 쓰지 마세요. 최대 {TRANSMIT_LIMITS.situation.toLocaleString()}자.
-              </span>
-              <textarea className="rounded-md border border-gray-400 bg-white p-3 mt-1 min-h-28 w-full" value={s.story} maxLength={TRANSMIT_LIMITS.situation} onChange={(e) => set({ story: e.target.value })} />
-            </label>
+            <p className="text-sm text-gray-700">
+              적으신 사정과 결정 내용은 2단계에서 고칠 수 있습니다.{' '}
+              <button type="button" className="underline" onClick={() => go(2)}>
+                2단계로
+              </button>
+            </p>
+
+            {s.story.trim() && (
+              <Card className="space-y-3" data-testid="pipa-polish">
+                <h3 className="font-bold text-gray-900">AI로 요구서 문장 다듬기</h3>
+                <p className="text-sm text-gray-700">
+                  편하게 쓰신 사정을 기관에 내는 서면 문장으로 바꿉니다. 사실은 더하지 않고, 원문에 없는 숫자가
+                  나오면 버립니다.
+                </p>
+                <button type="button" className="btn btn-secondary" disabled={polish.state === 'loading'} onClick={askPolish}>
+                  {polish.state === 'loading' ? '다듬는 중…' : '문장 다듬기'}
+                </button>
+                {polish.state === 'done' && !s.polished && <p className="text-sm text-gray-700">{polish.notice}</p>}
+                {s.polished && (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Choice selected={!s.usePolished} onClick={() => set({ usePolished: false })}>
+                      <span className="block text-sm font-semibold">적은 그대로</span>
+                      <span className="mt-1 block text-sm opacity-90">{s.story}</span>
+                    </Choice>
+                    <Choice selected={s.usePolished} onClick={() => set({ usePolished: true })}>
+                      <span className="block text-sm font-semibold">AI가 다듬은 문장</span>
+                      <span className="mt-1 block text-sm opacity-90">{s.polished}</span>
+                    </Choice>
+                  </div>
+                )}
+              </Card>
+            )}
 
             {verdict.review && (
               <Card className="space-y-3" data-testid="pipa-suggest">
@@ -543,6 +642,31 @@ export default function AiDecision() {
               사람이 다시 본다는 문장이 있어요: “{replyAi.result.human.quote}”
             </p>
           )}
+
+          <Card className="space-y-2" data-testid="pipa-deadline">
+            <label className="block">
+              <span className="font-semibold text-gray-900">기관이 요구서를 받은 날</span>
+              <span className="block text-sm text-gray-600">
+                기한은 기관이 받은 날부터 셉니다. 우편이면 도착한 날, 모르면 보낸 날을 적으세요.{' '}
+                <Basis>{PIPA_DEADLINE.basis}</Basis>
+              </span>
+              <input type="date" className="mt-1 w-full rounded-md border border-gray-400 bg-white p-3 sm:w-64" value={s.sentDate} onChange={(e) => set({ sentDate: e.target.value })} />
+            </label>
+            {s.sentDate && (() => {
+              const due = addDays(s.sentDate, PIPA_DEADLINE.days)
+              const maxDue = addDays(s.sentDate, PIPA_DEADLINE.days + PIPA_DEADLINE.extensionDays * PIPA_DEADLINE.maxExtensions)
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const left = Math.round((due - today) / 86400000)
+              return (
+                <p className="text-gray-800">
+                  기한은 <b>{ymdOf(due)}</b>
+                  {left >= 0 ? ` — ${left}일 남았어요.` : ` — ${-left}일 지났어요.`} 연장 안내를 받았다면 최대{' '}
+                  {ymdOf(maxDue)}까지 늦어질 수 있어요.
+                </p>
+              )
+            })()}
+          </Card>
 
           <fieldset className="space-y-2">
             <legend className="font-bold text-gray-900">회신을 언제 받았나요?</legend>

@@ -56,3 +56,28 @@ export async function requestReplyCheck(replyText) {
   }
   return { result: body, source: 'ai', notice: null }
 }
+
+/**
+ * 세 질문 미리 답하기. 실패하면 null — 화면은 사용자가 직접 고르게 둔다.
+ * @returns {Promise<{result: {auto,big,basis}|null, notice: string|null}>}
+ */
+export async function requestTriage({ kindId, what, story }) {
+  if (!story?.trim() && !what?.trim()) return { result: null, notice: null }
+  const { body, error } = await post({ mode: 'triage', kindId, what, story })
+  if (error || !body?.auto) {
+    const why = (FALLBACK_REASONS[error] ?? FALLBACK_REASONS.default).replace('기본 목록을 보여드립니다.', '')
+    return { result: null, notice: `${why}세 질문은 직접 골라 주세요.`.trim() }
+  }
+  return { result: body, notice: null }
+}
+
+/** 의견 문장 다듬기. 실패하면 null — 원문을 그대로 쓴다. */
+export async function requestPolish(story) {
+  if (!story?.trim()) return { opinion: null, notice: null }
+  const { body, error } = await post({ mode: 'polish', story })
+  if (error || !body?.opinion) {
+    const why = (FALLBACK_REASONS[error] ?? FALLBACK_REASONS.default).replace('기본 목록을 보여드립니다.', '')
+    return { opinion: null, notice: `${why}적으신 문장을 그대로 씁니다.`.trim() }
+  }
+  return { opinion: body.opinion, notice: null }
+}

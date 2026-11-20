@@ -89,5 +89,28 @@ t('JSON 파싱 실패 → null', D.parseJsonObject('없음') === null)
 t('제안 프롬프트에 시행령 원문', D.SUGGEST_PROMPT.includes(L.PIPA_SUGGEST_SCOPE.lawText))
 t('회신 프롬프트에 4항목 원문', L.PIPA_EXPLANATION_ITEMS.every((i) => D.REPLY_PROMPT.includes(i.law)))
 
+// ── 세 질문 미리 답하기 가드 (2026-11-20 개선) ──
+const src = '서류 전형 불합격 (AI 역량검사 결과로 안내받음)\n지원서 양식에 경력을 넣을 칸이 없어서 빠졌어요.'
+const tg = D.guardTriage({
+  auto: { answer: 'no', quote: 'AI 역량검사 결과로 안내받음' },
+  big: { answer: 'yes', quote: '최종 합격이 취소됐다' },
+  basis: { answer: 'contract', quote: '' },
+}, src)
+t('근거 있는 답은 인정', tg.auto.answer === 'no' && tg.auto.quote.length > 0)
+t('★ 원문에 없는 근거 → 모르겠어요', tg.big.answer === 'unk' && tg.big.quote === '')
+t('근거 없는 답 → 모르겠어요', tg.basis.answer === 'unk')
+t('허용 밖 값 → 모르겠어요', D.guardTriage({ auto: { answer: 'maybe', quote: '양식에' } }, src).auto.answer === 'unk')
+t('빠진 질문도 세 키 모두 채움', Object.keys(D.guardTriage({}, src)).join() === 'auto,big,basis')
+t('선택지는 law.js 질문과 같다', L.PIPA_QUESTIONS.every((q) => D.TRIAGE_OPTIONS[q.id].join() === q.options.map((o) => o.id).join()))
+
+// ── 문장 다듬기 가드 ──
+const story2 = '배달 일을 2년 했고 평점은 4.9였어요. 계정이 7일 정지됐어요.'
+t('원문 숫자만 쓴 문장은 통과', D.guardPolish('배달 업무를 2년간 수행했으며 평점은 4.9였습니다. 계정이 7일간 정지되었습니다.', story2) !== null)
+t('★ 원문에 없는 숫자 → 버림', D.guardPolish('배달 업무를 3년간 수행했습니다.', story2) === null)
+t('법적 단정 → 버림', D.guardPolish('이 결정은 위법합니다.', story2) === null)
+t('지나치게 길면 버림', D.guardPolish('가'.repeat(600), story2) === null)
+t('빈 문장 → 버림', D.guardPolish('', story2) === null)
+t('프롬프트에 세 질문 id', ['auto', 'big', 'basis'].every((k) => D.TRIAGE_PROMPT.includes(k)))
+
 console.log(fail ? `통과 ${pass} / 실패 ${fail}` : `모두 통과 (${pass})`)
 process.exit(fail ? 1 : 0)
