@@ -2335,7 +2335,7 @@ export const PIPA_REMEDIES = [
     id: 'mediation',
     label: '개인정보 분쟁조정위원회',
     contact: '1833-6972',
-    what: '조정을 신청할 수 있습니다. 비용이 들지 않습니다.',
+    what: '조정을 신청할 수 있습니다.',
   },
   {
     id: 'objection',
