@@ -1,4 +1,4 @@
-const src = (await import('node:fs')).readFileSync(new URL('../src/', import.meta.url).pathname+'components/PrintSetup.jsx','utf8')
+const src = (await import('node:fs')).readFileSync(new URL('../src/components/PrintSetup.jsx', import.meta.url),'utf8')
 const body = src.slice(src.indexOf('export function isOldSafariPrint'))
 const fnSrc = body.slice(0, body.indexOf('\n}\n')+2).replace('export function','function')
 const isOld = eval(`(${fnSrc.replace('function isOldSafariPrint','function')})`)
