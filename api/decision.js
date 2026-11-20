@@ -171,33 +171,51 @@ export const TRIAGE_OPTIONS = {
   basis: ['unk', 'consent', 'contract', 'law'],
 }
 
-export const TRIAGE_PROMPT = `당신은 사용자가 쓴 글에서 사실을 찾아 세 질문의 답 후보를 고르는 보조 도구입니다.
-법적 판단은 하지 않습니다. 글에 근거가 있을 때만 답을 고르고, 없으면 "unk" 입니다.
+/*
+ * ★ AI 에게는 yes/no 를 주지 않는다 (2026-11-21 운영 실측).
+ *   「사람이 검토했나요?」에 yes/no 로 답하게 했더니 「AI 역량검사 결과로 안내받음」을 근거로
+ *   yes(= 사람이 검토)를 골랐다. 질문의 방향과 값의 뜻이 엇갈린 것이다.
+ *   그래서 AI 는 뜻이 스스로 드러나는 낱말로 답하고, 서버가 화면의 값으로 바꾼다.
+ */
+const TRIAGE_WORDS = {
+  auto: { automatic: 'no', human: 'yes' },
+  big: { large: 'yes', small: 'no' },
+  basis: { consent: 'consent', contract: 'contract', law: 'law' },
+}
 
-[질문]
-auto  — 사람이 그 결정을 직접 검토했나요?  "no"(자동으로 나왔다는 단서가 있음) / "yes"(담당자가 판단했다는 단서가 있음) / "unk"
-big   — 그 결정이 권리나 의무에 큰 영향을 줬나요? (탈락 · 정지 · 거절 · 해지처럼 결과가 달라졌는가)  "yes" / "no" / "unk"
-basis — 그 결정의 근거는?  "consent"(본인이 동의했다는 단서) / "contract"(가입 · 계약 · 약관 이행이라는 단서) / "law"(법에 정해져 있다는 단서) / "unk"
+export const TRIAGE_PROMPT = `당신은 사용자가 쓴 글에서 사실을 찾아 세 가지 사항의 답 후보를 고르는 보조 도구입니다.
+법적 판단은 하지 않습니다. 글에 근거가 있을 때만 답을 고르고, 없으면 "unknown" 입니다.
+
+[사항과 답]
+auto  — 그 결정을 누가 내렸는가
+        "automatic" : AI · 자동 심사 · 시스템 · 앱 알림처럼 사람 없이 내려졌다는 단서가 있음
+        "human"     : 면접관 · 담당자 · 심사위원처럼 사람이 판단했다는 단서가 있음
+big   — 결정이 삶에 준 영향
+        "large" : 탈락 · 불합격 · 정지 · 거절 · 해지처럼 결과가 달라짐
+        "small" : 안내 · 순서 변경처럼 결과가 달라지지 않음
+basis — 결정의 근거
+        "consent"  : 본인이 동의했다는 단서
+        "contract" : 가입 · 계약 · 약관에 따른 것이라는 단서
+        "law"      : 법에 정해져 있다는 단서
 
 [규칙]
 - quote 는 사용자 글에서 **한 글자도 바꾸지 않고** 옮긴 연속된 부분(최대 80자)이어야 합니다.
-- 짐작으로 고르지 마십시오. 단서가 약하면 "unk", quote 는 "".
-- 배달 · 대리운전 같은 플랫폼 일이라는 사실만으로 계약이라고 단정하지 마십시오. 약관 · 계약이라는 말이 있을 때만 contract 입니다.
+- 짐작으로 고르지 마십시오. 단서가 약하면 "unknown", quote 는 "".
+- 플랫폼 일이라는 사실만으로 contract 라고 단정하지 마십시오. 약관 · 계약이라는 말이 있을 때만입니다.
 
 [응답 형식] 아래 JSON만 출력하십시오.
-{ "auto": {"answer":"no","quote":"..."}, "big": {"answer":"yes","quote":"..."}, "basis": {"answer":"unk","quote":""} }`
+{ "auto": {"answer":"automatic","quote":"..."}, "big": {"answer":"large","quote":"..."}, "basis": {"answer":"unknown","quote":""} }`
 
-/** 답 후보 가드 — 허용된 값 + 원문 인용이 있을 때만 인정. (테스트용 export) */
+/** 답 후보 가드 — 허용된 낱말 + 원문 인용이 있을 때만 화면 값으로 바꿔 인정. (테스트용 export) */
 export function guardTriage(parsed, source) {
   const hay = squash(source)
   const out = {}
-  for (const [q, allowed] of Object.entries(TRIAGE_OPTIONS)) {
+  for (const q of Object.keys(TRIAGE_OPTIONS)) {
     const v = parsed?.[q]
-    const answer = String(v?.answer ?? 'unk')
+    const mapped = TRIAGE_WORDS[q][String(v?.answer ?? '')]
     const quote = String(v?.quote ?? '').trim().slice(0, 80)
     const grounded = squash(quote).length >= 2 && hay.includes(squash(quote))
-    if (!allowed.includes(answer) || answer === 'unk' || !grounded) out[q] = { answer: 'unk', quote: '' }
-    else out[q] = { answer, quote }
+    out[q] = mapped && grounded ? { answer: mapped, quote } : { answer: 'unk', quote: '' }
   }
   return out
 }

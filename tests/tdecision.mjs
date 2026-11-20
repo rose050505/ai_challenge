@@ -92,14 +92,15 @@ t('회신 프롬프트에 4항목 원문', L.PIPA_EXPLANATION_ITEMS.every((i) =>
 // ── 세 질문 미리 답하기 가드 (2026-11-20 개선) ──
 const src = '서류 전형 불합격 (AI 역량검사 결과로 안내받음)\n지원서 양식에 경력을 넣을 칸이 없어서 빠졌어요.'
 const tg = D.guardTriage({
-  auto: { answer: 'no', quote: 'AI 역량검사 결과로 안내받음' },
-  big: { answer: 'yes', quote: '최종 합격이 취소됐다' },
+  auto: { answer: 'automatic', quote: 'AI 역량검사 결과로 안내받음' },
+  big: { answer: 'large', quote: '최종 합격이 취소됐다' },
   basis: { answer: 'contract', quote: '' },
 }, src)
-t('근거 있는 답은 인정', tg.auto.answer === 'no' && tg.auto.quote.length > 0)
+t('근거 있는 답은 인정하고 화면 값으로 (automatic → no)', tg.auto.answer === 'no' && tg.auto.quote.length > 0)
 t('★ 원문에 없는 근거 → 모르겠어요', tg.big.answer === 'unk' && tg.big.quote === '')
 t('근거 없는 답 → 모르겠어요', tg.basis.answer === 'unk')
-t('허용 밖 값 → 모르겠어요', D.guardTriage({ auto: { answer: 'maybe', quote: '양식에' } }, src).auto.answer === 'unk')
+t('★ yes/no 를 그대로 보내면 인정 안 함 (방향 혼동 방지)', D.guardTriage({ auto: { answer: 'yes', quote: '양식에' } }, src).auto.answer === 'unk')
+t('human → yes, large → yes', (() => { const r = D.guardTriage({ auto: { answer: 'human', quote: '양식에' }, big: { answer: 'large', quote: '불합격' } }, src); return r.auto.answer === 'yes' && r.big.answer === 'yes' })())
 t('빠진 질문도 세 키 모두 채움', Object.keys(D.guardTriage({}, src)).join() === 'auto,big,basis')
 t('선택지는 law.js 질문과 같다', L.PIPA_QUESTIONS.every((q) => D.TRIAGE_OPTIONS[q.id].join() === q.options.map((o) => o.id).join()))
 
